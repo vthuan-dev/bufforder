@@ -147,7 +147,7 @@ const watchProducts = [
   //   image: "https://picsum.photos/seed/watch-20/300/300",
   //   price: 40000,
   // }
-  }
+  Ư}
 ];
 
 export function OrdersPage() {

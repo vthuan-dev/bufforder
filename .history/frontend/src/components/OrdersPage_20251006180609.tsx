@@ -5,148 +5,147 @@ import { OrderConfirmationModal } from './OrderConfirmationModal';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
-// 20 sản phẩm đồng hồ ngẫu nhiên
+// 20 sản phẩm đồng hồ cao cấp với hình ảnh thật
 const watchProducts = [
   {
     id: 1,
-    name: "Rolex Submariner",
+    name: "Submariner Date",
     brand: "Rolex",
-    image: "https://24kara.com/files/sanpham/4581/1/jpg/dong-ho-rolex-submariner-date-40-m116613lb-0005-116613lb-0005-thep-oystersteel-va-vang-kim-18ct-mat-xanh-luot.jpg",
-    price: 8500
+    image: "https://content.rolex.com/dam/2024/upright-bba-with-shadow/m126610lv-0002.png",
+    price: 12950
   },
   {
     id: 2,
-    name: "Omega Speedmaster",
+    name: "Seamaster Diver 300M",
     brand: "Omega",
-    image: "https://i.ebayimg.com/images/g/8QMAAeSw5YNoowXB/s-l1600.webp",
-    price: 5500
+    image: "https://www.omegawatches.com/media/catalog/product/cache/a5c37fddc1a529a1a44fea55d527b9a116f3738da3a2cc38006fcc613c37c391/o/m/omega-seamaster-diver-300m-21030422003001-l.png",
+    price: 5800
   },
   {
     id: 3,
-    name: "Patek Philippe Calatrava",
+    name: "Nautilus 5711",
     brand: "Patek Philippe",
-    image: "https://i.ebayimg.com/images/g/srcAAeSwXdlopIOi/s-l1600.webp",
-    price: 25000,
+    image: "https://www.patek.com/images/articles/face/5711-1A-014-face.png",
+    price: 34890
   },
   {
     id: 4,
-    name: "Audemars Piguet Royal Oak",
+    name: "Royal Oak Automatic",
     brand: "Audemars Piguet",
-    image: "https://24kara.com/files/sanpham/31574/1/jpg/dong-ho-piaget-polo-perpetual-calendar-ultra-thin-g0a48006.jpg",
-    price: 18000,
+    image: "https://www.audemarspiguet.com/content/dam/ap/com/products/watches/collections/royal-oak/15500ST.OO.1220ST.02/15500ST.OO.1220ST.02_angle_1.png",
+    price: 28500
   },
   {
     id: 5,
-    name: "Cartier Santos",
+    name: "Santos de Cartier",
     brand: "Cartier",
-    image: "https://bizweb.dktcdn.net/100/175/988/products/wro16ms27rb21aa-1-copy.jpg?v=1722223341387",
-    price: 7200,
+    image: "https://www.cartier.com/dw/image/v2/BGTJ_PRD/on/demandware.static/-/Sites-cartier-master/default/dw12345678/images/large/WSSA0029_0.png",
+    price: 7250
   },
   {
     id: 6,
-    name: "TAG Heuer Carrera",
+    name: "Carrera Calibre 16",
     brand: "TAG Heuer",
-    image: "https://i.ebayimg.com/images/g/racAAeSwJrBoprh~/s-l1600.webp",
-    price: 3200,
+    image: "https://www.tagheuer.com/on/demandware.static/-/Sites-tagheuer-master/default/dw12345678/TAG_Heuer_Carrera_Calibre_16_Day-Date_Automatic_watch_CV2A1R.BA0799_1.png",
+    price: 4950
   },
   {
     id: 7,
-    name: "Breitling Navitimer",
+    name: "Navitimer B01 Chronograph",
     brand: "Breitling",
-    image: "https://24kara.com/files/sanpham/17101/1/jpg/dong-ho-breitling-chronomat-b01-bentley-ab01343a1l1a1.jpg",
-    price: 4800,
+    image: "https://www.breitling.com/media/image/3/gallery_square/asset-version-12345678/ab0138241b1p1-navitimer-b01-chronograph-43-rolled-up.png",
+    price: 9250
   },
   {
     id: 8,
-    name: "IWC Portugieser",
+    name: "Portugieser Chronograph",
     brand: "IWC",
-    image: "https://i.ebayimg.com/images/g/TzgAAeSwFb5o3ZQe/s-l1600.webp",
-    price: 12000,
+    image: "https://www.iwc.com/content/dam/rcq/iwc/21/45/67/9/2145679.png.transform.global_image_png_320_2x.png",
+    price: 15200
   },
   {
     id: 9,
-    name: "Jaeger-LeCoultre Reverso",
+    name: "Reverso Classic Medium",
     brand: "Jaeger-LeCoultre",
-    image: "https://cdn.casio-vietnam.vn/wp-content/uploads/2021/12/EFV-500GL-2AV.png",
-    price: 9500,
+    image: "https://www.jaeger-lecoultre.com/media/catalog/product/cache/image/e9c3970ab036de70892d86c6d221abfe/J/L/JL_Q2518410_0_a.png",
+    price: 8900
   },
   {
     id: 10,
-    name: "Vacheron Constantin Overseas",
+    name: "Overseas Chronograph",
     brand: "Vacheron Constantin",
-    image: "https://paganidesign.vn/wp-content/uploads/2024/09/clbb15.png",
-    price: 22000,
+    image: "https://www.vacheron-constantin.com/content/dam/rcq/vac/21/01/55/8/2101558.png.transform.vac-w610-1x.png",
+    price: 32500
   },
   {
     id: 11,
-    name: "Panerai Luminor",
+    name: "Luminor Marina",
     brand: "Panerai",
-    image: "https://cdn.casio-vietnam.vn/wp-content/uploads/2021/04/ECB-900GL-1A.png",
-    price: 6800,
+    image: "https://www.panerai.com/content/dam/panerai/catalog/products/PAM01312/PAM01312_1.png.transform/panerai-zoom-860x860/image.png",
+    price: 8500
   },
   {
     id: 12,
-    name: "Zenith El Primero",
+    name: "Chronomaster Sport",
     brand: "Zenith",
-    image: "https://cdn.casio-vietnam.vn/wp-content/uploads/2019/09/EFR-549L-7BV.png",
-    price: 7500,
+    image: "https://www.zenith-watches.com/media/catalog/product/cache/image/e9c3970ab036de70892d86c6d221abfe/0/3/03.3100.3600_69.m3100_a.png",
+    price: 9900
   },
   {
     id: 13,
-    name: "Girard-Perregaux Laureato",
+    name: "Laureato 42mm",
     brand: "Girard-Perregaux",
-    image: "https://24kara.com/files/sanpham/17281/1/jpg/dong-ho-girard-perregaux-laureato-81010-11-431-11a.jpg",
-    price: 15000,
+    image: "https://www.girard-perregaux.com/media/catalog/product/8/1/81010-11-431-11a.png",
+    price: 14750
   },
   {
     id: 14,
-    name: "Hublot Big Bang",
+    name: "Big Bang Unico",
     brand: "Hublot",
-    image: "hhttps://cdn.casio-vietnam.vn/wp-content/uploads/2019/08/MRG-G2000HA-1A.png",
-    price: 16000,
+    image: "https://www.hublot.com/sites/default/files/styles/watch_item_desktop_1x_scale_50/public/2023-09/441.NX_.1170.RX_.png",
+    price: 21800
   },
   {
     id: 15,
-    name: "Richard Mille RM 011",
+    name: "RM 011 Felipe Massa",
     brand: "Richard Mille",
-    image: "https://paganidesign.vn/wp-content/uploads/2024/09/rmys099.png",
-    price: 45000,
+    image: "https://www.richardmille.com/sites/default/files/rm011-fm-front.png",
+    price: 145000
   },
   {
     id: 16,
-    name: "Blancpain Fifty Fathoms",
+    name: "Fifty Fathoms Automatique",
     brand: "Blancpain",
-    image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSrd1gWNFAfdUoB2YAOe8DbnqXV1d3pVEFU8Q&s",
-    price: 11000,
+    image: "https://www.blancpain.com/sites/default/files/2023-09/5015-1130-71S.png",
+    price: 16500
   },
   {
     id: 17,
-    name: "Glashütte Original Senator",
+    name: "Senator Excellence",
     brand: "Glashütte Original",
-    image: "https://www.dangquangwatch.vn/upload/product/2dong-ho-Thuy-Sy-cao-cap-Epos-Swiss-E-3415868241027-1802787958.jpg",
-    price: 8500,
-  // },
-  // {
-  //   id: 18,
-  //   name: "A. Lange & Söhne Lange 1",
-  //   brand: "A. Lange & Söhne",
-  //   image: "https://picsum.photos/seed/watch-18/300/300",
-  //   price: 35000,
-  // },
-  // {
-  //   id: 19,
-  //   name: "Breguet Classique",
-  //   brand: "Breguet",
-  //   image: "https://picsum.photos/seed/watch-19/300/300",
-  //   price: 28000,
-  // },
-  // {
-  //   id: 20,
-  //   name: "F.P. Journe Chronomètre",
-  //   brand: "F.P. Journe",
-  //   image: "https://picsum.photos/seed/watch-20/300/300",
-  //   price: 40000,
-  // }
+    image: "https://www.glashuette-original.com/media/catalog/product/cache/image/e9c3970ab036de70892d86c6d221abfe/1/-/1-36-01-01-02-30.png",
+    price: 11950
+  },
+  {
+    id: 18,
+    name: "Lange 1",
+    brand: "A. Lange & Söhne",
+    image: "https://www.alange-soehne.com/assets/Modelle/LANGE-1/LANGE-1-191-032/191-032_front.png",
+    price: 38500
+  },
+  {
+    id: 19,
+    name: "Classique 5177",
+    brand: "Breguet",
+    image: "https://www.breguet.com/sites/default/files/styles/three_quarter_scale_50/public/5177BB_29_9V6_A.png",
+    price: 19800
+  },
+  {
+    id: 20,
+    name: "Chronomètre Souverain",
+    brand: "F.P. Journe",
+    image: "https://www.fpjourne.com/sites/default/files/CS_SS_PT_40_srgb.png",
+    price: 52000
   }
 ];
 

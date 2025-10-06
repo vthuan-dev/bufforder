@@ -125,28 +125,27 @@ const watchProducts = [
     brand: "Glashütte Original",
     image: "https://www.dangquangwatch.vn/upload/product/2dong-ho-Thuy-Sy-cao-cap-Epos-Swiss-E-3415868241027-1802787958.jpg",
     price: 8500,
-  // },
-  // {
-  //   id: 18,
-  //   name: "A. Lange & Söhne Lange 1",
-  //   brand: "A. Lange & Söhne",
-  //   image: "https://picsum.photos/seed/watch-18/300/300",
-  //   price: 35000,
-  // },
-  // {
-  //   id: 19,
-  //   name: "Breguet Classique",
-  //   brand: "Breguet",
-  //   image: "https://picsum.photos/seed/watch-19/300/300",
-  //   price: 28000,
-  // },
-  // {
-  //   id: 20,
-  //   name: "F.P. Journe Chronomètre",
-  //   brand: "F.P. Journe",
-  //   image: "https://picsum.photos/seed/watch-20/300/300",
-  //   price: 40000,
-  // }
+  },
+  {
+    id: 18,
+    name: "A. Lange & Söhne Lange 1",
+    brand: "A. Lange & Söhne",
+    image: "https://picsum.photos/seed/watch-18/300/300",
+    price: 35000,
+  },
+  {
+    id: 19,
+    name: "Breguet Classique",
+    brand: "Breguet",
+    image: "https://picsum.photos/seed/watch-19/300/300",
+    price: 28000,
+  },
+  {
+    id: 20,
+    name: "F.P. Journe Chronomètre",
+    brand: "F.P. Journe",
+    image: "https://picsum.photos/seed/watch-20/300/300",
+    price: 40000,
   }
 ];
 
