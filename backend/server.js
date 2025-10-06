@@ -20,14 +20,25 @@ const chatRoutes = require('./routes/chat');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: 'http://localhost:3000', credentials: true }
+  cors: { 
+    origin: [
+      'http://localhost:3000',
+      'https://bufforder-1m9b.vercel.app',
+      'https://bufforder.vercel.app'
+    ], 
+    credentials: true 
+  }
 });
 // expose io to routes
 app.set('io', io);
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:3000', // Frontend URL
+  origin: [
+    'http://localhost:3000', // Local development
+    'https://bufforder-1m9b.vercel.app', // Vercel frontend
+    'https://bufforder.vercel.app' // Alternative Vercel URL
+  ],
   credentials: true
 }));
 app.use(express.json());
