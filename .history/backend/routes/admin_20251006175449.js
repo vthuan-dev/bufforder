@@ -640,9 +640,9 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
     }
     
     // Handle balance increase using addDeposit method (same as user deposit)
-    if (balanceIncrease && balanceIncrease > 0) {
-      console.log('[ADMIN PUT USER] Applying balance increase using addDeposit method:', balanceIncrease);
-      const upgradeInfo = user.addDeposit(balanceIncrease);
+    if (updates.balanceIncrease && updates.balanceIncrease > 0) {
+      console.log('[ADMIN PUT USER] Applying balance increase using addDeposit method:', updates.balanceIncrease);
+      const upgradeInfo = user.addDeposit(updates.balanceIncrease);
       console.log('[ADMIN PUT USER] addDeposit result:', { 
         balance: user.balance, 
         totalDeposited: user.totalDeposited, 

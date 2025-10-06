@@ -598,7 +598,6 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
 
     // Prepare one atomic update operation
     let atomicUpdate = { $set: {}, $inc: {} };
-    let balanceIncrease = null;
 
     // Handle balance update using the same logic as user deposit
     if (balance !== undefined) {
@@ -615,8 +614,8 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
       // If balance increased, use addDeposit method (same as user deposit logic)
       if (delta > 0) {
         console.log('[ADMIN PUT USER] Using addDeposit method for delta:', delta);
-        // Store delta separately, don't add to updates object
-        balanceIncrease = delta;
+        // We'll handle this after getting the user object
+        updates.balanceIncrease = delta;
       } else {
         // Just update balance if no increase
         atomicUpdate.$set.balance = newBalance;
@@ -640,9 +639,9 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
     }
     
     // Handle balance increase using addDeposit method (same as user deposit)
-    if (balanceIncrease && balanceIncrease > 0) {
-      console.log('[ADMIN PUT USER] Applying balance increase using addDeposit method:', balanceIncrease);
-      const upgradeInfo = user.addDeposit(balanceIncrease);
+    if (updates.balanceIncrease && updates.balanceIncrease > 0) {
+      console.log('[ADMIN PUT USER] Applying balance increase using addDeposit method:', updates.balanceIncrease);
+      const upgradeInfo = user.addDeposit(updates.balanceIncrease);
       console.log('[ADMIN PUT USER] addDeposit result:', { 
         balance: user.balance, 
         totalDeposited: user.totalDeposited, 

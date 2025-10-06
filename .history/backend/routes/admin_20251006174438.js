@@ -598,9 +598,7 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
 
     // Prepare one atomic update operation
     let atomicUpdate = { $set: {}, $inc: {} };
-    let balanceIncrease = null;
 
-    // Handle balance update using the same logic as user deposit
     if (balance !== undefined) {
       const newBalance = Number(balance);
       if (isNaN(newBalance)) {
@@ -610,16 +608,16 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
         return res.status(400).json({ success: false, message: 'Balance decrease is not allowed' });
       }
       const delta = newBalance - currentUser.balance;
-      console.log('[ADMIN PUT USER] Balance update - current:', currentUser.balance, 'new:', newBalance, 'delta:', delta);
+      console.log('[ADMIN PUT USER] newBalance/delta', { newBalance, delta, currentBalance: currentUser.balance, currentTotalDeposited: currentUser.totalDeposited });
       
-      // If balance increased, use addDeposit method (same as user deposit logic)
+      // Set new balance
+      atomicUpdate.$set.balance = newBalance;
+      
+      // If balance increased, increase totalDeposited by the same amount
       if (delta > 0) {
-        console.log('[ADMIN PUT USER] Using addDeposit method for delta:', delta);
-        // Store delta separately, don't add to updates object
-        balanceIncrease = delta;
-      } else {
-        // Just update balance if no increase
-        atomicUpdate.$set.balance = newBalance;
+        const newTotalDeposited = (currentUser.totalDeposited || 0) + delta;
+        atomicUpdate.$set.totalDeposited = newTotalDeposited;
+        console.log('[ADMIN PUT USER] Updating totalDeposited from', currentUser.totalDeposited, 'to', newTotalDeposited);
       }
     }
     if (isActive !== undefined) updates.isActive = isActive;
@@ -633,24 +631,26 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
     if (!Object.keys(atomicUpdate.$inc).length) delete atomicUpdate.$inc;
     console.log('[ADMIN PUT USER] atomicUpdate', JSON.stringify(atomicUpdate));
     
-    // Update user with non-balance fields first
+    // Update user and ensure totalDeposited is preserved
     const user = await User.findByIdAndUpdate(req.params.id, atomicUpdate, { new: true }).select('-password');
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
     
-    // Handle balance increase using addDeposit method (same as user deposit)
-    if (balanceIncrease && balanceIncrease > 0) {
-      console.log('[ADMIN PUT USER] Applying balance increase using addDeposit method:', balanceIncrease);
-      const upgradeInfo = user.addDeposit(balanceIncrease);
-      console.log('[ADMIN PUT USER] addDeposit result:', { 
-        balance: user.balance, 
-        totalDeposited: user.totalDeposited, 
-        vipLevel: user.vipLevel,
-        upgradeInfo 
-      });
+    // Double-check: if we updated balance but totalDeposited wasn't updated properly, fix it
+    if (balance !== undefined) {
+      const expectedDelta = Number(balance) - currentUser.balance;
+      if (expectedDelta > 0) {
+        const expectedTotalDeposited = (currentUser.totalDeposited || 0) + expectedDelta;
+        if (user.totalDeposited !== expectedTotalDeposited) {
+          console.log('[ADMIN PUT USER] FIXING totalDeposited - expected:', expectedTotalDeposited, 'actual:', user.totalDeposited);
+          user.totalDeposited = expectedTotalDeposited;
+        }
+      }
     }
     
+    // Update VIP level based on current totalDeposited
+    user.updateVipLevel();
     await user.save();
     console.log('[ADMIN PUT USER] final result', { balance: user.balance, totalDeposited: user.totalDeposited, vipLevel: user.vipLevel });
     res.json({ success: true, data: { user: user.toJSON() } });
