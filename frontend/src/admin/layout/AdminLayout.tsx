@@ -16,7 +16,7 @@ export function AdminLayout({ children, onLogout, adminData }: AdminLayoutProps)
       </aside>
       <section className={styles.main}>
         <header className={styles.header}>
-          <h1>Admin Dashboard</h1>
+          <h1></h1>
         </header>
         <main className={styles.content}>{children}</main>
       </section>
