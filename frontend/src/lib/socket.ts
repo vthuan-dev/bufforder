@@ -6,7 +6,7 @@ let userSocket: Socket | null = null;
 export function getAdminSocket(): Socket {
   if (socket) return socket;
   const adminToken = localStorage.getItem('adminToken');
-  socket = io('http://localhost:5000', {
+  socket = io('https://bufforder.onrender.com', {
     transports: ['websocket'],
     auth: { adminToken }
   });
@@ -23,7 +23,7 @@ export function disconnectAdminSocket() {
 export function getUserSocket(): Socket {
   if (userSocket) return userSocket;
   const token = localStorage.getItem('token');
-  userSocket = io('http://localhost:5000', {
+  userSocket = io('https://bufforder.onrender.com', {
     transports: ['websocket'],
     auth: { token }
   });

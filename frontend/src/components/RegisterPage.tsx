@@ -3,10 +3,10 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { ArrowLeft, Phone, Lock, User, Mail } from 'lucide-react';
+import { ArrowLeft, Phone, Lock, User, KeyRound } from 'lucide-react';
 
 interface RegisterPageProps {
-  onRegister: (userData: { phoneNumber: string; password: string; fullName: string; email: string }) => Promise<void>;
+  onRegister: (userData: { phoneNumber: string; password: string; fullName: string; inviteCode: string }) => Promise<void>;
   onSwitchToLogin: () => void;
   onBack: () => void;
 }
@@ -15,7 +15,7 @@ export function RegisterPage({ onRegister, onSwitchToLogin, onBack }: RegisterPa
   const [formData, setFormData] = useState({
     fullName: '',
     phoneNumber: '',
-    email: '',
+    inviteCode: '',
     password: '',
     confirmPassword: ''
   });
@@ -28,10 +28,7 @@ export function RegisterPage({ onRegister, onSwitchToLogin, onBack }: RegisterPa
     return phoneRegex.test(phone);
   };
 
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
+  // no email validation, we use invite code
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -61,13 +58,8 @@ export function RegisterPage({ onRegister, onSwitchToLogin, onBack }: RegisterPa
       return;
     }
 
-    if (!formData.email.trim()) {
-      setError('Vui lòng nhập email');
-      return;
-    }
-
-    if (!validateEmail(formData.email)) {
-      setError('Email không hợp lệ');
+    if (!formData.inviteCode.trim()) {
+      setError('Vui lòng nhập mã thành viên');
       return;
     }
 
@@ -93,7 +85,7 @@ export function RegisterPage({ onRegister, onSwitchToLogin, onBack }: RegisterPa
         phoneNumber: formData.phoneNumber,
         password: formData.password,
         fullName: formData.fullName,
-        email: formData.email
+        inviteCode: formData.inviteCode
       });
     } catch (err: any) {
       setError(err.message || 'Đăng ký thất bại. Vui lòng thử lại.');
@@ -153,15 +145,15 @@ export function RegisterPage({ onRegister, onSwitchToLogin, onBack }: RegisterPa
               />
             </div>
 
-            {/* Email Input */}
+            {/* Invite Code Input */}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
+              <Label htmlFor="inviteCode" className="text-sm font-medium text-gray-700">Mã thành viên</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="Nhập email"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
+                id="inviteCode"
+                type="text"
+                placeholder="Nhập mã thành viên"
+                value={formData.inviteCode}
+                onChange={(e) => handleInputChange('inviteCode', e.target.value)}
                 className="h-12 text-base border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 disabled={isLoading}
               />

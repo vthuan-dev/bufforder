@@ -144,6 +144,28 @@ class ApiService {
     });
   }
 
+  // Add bank card
+  async addBankCard(token, { bankName, cardNumber, accountName, isDefault }) {
+    return this.request('/vip/bank-cards', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ bankName, cardNumber, accountName, isDefault })
+    });
+  }
+
+  // Delete bank card
+  async deleteBankCard(token, id) {
+    return this.request(`/vip/bank-cards/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+  }
+
   // Change password
   async changePassword(token, currentPassword, newPassword) {
     return this.request('/auth/change-password', {
@@ -159,6 +181,20 @@ class ApiService {
   // Get order stats
   async getOrderStats(token) {
     return this.request('/orders/stats', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+  }
+
+  // Get order history
+  async getOrderHistory(token, { page = 1, limit = 20, status } = {}) {
+    const params = new URLSearchParams();
+    params.set('page', String(page));
+    params.set('limit', String(limit));
+    if (status) params.set('status', status);
+    return this.request(`/orders/history?${params.toString()}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,

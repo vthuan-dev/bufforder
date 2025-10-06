@@ -512,7 +512,7 @@ export function MyPage() {
           {isLoading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Đang tải...</p>
+              <p className="mt-2 text-gray-600">Loading...</p>
             </div>
           ) : addresses.length > 0 ? (
             <div className="space-y-3 max-w-sm mx-auto">
@@ -542,7 +542,7 @@ export function MyPage() {
             </div>
           ) : (
             <div className="text-center py-8">
-              <p className="text-gray-500">Chưa có địa chỉ nào</p>
+              <p className="text-gray-500">No addresses yet</p>
             </div>
           )}
 
@@ -555,7 +555,7 @@ export function MyPage() {
                 disabled={isLoading}
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Thêm địa chỉ mới ({addresses.length}/3)
+                Add new address ({addresses.length}/3)
               </Button>
             </div>
           )}
@@ -570,7 +570,7 @@ export function MyPage() {
                 className={`bg-white rounded-lg p-4 sm:p-6 w-full max-w-sm sm:max-w-md max-h-[95vh] overflow-y-auto mx-2 sm:mx-0 transition-all duration-300 ${isClosing ? 'animate-out zoom-out-95 slide-out-to-bottom-2' : 'animate-in zoom-in-95 slide-in-from-bottom-2'}`}
                 onClick={(e) => e.stopPropagation()}
               >
-                <h3 className="text-lg font-semibold mb-4">Thêm địa chỉ mới</h3>
+                <h3 className="text-lg font-semibold mb-4">Add new address</h3>
                 
                 <div className="space-y-3 sm:space-y-4">
                   <div>
@@ -631,7 +631,7 @@ export function MyPage() {
                       onChange={(e) => setAddressData({...addressData, isDefault: e.target.checked})}
                       className="rounded w-4 h-4"
                     />
-                    <Label htmlFor="isDefault" className="text-sm">Đặt làm địa chỉ mặc định</Label>
+                    <Label htmlFor="isDefault" className="text-sm">Set as default</Label>
                   </div>
                 </div>
 
@@ -641,14 +641,14 @@ export function MyPage() {
                     className="flex-1 h-10 sm:h-11 text-sm sm:text-base touch-manipulation" 
                     onClick={handleCloseForm}
                   >
-                    Hủy
+                    Cancel
                   </Button>
                   <Button 
                     className="flex-1 h-10 sm:h-11 text-sm sm:text-base touch-manipulation" 
                     onClick={handleAddAddress}
                     disabled={isSaving}
                   >
-                    {isSaving ? 'Đang lưu...' : 'Thêm địa chỉ'}
+                    {isSaving ? 'Saving...' : 'Add address'}
                   </Button>
                 </div>
               </div>
@@ -836,12 +836,25 @@ export function MyPage() {
 
   // Transaction History Screen
   const TransactionHistoryScreen = () => {
-    const transactions = [
-      { id: 1, type: 'Deposit', amount: '+$500.00', date: '2024-01-15', status: 'Completed' },
-      { id: 2, type: 'Withdrawal', amount: '-$200.00', date: '2024-01-14', status: 'Pending' },
-      { id: 3, type: 'Deposit', amount: '+$1000.00', date: '2024-01-13', status: 'Completed' },
-      { id: 4, type: 'Withdrawal', amount: '-$150.00', date: '2024-01-12', status: 'Failed' },
-    ];
+    const [orders, setOrders] = useState<any[]>([]);
+    const [deposits, setDeposits] = useState<any[]>([]);
+
+    useEffect(() => {
+      const load = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          if (!token) return;
+          const ordersRes = await api.getOrderHistory(token, { page: 1, limit: 50 });
+          if (ordersRes.success) setOrders(ordersRes.data.orders);
+          const depRes = await api.getDepositRequests(token);
+          if (depRes.success) setDeposits(depRes.data.requests);
+        } catch (e) {
+          setOrders([]);
+          setDeposits([]);
+        }
+      };
+      load();
+    }, []);
 
     const getStatusIcon = (status: string) => {
       switch (status) {
@@ -857,23 +870,43 @@ export function MyPage() {
         <ScreenHeader title="Transaction History" />
         <div className="p-4">
           <div className="bg-white rounded-xl overflow-hidden">
-            {transactions.map((transaction, index) => (
-              <div key={transaction.id}>
+            {deposits.length === 0 && orders.length === 0 && (
+              <div className="p-8 text-center text-gray-500">No transactions yet</div>
+            )}
+            {deposits.map((d, index) => (
+              <div key={d._id || index}>
                 <div className="p-4 flex items-center justify-between">
                   <div className="flex-1">
-                    <p className="font-medium">{transaction.type}</p>
-                    <p className="text-sm text-gray-600">{transaction.date}</p>
+                    <p className="font-medium">Deposit</p>
+                    <p className="text-sm text-gray-600">{new Date(d.requestDate).toLocaleDateString()}</p>
                   </div>
                   <div className="text-right mr-4">
-                    <p className={`font-semibold ${transaction.type === 'Deposit' ? 'text-green-600' : 'text-red-600'}`}>
-                      {transaction.amount}
+                    <p className={`font-semibold text-green-600`}>+${Number(d.amount).toLocaleString()}</p>
+                  </div>
+                  <div className="flex items-center">
+                    {getStatusIcon(d.status === 'approved' ? 'Completed' : d.status === 'pending' ? 'Pending' : 'Failed')}
+                  </div>
+                </div>
+                <div className="border-b border-gray-100" />
+              </div>
+            ))}
+            {orders.map((o, index) => (
+              <div key={o._id || index}>
+                <div className="p-4 flex items-center justify-between">
+                  <div className="flex-1">
+                    <p className="font-medium">Order completed</p>
+                    <p className="text-sm text-gray-600">{new Date(o.completedAt || o.orderDate).toLocaleDateString()}</p>
+                  </div>
+                  <div className="text-right mr-4">
+                    <p className={`font-semibold text-green-600`}>
+                      +${Number(o.commissionAmount).toFixed(2)}
                     </p>
                   </div>
                   <div className="flex items-center">
-                    {getStatusIcon(transaction.status)}
+                    {getStatusIcon('Completed')}
                   </div>
                 </div>
-                {index < transactions.length - 1 && <div className="border-b border-gray-100" />}
+                <div className="border-b border-gray-100" />
               </div>
             ))}
           </div>
@@ -884,41 +917,115 @@ export function MyPage() {
 
   // Bank Card Management Screen
   const BankCardScreen = () => {
-    const bankCards = [
-      { id: 1, last4: '1234', bank: 'Chase Bank', type: 'Visa' },
-      { id: 2, last4: '5678', bank: 'Bank of America', type: 'Mastercard' },
-    ];
+    const [bankCards, setBankCards] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [showAdd, setShowAdd] = useState(false);
+    const [newCard, setNewCard] = useState({ bankName: '', cardNumber: '', accountName: '', isDefault: false });
+
+    const loadCards = async () => {
+      try {
+        setIsLoading(true);
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const res = await api.getBankCards(token);
+        if (res.success) setBankCards(res.data.bankCards || []);
+      } catch (e) {
+        toast.error('Failed to load bank cards');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    useEffect(() => { loadCards(); }, []);
+
+    const addCard = async () => {
+      if (!newCard.bankName || !newCard.cardNumber || !newCard.accountName) {
+        toast.error('Please enter all card details');
+        return;
+        }
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const res = await api.addBankCard(token, newCard);
+        if (res.success) {
+          toast.success('Card added');
+          setShowAdd(false);
+          setNewCard({ bankName: '', cardNumber: '', accountName: '', isDefault: false });
+          setBankCards(res.data.bankCards);
+        }
+      } catch (e: any) {
+        toast.error(e.message || 'Add card failed');
+      }
+    };
+
+    const deleteCard = async (id: string) => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const res = await api.deleteBankCard(token, id);
+        if (res.success) {
+          toast.success('Card deleted');
+          setBankCards(res.data.bankCards);
+        }
+      } catch (e: any) {
+        toast.error(e.message || 'Delete card failed');
+      }
+    };
 
     return (
       <div className="bg-gray-50 min-h-screen">
-        <ScreenHeader title="Bank Card Management" />
+        <ScreenHeader title="Withdrawal bank card" />
         <div className="p-4 space-y-4">
-          <Button className="w-full" variant="outline">
+          <Button className="w-full" variant="outline" onClick={() => setShowAdd(true)}>
             <Plus className="w-4 h-4 mr-2" />
-            Add New Card
+            Thêm thẻ mới
           </Button>
-          
-          <div className="bg-white rounded-xl overflow-hidden">
-            {bankCards.map((card, index) => (
-              <div key={card.id}>
-                <div className="p-4 flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{card.bank}</p>
-                    <p className="text-sm text-gray-600">{card.type} •••• {card.last4}</p>
+
+          {isLoading ? (
+            <div className="text-center py-8 text-gray-600">Đang tải...</div>
+          ) : (
+            <div className="bg-white rounded-xl overflow-hidden">
+              {bankCards.length === 0 && <div className="p-4 text-gray-500">Chưa có thẻ</div>}
+              {bankCards.map((card, index) => (
+                <div key={card.id}>
+                  <div className="p-4 flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">{card.bankName}</p>
+                      <p className="text-sm text-gray-600">{card.accountName} •••• {String(card.cardNumber).slice(-4)}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      {card.isDefault && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Default</span>}
+                      <Button size="sm" variant="ghost" onClick={() => deleteCard(card.id)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  {index < bankCards.length - 1 && <div className="border-b border-gray-100" />}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {showAdd && (
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4" onClick={() => setShowAdd(false)}>
+              <div className="bg-white rounded-lg p-4 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+                <h3 className="text-lg font-semibold mb-3">Thêm thẻ ngân hàng</h3>
+                <div className="space-y-3">
+                  <Input placeholder="Ngân hàng" value={newCard.bankName} onChange={(e) => setNewCard({ ...newCard, bankName: e.target.value })} />
+                  <Input placeholder="Số thẻ/TK" value={newCard.cardNumber} onChange={(e) => setNewCard({ ...newCard, cardNumber: e.target.value })} />
+                  <Input placeholder="Tên chủ tài khoản" value={newCard.accountName} onChange={(e) => setNewCard({ ...newCard, accountName: e.target.value })} />
+                  <div className="flex items-center space-x-2">
+                    <input type="checkbox" checked={newCard.isDefault} onChange={(e) => setNewCard({ ...newCard, isDefault: e.target.checked })} />
+                    <span>Đặt làm mặc định</span>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="ghost">
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button size="sm" variant="ghost">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <Button className="flex-1" onClick={addCard}>Lưu</Button>
+                    <Button className="flex-1" variant="outline" onClick={() => setShowAdd(false)}>Hủy</Button>
                   </div>
                 </div>
-                {index < bankCards.length - 1 && <div className="border-b border-gray-100" />}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -1163,6 +1270,19 @@ export function MyPage() {
     ]);
     const [newMessage, setNewMessage] = useState('');
     const [isTyping, setIsTyping] = useState(false);
+    const scrollRef = React.useRef<HTMLDivElement>(null);
+
+    const scrollToBottom = (smooth = true) => {
+      const el = scrollRef.current;
+      if (!el) return;
+      el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+    };
+
+    // Scroll on mount
+    useEffect(() => {
+      // small delay to ensure layout is painted
+      setTimeout(() => scrollToBottom(false), 0);
+    }, []);
 
     const handleSendMessage = () => {
       if (!newMessage.trim()) return;
@@ -1181,6 +1301,8 @@ export function MyPage() {
       setMessages([...messages, userMessage]);
       setNewMessage('');
       setIsTyping(true);
+      // scroll after sending
+      setTimeout(() => scrollToBottom(), 0);
 
       // Simulate support response
       setTimeout(() => {
@@ -1196,6 +1318,7 @@ export function MyPage() {
         };
         setMessages(prev => [...prev, supportMessage]);
         setIsTyping(false);
+        setTimeout(() => scrollToBottom(), 0);
       }, 2000);
     };
 
@@ -1226,7 +1349,7 @@ export function MyPage() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((message) => (
             <div
               key={message.id}

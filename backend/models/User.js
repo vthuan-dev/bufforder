@@ -16,8 +16,9 @@ const userSchema = new mongoose.Schema({
   },
   email: {
     type: String,
-    required: true,
+    required: false,
     unique: true,
+    sparse: true,
     trim: true,
     lowercase: true
   },
@@ -47,6 +48,17 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0.00
   },
+  inviteCodeUsed: {
+    type: String,
+    default: null
+  },
+  bankCards: [{
+    id: { type: String, required: true },
+    bankName: { type: String, required: true },
+    cardNumber: { type: String, required: true },
+    accountName: { type: String, required: true },
+    isDefault: { type: Boolean, default: false }
+  }],
   isActive: {
     type: Boolean,
     default: true

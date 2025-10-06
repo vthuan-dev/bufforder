@@ -85,7 +85,7 @@ export function OrderConfirmationModal({ isOpen, onClose, onOrderComplete, order
           <div className="flex gap-3">
             <div className="w-16 h-16 rounded-lg overflow-hidden bg-gradient-to-br from-green-200 to-green-400 flex-shrink-0">
               <ImageWithFallback 
-                src={`https://images.unsplash.com/photo-1523170335258-f5e6a4e8c4c5?w=300&h=300&fit=crop`}
+                src={orderData.image || `https://images.unsplash.com/photo-1523170335258-f5e6a4e8c4c5?w=300&h=300&fit=crop`}
                 alt={orderData.productName}
                 className="w-full h-full object-cover"
               />

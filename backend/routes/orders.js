@@ -40,13 +40,14 @@ router.get('/stats', authenticateToken, async (req, res) => {
     // Get VIP level info
     const vipLevel = getVipLevelByAmount(user.totalDeposited);
     const commissionRate = vipLevel ? vipLevel.commissionRate : 0;
+    const numberOfOrders = vipLevel && vipLevel.numberOfOrders ? vipLevel.numberOfOrders : 100;
 
     res.json({
       success: true,
       data: {
         commission: user.commission + totalCommission,
         balance: user.balance,
-        totalDailyTasks: 100,
+        totalDailyTasks: numberOfOrders,
         completedToday: completedOrders.length,
         ordersGrabbed: todayOrders.length,
         vipLevel: user.vipLevel,
@@ -169,7 +170,8 @@ router.post('/take', authenticateToken, async (req, res) => {
           commissionAmount: commissionAmount,
           commissionRate: commissionRate,
           brand: randomProduct.brand,
-          productId: randomProduct.id
+          productId: randomProduct.id,
+          image: `https://picsum.photos/seed/watch-${randomProduct.id}/300/300`
         }
       }
     });

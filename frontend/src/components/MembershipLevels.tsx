@@ -182,15 +182,15 @@ export function MembershipLevels({ onNavigateToMy }: MembershipLevelsProps) {
                 <>
                   <span className="text-2xl">👤</span>
                   <div>
-                    <h3 className="text-lg font-bold">Chưa có VIP</h3>
-                    <p className="text-sm opacity-90">Nạp tiền để bắt đầu hành trình VIP</p>
+                    <h3 className="text-lg font-bold">No VIP yet</h3>
+                    <p className="text-sm opacity-90">Deposit to start your VIP journey</p>
                   </div>
                 </>
               )}
             </div>
             <div className="text-right">
-              <p className="text-sm">Số dư: ${vipStatus.balance.toLocaleString()}</p>
-              <p className="text-sm">Đã nạp: ${vipStatus.totalDeposited.toLocaleString()}</p>
+              <p className="text-sm">Balance: ${vipStatus.balance.toLocaleString()}</p>
+              <p className="text-sm">Deposited: ${vipStatus.totalDeposited.toLocaleString()}</p>
             </div>
           </div>
           
@@ -200,8 +200,8 @@ export function MembershipLevels({ onNavigateToMy }: MembershipLevelsProps) {
               <div className="flex justify-between text-sm mb-1">
                 <span>
                   {vipStatus.currentLevel 
-                    ? `Tiến độ lên ${vipStatus.nextLevel.name}` 
-                    : 'Tiến độ lên VIP 1'
+                    ? `Progress to ${vipStatus.nextLevel.name}` 
+                    : 'Progress to VIP 1'
                   }
                 </span>
                 <span>{vipStatus.progress.progress.toFixed(1)}%</span>
@@ -213,7 +213,7 @@ export function MembershipLevels({ onNavigateToMy }: MembershipLevelsProps) {
                 ></div>
               </div>
               <p className="text-xs mt-1">
-                Còn thiếu: ${vipStatus.progress.remaining.toLocaleString()}
+                Remaining: ${vipStatus.progress.remaining.toLocaleString()}
               </p>
             </div>
             
@@ -245,7 +245,7 @@ export function MembershipLevels({ onNavigateToMy }: MembershipLevelsProps) {
               {/* Current Level Badge */}
               {isCurrent && (
                 <div className="absolute -top-2 -right-2 bg-yellow-400 text-black px-2 py-1 rounded-full text-xs font-bold">
-                  HIỆN TẠI
+                  CURRENT
                 </div>
               )}
               
@@ -281,7 +281,7 @@ export function MembershipLevels({ onNavigateToMy }: MembershipLevelsProps) {
                     }
                   }}
                 >
-                  {unlocked ? 'Nâng cấp VIP →' : 'Khóa'}
+                  {unlocked ? 'Upgrade VIP →' : 'Locked'}
                 </button>
               </div>
               

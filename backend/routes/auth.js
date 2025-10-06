@@ -10,16 +10,25 @@ const generateToken = (userId) => {
   return jwt.sign({ userId }, config.JWT_SECRET, { expiresIn: '7d' });
 };
 
-// Register endpoint
+// Register endpoint with invite code
 router.post('/register', async (req, res) => {
   try {
-    const { phoneNumber, password, fullName, email } = req.body;
+    const { phoneNumber, password, fullName, inviteCode } = req.body;
 
     // Validation
-    if (!phoneNumber || !password || !fullName || !email) {
+    if (!phoneNumber || !password || !fullName || !inviteCode) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Vui lòng điền đầy đủ thông tin' 
+        message: 'Vui lòng điền đầy đủ thông tin và nhập mã thành viên' 
+      });
+    }
+
+    // Check invite code (single or list)
+    const allowedCodes = new Set([config.INVITE_CODE, ...(config.INVITE_CODES || [])]);
+    if (!allowedCodes.has(inviteCode)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mã thành viên không hợp lệ'
       });
     }
 
@@ -31,14 +40,12 @@ router.post('/register', async (req, res) => {
     }
 
     // Check if user already exists
-    const existingUser = await User.findOne({ 
-      $or: [{ phoneNumber }, { email }] 
-    });
+    const existingUser = await User.findOne({ phoneNumber });
 
     if (existingUser) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Số điện thoại hoặc email đã được sử dụng' 
+        message: 'Số điện thoại đã được sử dụng' 
       });
     }
 
@@ -47,7 +54,7 @@ router.post('/register', async (req, res) => {
       phoneNumber,
       password,
       fullName,
-      email
+      inviteCodeUsed: inviteCode
     });
 
     await user.save();

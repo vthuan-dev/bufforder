@@ -11,140 +11,140 @@ const watchProducts = [
     id: 1,
     name: "Rolex Submariner",
     brand: "Rolex",
-    image: "https://images.unsplash.com/photo-1523170335258-f5e6a4e8c4c5?w=300&h=300&fit=crop",
+    image: "https://picsum.photos/seed/watch-1/300/300",
     price: 8500
   },
   {
     id: 2,
     name: "Omega Speedmaster",
     brand: "Omega",
-    image: "https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=300&h=300&fit=crop",
+    image: "https://picsum.photos/seed/watch-2/300/300",
     price: 5500
   },
   {
     id: 3,
     name: "Patek Philippe Calatrava",
     brand: "Patek Philippe",
-    image: "https://images.unsplash.com/photo-1542496658-e33a6d0d50f6?w=300&h=300&fit=crop",
+    image: "https://picsum.photos/seed/watch-3/300/300",
     price: 25000,
   },
   {
     id: 4,
     name: "Audemars Piguet Royal Oak",
     brand: "Audemars Piguet",
-    image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&h=300&fit=crop",
+    image: "https://picsum.photos/seed/watch-4/300/300",
     price: 18000,
   },
   {
     id: 5,
     name: "Cartier Santos",
     brand: "Cartier",
-    image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300&h=300&fit=crop",
+    image: "https://picsum.photos/seed/watch-5/300/300",
     price: 7200,
   },
   {
     id: 6,
     name: "TAG Heuer Carrera",
     brand: "TAG Heuer",
-    image: "https://images.unsplash.com/photo-1551816230-ef5deaed4a26?w=300&h=300&fit=crop",
+    image: "https://picsum.photos/seed/watch-6/300/300",
     price: 3200,
   },
   {
     id: 7,
     name: "Breitling Navitimer",
     brand: "Breitling",
-    image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=300&h=300&fit=crop",
+    image: "https://picsum.photos/seed/watch-7/300/300",
     price: 4800,
   },
   {
     id: 8,
     name: "IWC Portugieser",
     brand: "IWC",
-    image: "https://images.unsplash.com/photo-1551816230-ef5deaed4a26?w=300&h=300&fit=crop",
+    image: "https://picsum.photos/seed/watch-8/300/300",
     price: 12000,
   },
   {
     id: 9,
     name: "Jaeger-LeCoultre Reverso",
     brand: "Jaeger-LeCoultre",
-    image: "https://images.unsplash.com/photo-1523170335258-f5e6a4e8c4c5?w=300&h=300&fit=crop",
+    image: "https://picsum.photos/seed/watch-9/300/300",
     price: 9500,
   },
   {
     id: 10,
     name: "Vacheron Constantin Overseas",
     brand: "Vacheron Constantin",
-    image: "https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=300&h=300&fit=crop",
+    image: "https://picsum.photos/seed/watch-10/300/300",
     price: 22000,
   },
   {
     id: 11,
     name: "Panerai Luminor",
     brand: "Panerai",
-    image: "https://images.unsplash.com/photo-1542496658-e33a6d0d50f6?w=300&h=300&fit=crop",
+    image: "https://picsum.photos/seed/watch-11/300/300",
     price: 6800,
   },
   {
     id: 12,
     name: "Zenith El Primero",
     brand: "Zenith",
-    image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&h=300&fit=crop",
+    image: "https://picsum.photos/seed/watch-12/300/300",
     price: 7500,
   },
   {
     id: 13,
     name: "Girard-Perregaux Laureato",
     brand: "Girard-Perregaux",
-    image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300&h=300&fit=crop",
+    image: "https://picsum.photos/seed/watch-13/300/300",
     price: 15000,
   },
   {
     id: 14,
     name: "Hublot Big Bang",
     brand: "Hublot",
-    image: "https://images.unsplash.com/photo-1551816230-ef5deaed4a26?w=300&h=300&fit=crop",
+    image: "https://picsum.photos/seed/watch-14/300/300",
     price: 16000,
   },
   {
     id: 15,
     name: "Richard Mille RM 011",
     brand: "Richard Mille",
-    image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=300&h=300&fit=crop",
+    image: "https://picsum.photos/seed/watch-15/300/300",
     price: 45000,
   },
   {
     id: 16,
     name: "Blancpain Fifty Fathoms",
     brand: "Blancpain",
-    image: "https://images.unsplash.com/photo-1551816230-ef5deaed4a26?w=300&h=300&fit=crop",
+    image: "https://picsum.photos/seed/watch-16/300/300",
     price: 11000,
   },
   {
     id: 17,
     name: "Glashütte Original Senator",
     brand: "Glashütte Original",
-    image: "https://images.unsplash.com/photo-1523170335258-f5e6a4e8c4c5?w=300&h=300&fit=crop",
+    image: "https://picsum.photos/seed/watch-17/300/300",
     price: 8500,
   },
   {
     id: 18,
     name: "A. Lange & Söhne Lange 1",
     brand: "A. Lange & Söhne",
-    image: "https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=300&h=300&fit=crop",
+    image: "https://picsum.photos/seed/watch-18/300/300",
     price: 35000,
   },
   {
     id: 19,
     name: "Breguet Classique",
     brand: "Breguet",
-    image: "https://images.unsplash.com/photo-1542496658-e33a6d0d50f6?w=300&h=300&fit=crop",
+    image: "https://picsum.photos/seed/watch-19/300/300",
     price: 28000,
   },
   {
     id: 20,
     name: "F.P. Journe Chronomètre",
     brand: "F.P. Journe",
-    image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&h=300&fit=crop",
+    image: "https://picsum.photos/seed/watch-20/300/300",
     price: 40000,
   }
 ];
@@ -178,7 +178,19 @@ export function OrdersPage() {
       if (response.success) {
         setCommission(response.data.commission || 0);
         setAvailableBalance(response.data.balance || 0);
-        setTotalDailyTasks(response.data.totalDailyTasks || 100);
+        const tasksFromStats = response.data.totalDailyTasks;
+        if (typeof tasksFromStats === 'number' && tasksFromStats > 0) {
+          setTotalDailyTasks(tasksFromStats);
+        } else {
+          // Fallback: derive from VIP status
+          try {
+            const vipRes = await api.getVipStatus(token);
+            const numOrders = vipRes?.data?.currentLevel?.numberOfOrders;
+            setTotalDailyTasks(typeof numOrders === 'number' ? numOrders : 100);
+          } catch {
+            setTotalDailyTasks(100);
+          }
+        }
         setCompletedToday(response.data.completedToday || 0);
         setOrdersGrabbed(response.data.ordersGrabbed || 0);
       }
@@ -200,13 +212,13 @@ export function OrdersPage() {
 
   const handleTakeOrder = async () => {
     if (ordersGrabbed >= totalDailyTasks) {
-      toast.error('You have completed all orders for today!');
+      toast.error('Bạn đã hoàn thành số đơn hôm nay!');
       return;
     }
 
     // Check if user has sufficient balance (minimum $200 for cheapest product)
     if (availableBalance < 200) {
-      toast.error('No products available within your budget. Minimum product price is $200. Please deposit money to your account.');
+      toast.error('Số dư không đủ để nhận đơn. Vui lòng nạp thêm.');
       return;
     }
 

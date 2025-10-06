@@ -177,6 +177,82 @@ router.get('/deposit-requests', verifyToken, async (req, res) => {
   }
 });
 
+// ===== Bank cards =====
+router.get('/bank-cards', verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    res.json({ success: true, data: { bankCards: user.bankCards || [] } });
+  } catch (e) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+router.post('/bank-cards', verifyToken, async (req, res) => {
+  try {
+    const { bankName, cardNumber, accountName, isDefault } = req.body || {};
+    if (!bankName || !cardNumber || !accountName) {
+      return res.status(400).json({ success: false, message: 'Thiếu thông tin thẻ ngân hàng' });
+    }
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    const newCard = {
+      id: String(Date.now()),
+      bankName,
+      cardNumber,
+      accountName,
+      isDefault: !!isDefault
+    };
+    if (newCard.isDefault) {
+      user.bankCards.forEach(c => (c.isDefault = false));
+    } else if (user.bankCards.length === 0) {
+      newCard.isDefault = true;
+    }
+    user.bankCards.push(newCard);
+    await user.save();
+    res.json({ success: true, message: 'Thêm thẻ thành công', data: { bankCards: user.bankCards } });
+  } catch (e) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+router.delete('/bank-cards/:id', verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    const idx = user.bankCards.findIndex(c => c.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ success: false, message: 'Không tìm thấy thẻ' });
+    const wasDefault = user.bankCards[idx].isDefault;
+    user.bankCards.splice(idx, 1);
+    if (wasDefault && user.bankCards.length > 0) user.bankCards[0].isDefault = true;
+    await user.save();
+    res.json({ success: true, message: 'Xóa thẻ thành công', data: { bankCards: user.bankCards } });
+  } catch (e) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// ===== Withdrawal request (placeholder record) =====
+router.post('/withdrawal', verifyToken, async (req, res) => {
+  try {
+    const { amount, bankCardId } = req.body || {};
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ success: false, message: 'Số tiền rút không hợp lệ' });
+    }
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    const card = (user.bankCards || []).find(c => c.id === bankCardId);
+    if (!card) return res.status(400).json({ success: false, message: 'Vui lòng chọn thẻ ngân hàng' });
+    if (amount > user.balance) return res.status(400).json({ success: false, message: 'Số dư không đủ' });
+
+    // For now, just simulate creation of withdrawal ticket, do not change balance until admin approves (not implemented)
+    return res.json({ success: true, message: 'Đã tạo yêu cầu rút tiền. Vui lòng chờ admin duyệt.' });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // Get VIP level by amount (for testing)
 router.get('/level/:amount', (req, res) => {
   try {

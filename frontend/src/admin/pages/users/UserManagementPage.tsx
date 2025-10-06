@@ -85,27 +85,27 @@ function UserFormModal({ isOpen, onClose, initialData, onSubmit }: UserFormModal
     <div className={styles.modalBackdrop}>
       <div className={styles.modal}>
         <h3 className={styles.modalTitle}>
-          {initialData?.id ? 'Chỉnh sửa người dùng' : 'Thêm người dùng mới'}
+          {initialData?.id ? 'Edit user' : 'Add new user'}
         </h3>
         
         <div className={styles.formGrid}>
           <div className={styles.field}>
-            <label>Số điện thoại *</label>
+            <label>Phone number *</label>
             <input 
               className={styles.input} 
               value={phoneNumber} 
               onChange={(e) => setPhoneNumber(e.target.value)}
-              placeholder="Nhập số điện thoại"
+              placeholder="Enter phone number"
             />
           </div>
           
           <div className={styles.field}>
-            <label>Họ và tên *</label>
+            <label>Full name *</label>
             <input 
               className={styles.input} 
               value={fullName} 
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="Nhập họ và tên"
+              placeholder="Enter full name"
             />
           </div>
           
@@ -116,12 +116,12 @@ function UserFormModal({ isOpen, onClose, initialData, onSubmit }: UserFormModal
               type="email"
               value={email} 
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Nhập email"
+              placeholder="Enter email"
             />
           </div>
           
           <div className={styles.field}>
-            <label>Cấp VIP</label>
+            <label>VIP Level</label>
             <select className={styles.select} value={vipLevel} onChange={(e) => setVipLevel(e.target.value)}>
               {vipLevels.map(level => (
                 <option key={level.value} value={level.value}>{level.label}</option>
@@ -130,7 +130,7 @@ function UserFormModal({ isOpen, onClose, initialData, onSubmit }: UserFormModal
           </div>
           
           <div className={styles.field}>
-            <label>Số dư ($)</label>
+            <label>Balance ($)</label>
             <input 
               className={styles.input} 
               type="number"
@@ -141,21 +141,21 @@ function UserFormModal({ isOpen, onClose, initialData, onSubmit }: UserFormModal
           </div>
           
           <div className={styles.field}>
-            <label>Trạng thái</label>
+            <label>Status</label>
             <div className={styles.toggleContainer}>
               <button
                 className={`${styles.toggle} ${isActive ? styles.active : ''}`}
                 onClick={() => setIsActive(!isActive)}
               >
                 {isActive ? <FaEye /> : <FaEyeSlash />}
-                {isActive ? 'Hoạt động' : 'Tạm khóa'}
+                {isActive ? 'Active' : 'Suspended'}
               </button>
             </div>
           </div>
         </div>
         
         <div className={styles.modalActions}>
-          <button className={styles.cancel} onClick={onClose}>Hủy</button>
+          <button className={styles.cancel} onClick={onClose}>Cancel</button>
           <button
             className={styles.save}
             onClick={() => {
@@ -170,7 +170,7 @@ function UserFormModal({ isOpen, onClose, initialData, onSubmit }: UserFormModal
               }, initialData?.id as string | undefined);
             }}
           >
-            {initialData?.id ? 'Cập nhật' : 'Tạo mới'}
+            {initialData?.id ? 'Update' : 'Create'}
           </button>
         </div>
       </div>
@@ -303,12 +303,12 @@ export function UserManagementPage() {
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.titleSection}>
-          <h1 className={styles.title}>Quản lý người dùng</h1>
-          <p className={styles.subtitle}>Quản lý thông tin và trạng thái của người dùng</p>
+          <h1 className={styles.title}>User management</h1>
+          <p className={styles.subtitle}>Manage user information and status</p>
         </div>
         <button className={styles.addBtn} onClick={onAdd}>
           <FaEdit />
-          Thêm người dùng mới
+          Add new user
         </button>
       </div>
 
@@ -316,7 +316,7 @@ export function UserManagementPage() {
         <div className={styles.searchBox}>
           <input
             type="text"
-            placeholder="Tìm kiếm theo tên, email hoặc số điện thoại..."
+            placeholder="Search by name, email or phone..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className={styles.searchInput}
@@ -329,7 +329,7 @@ export function UserManagementPage() {
             onChange={(e) => setFilterVipLevel(e.target.value)}
             className={styles.filterSelect}
           >
-            <option value="all">Tất cả VIP</option>
+            <option value="all">All VIP</option>
             <option value="vip-0">VIP 0</option>
             <option value="vip-1">VIP 1</option>
             <option value="vip-2">VIP 2</option>
@@ -347,10 +347,10 @@ export function UserManagementPage() {
             onChange={(e) => setSortBy(e.target.value)}
             className={styles.filterSelect}
           >
-            <option value="createdAt">Sắp xếp theo ngày tạo</option>
-            <option value="fullName">Sắp xếp theo tên</option>
-            <option value="balance">Sắp xếp theo số dư</option>
-            <option value="totalDeposited">Sắp xếp theo tổng nạp</option>
+            <option value="createdAt">Sort by created date</option>
+            <option value="fullName">Sort by name</option>
+            <option value="balance">Sort by balance</option>
+            <option value="totalDeposited">Sort by total deposit</option>
           </select>
           
           <button 
@@ -367,7 +367,7 @@ export function UserManagementPage() {
           <div className={styles.statIcon}><FaCrown /></div>
           <div className={styles.statContent}>
             <div className={styles.statNumber}>{users.length}</div>
-            <div className={styles.statLabel}>Tổng người dùng</div>
+            <div className={styles.statLabel}>Total users</div>
           </div>
         </div>
         
@@ -375,7 +375,7 @@ export function UserManagementPage() {
           <div className={styles.statIcon}><FaEye /></div>
           <div className={styles.statContent}>
             <div className={styles.statNumber}>{users.filter(u => u.isActive).length}</div>
-            <div className={styles.statLabel}>Đang hoạt động</div>
+            <div className={styles.statLabel}>Active</div>
           </div>
         </div>
         
@@ -383,7 +383,7 @@ export function UserManagementPage() {
           <div className={styles.statIcon}><FaDollarSign /></div>
           <div className={styles.statContent}>
             <div className={styles.statNumber}>{formatCurrency(users.reduce((sum, u) => sum + u.balance, 0))}</div>
-            <div className={styles.statLabel}>Tổng số dư</div>
+            <div className={styles.statLabel}>Total balance</div>
           </div>
         </div>
       </div>
@@ -392,13 +392,13 @@ export function UserManagementPage() {
         <table className={styles.table}>
           <thead>
             <tr>
-              <th className={styles.th}>Thông tin</th>
-              <th className={styles.th}>Liên hệ</th>
+              <th className={styles.th}>Info</th>
+              <th className={styles.th}>Contact</th>
               <th className={styles.th}>VIP Level</th>
-              <th className={styles.th}>Tài chính</th>
-              <th className={styles.th}>Trạng thái</th>
-              <th className={styles.th}>Ngày tạo</th>
-              <th className={styles.th}>Thao tác</th>
+              <th className={styles.th}>Finance</th>
+              <th className={styles.th}>Status</th>
+              <th className={styles.th}>Created</th>
+              <th className={styles.th}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -429,7 +429,7 @@ export function UserManagementPage() {
                     {user.addresses.length > 0 && (
                       <div className={styles.contactItem}>
                         <FaMapMarkerAlt />
-                        {user.addresses.length} địa chỉ
+                        {user.addresses.length} addresses
                       </div>
                     )}
                   </div>
@@ -448,15 +448,15 @@ export function UserManagementPage() {
                 <td className={styles.td}>
                   <div className={styles.financialInfo}>
                     <div className={styles.balance}>
-                      <span className={styles.balanceLabel}>Số dư:</span>
+                      <span className={styles.balanceLabel}>Balance:</span>
                       <span className={styles.balanceAmount}>{formatCurrency(user.balance)}</span>
                     </div>
                     <div className={styles.deposited}>
-                      <span className={styles.depositedLabel}>Đã nạp:</span>
+                      <span className={styles.depositedLabel}>Deposited:</span>
                       <span className={styles.depositedAmount}>{formatCurrency(user.totalDeposited)}</span>
                     </div>
                     <div className={styles.commission}>
-                      <span className={styles.commissionLabel}>Hoa hồng:</span>
+                      <span className={styles.commissionLabel}>Commission:</span>
                       <span className={styles.commissionAmount}>{formatCurrency(user.commission)}</span>
                     </div>
                   </div>
@@ -465,14 +465,14 @@ export function UserManagementPage() {
                 <td className={styles.td}>
                   <div className={`${styles.statusBadge} ${user.isActive ? styles.active : styles.inactive}`}>
                     {user.isActive ? <FaEye /> : <FaEyeSlash />}
-                    {user.isActive ? 'Hoạt động' : 'Tạm khóa'}
+                    {user.isActive ? 'Active' : 'Suspended'}
                   </div>
                 </td>
                 
                 <td className={styles.td}>
                   <div className={styles.dateInfo}>
                     <div className={styles.createdDate}>{formatDate(user.createdAt)}</div>
-                    <div className={styles.updatedDate}>Cập nhật: {formatDate(user.updatedAt)}</div>
+                    <div className={styles.updatedDate}>Updated: {formatDate(user.updatedAt)}</div>
                   </div>
                 </td>
                 
@@ -481,14 +481,14 @@ export function UserManagementPage() {
                     <button 
                       className={styles.iconBtn} 
                       onClick={() => onEdit(user)} 
-                      title="Chỉnh sửa"
+                      title="Edit"
                     >
                       <FaEdit />
                     </button>
                     <button 
                       className={`${styles.iconBtn} ${styles.deleteBtn}`} 
                       onClick={() => onDelete(user.id)} 
-                      title="Xóa"
+                      title="Delete"
                     >
                       <FaTrash />
                     </button>
@@ -501,7 +501,7 @@ export function UserManagementPage() {
         
         {filteredUsers.length === 0 && (
           <div className={styles.emptyState}>
-            <p>Không tìm thấy người dùng nào</p>
+            <p>No users found</p>
           </div>
         )}
       </div>

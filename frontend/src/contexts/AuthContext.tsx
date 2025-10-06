@@ -21,7 +21,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (phoneNumber: string, password: string) => Promise<void>;
-  register: (userData: { phoneNumber: string; password: string; fullName: string; email: string }) => Promise<void>;
+  register: (userData: { phoneNumber: string; password: string; fullName: string; inviteCode: string }) => Promise<void>;
   logout: () => void;
 }
 
@@ -87,7 +87,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const register = async (userData: { phoneNumber: string; password: string; fullName: string; email: string }): Promise<void> => {
+  const register = async (userData: { phoneNumber: string; password: string; fullName: string; inviteCode: string }): Promise<void> => {
     setIsLoading(true);
     
     try {
