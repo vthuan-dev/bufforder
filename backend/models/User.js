@@ -17,8 +17,6 @@ const userSchema = new mongoose.Schema({
   email: {
     type: String,
     required: false,
-    unique: true,
-    sparse: true,
     trim: true,
     lowercase: true
   },
@@ -97,6 +95,13 @@ const userSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// Ensure unique email only when email exists and is a string
+// Avoid duplicate key on null by using partial filter expression
+userSchema.index(
+  { email: 1 },
+  { unique: true, partialFilterExpression: { email: { $exists: true, $type: 'string' } } }
+);
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {
