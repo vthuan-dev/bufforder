@@ -722,10 +722,19 @@ router.patch('/users/:id/status', verifyAdminToken, async (req, res) => {
 // Delete user (hard delete)
 router.delete('/users/:id', verifyAdminToken, async (req, res) => {
   try {
+    console.log('Delete user request received:', {
+      userId: req.params.id,
+      adminId: req.adminId,
+      headers: req.headers
+    });
+    
     const user = await User.findByIdAndDelete(req.params.id);
     if (!user) {
+      console.log('User not found:', req.params.id);
       return res.status(404).json({ success: false, message: 'User not found' });
     }
+    
+    console.log('User deleted successfully:', user._id);
     res.json({ success: true, message: 'User deleted successfully' });
   } catch (error) {
     console.error('Delete user error:', error);

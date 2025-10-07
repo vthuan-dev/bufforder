@@ -1,5 +1,6 @@
 const API_BASE_URL = 'https://bufforder.onrender.com/api';
 
+
 class ApiService {
   // Generic request method
   async request(endpoint, options = {}) {
@@ -12,12 +13,17 @@ class ApiService {
       ...options,
     };
 
+    console.log('Making API request:', { url, method: options.method || 'GET', headers: config.headers });
+
     try {
       const response = await fetch(url, config);
+      console.log('Response status:', response.status, response.statusText);
+      
       const data = await response.json();
+      console.log('Response data:', data);
 
       if (!response.ok) {
-        throw new Error(data.message || 'Request failed');
+        throw new Error(data.message || `Request failed with status ${response.status}`);
       }
 
       return data;
@@ -243,6 +249,7 @@ class ApiService {
   // ============ Admin APIs ============
   adminTokenHeader() {
     const token = localStorage.getItem('adminToken');
+    console.log('Admin token from localStorage:', token ? 'Present' : 'Missing');
     return token ? { 'Authorization': `Bearer ${token}` } : {};
   }
 
@@ -293,6 +300,8 @@ class ApiService {
   }
 
   async adminDeleteUser(id) {
+    console.log('Deleting user with ID:', id);
+    console.log('Admin token header:', this.adminTokenHeader());
     return this.request(`/admin/users/${id}`, {
       method: 'DELETE',
       headers: {

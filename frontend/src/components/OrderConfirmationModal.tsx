@@ -93,7 +93,7 @@ export function OrderConfirmationModal({ isOpen, onClose, onOrderComplete, order
             <div className="flex-1">
               <h3 className="text-gray-900 mb-1 text-sm font-medium">{orderData.productName}</h3>
               <p className="text-gray-600 text-xs leading-relaxed">
-                {orderData.brand} - Premium timepiece
+                {orderData.brand} - {orderData.category || 'Premium product'}
               </p>
             </div>
           </div>

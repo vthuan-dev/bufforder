@@ -186,9 +186,18 @@ export function UserManagementPage() {
 
   const onAdd = () => { setEditingUser(undefined); setIsModalOpen(true); };
   const onEdit = (u: User) => { setEditingUser(u); setIsModalOpen(true); };
-  const onDelete = (id: string) => {
+  const onDelete = async (id: string) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa người dùng này?')) {
-      setUsers(prev => prev.filter(u => u.id !== id));
+      try {
+        console.log('Attempting to delete user:', id);
+        const result = await api.adminDeleteUser(id);
+        console.log('Delete result:', result);
+        setUsers(prev => prev.filter(u => u.id !== id));
+        alert('User deleted successfully');
+      } catch (error) {
+        console.error('Delete user error:', error);
+        alert(`Failed to delete user: ${error.message || 'Unknown error'}`);
+      }
     }
   };
 
