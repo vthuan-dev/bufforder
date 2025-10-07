@@ -19,7 +19,7 @@ router.post('/register', async (req, res) => {
     if (!phoneNumber || !password || !fullName || !inviteCode) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Vui lòng điền đầy đủ thông tin và nhập mã thành viên' 
+        message: 'Please fill in all information and enter the member code' 
       });
     }
 
@@ -28,14 +28,14 @@ router.post('/register', async (req, res) => {
     if (!allowedCodes.has(inviteCode)) {
       return res.status(400).json({
         success: false,
-        message: 'Mã thành viên không hợp lệ'
+        message: 'Invalid member code'
       });
     }
 
     if (password.length < 6) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Mật khẩu phải có ít nhất 6 ký tự' 
+        message: 'Password must be at least 6 characters' 
       });
     }
 
@@ -45,7 +45,7 @@ router.post('/register', async (req, res) => {
     if (existingUser) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Số điện thoại đã được sử dụng' 
+        message: 'Phone number already in use' 
       });
     }
 
@@ -64,7 +64,7 @@ router.post('/register', async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Đăng ký thành công',
+      message: 'Registration successful',
       data: {
         user: user.toJSON(),
         token
@@ -75,7 +75,7 @@ router.post('/register', async (req, res) => {
     console.error('Register error:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Lỗi server. Vui lòng thử lại sau.' 
+      message: 'Server error. Please try again later.' 
     });
   }
 });
@@ -89,7 +89,7 @@ router.post('/login', async (req, res) => {
     if (!phoneNumber || !password) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Vui lòng nhập số điện thoại và mật khẩu' 
+        message: 'Please enter phone number and password' 
       });
     }
 
@@ -98,7 +98,7 @@ router.post('/login', async (req, res) => {
     if (!user) {
       return res.status(401).json({ 
         success: false, 
-        message: 'Số điện thoại hoặc mật khẩu không đúng' 
+        message: 'Phone number or password is incorrect' 
       });
     }
 
@@ -107,7 +107,7 @@ router.post('/login', async (req, res) => {
     if (!isPasswordValid) {
       return res.status(401).json({ 
         success: false, 
-        message: 'Số điện thoại hoặc mật khẩu không đúng' 
+        message: 'Phone number or password is incorrect' 
       });
     }
 
@@ -116,7 +116,7 @@ router.post('/login', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Đăng nhập thành công',
+      message: 'Login successful',
       data: {
         user: user.toJSON(),
         token
@@ -127,7 +127,7 @@ router.post('/login', async (req, res) => {
     console.error('Login error:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Lỗi server. Vui lòng thử lại sau.' 
+      message: 'Server error. Please try again later.' 
     });
   }
 });
@@ -140,7 +140,7 @@ router.get('/profile', async (req, res) => {
     if (!token) {
       return res.status(401).json({ 
         success: false, 
-        message: 'Token không hợp lệ' 
+        message: 'Invalid token' 
       });
     }
 
@@ -150,7 +150,7 @@ router.get('/profile', async (req, res) => {
     if (!user) {
       return res.status(404).json({ 
         success: false, 
-        message: 'Không tìm thấy người dùng' 
+        message: 'No user found' 
       });
     }
 
@@ -165,7 +165,7 @@ router.get('/profile', async (req, res) => {
     console.error('Profile error:', error);
     res.status(401).json({ 
       success: false, 
-      message: 'Token không hợp lệ' 
+      message: 'Invalid token' 
     });
   }
 });
@@ -178,7 +178,7 @@ router.put('/profile', async (req, res) => {
     if (!token) {
       return res.status(401).json({ 
         success: false, 
-        message: 'Token không hợp lệ' 
+        message: 'Invalid token' 
       });
     }
 
@@ -188,7 +188,7 @@ router.put('/profile', async (req, res) => {
     if (!user) {
       return res.status(404).json({ 
         success: false, 
-        message: 'Không tìm thấy người dùng' 
+        message: 'No user found' 
       });
     }
 
@@ -201,7 +201,7 @@ router.put('/profile', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Cập nhật thông tin thành công',
+      message: 'Update profile successful',
       data: {
         user: user.toJSON()
       }
@@ -211,7 +211,7 @@ router.put('/profile', async (req, res) => {
     console.error('Update profile error:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Lỗi server. Vui lòng thử lại sau.' 
+      message: 'Server error. Please try again later.' 
     });
   }
 });
@@ -224,7 +224,7 @@ router.get('/addresses', async (req, res) => {
     if (!token) {
       return res.status(401).json({ 
         success: false, 
-        message: 'Token không hợp lệ' 
+        message: 'Invalid token' 
       });
     }
 
@@ -234,7 +234,7 @@ router.get('/addresses', async (req, res) => {
     if (!user) {
       return res.status(404).json({ 
         success: false, 
-        message: 'Không tìm thấy người dùng' 
+        message: 'No user found' 
       });
     }
     
@@ -261,7 +261,7 @@ router.post('/address', async (req, res) => {
     if (!token) {
       return res.status(401).json({ 
         success: false, 
-        message: 'Token không hợp lệ' 
+        message: 'Invalid token' 
       });
     }
 
@@ -271,7 +271,7 @@ router.post('/address', async (req, res) => {
     if (!user) {
       return res.status(404).json({ 
         success: false, 
-        message: 'Không tìm thấy người dùng' 
+        message: 'No user found' 
       });
     }
 
@@ -281,7 +281,7 @@ router.post('/address', async (req, res) => {
     if (!fullName || !phoneNumber || !addressLine1 || !city || !postalCode) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Vui lòng điền đầy đủ thông tin' 
+        message: 'Please fill in all information' 
       });
     }
 
@@ -289,7 +289,7 @@ router.post('/address', async (req, res) => {
     if (user.addresses.length >= 3) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Bạn chỉ có thể lưu tối đa 3 địa chỉ' 
+        message: 'You can only save a maximum of 3 addresses' 
       });
     }
 
@@ -316,7 +316,7 @@ router.post('/address', async (req, res) => {
     
     res.json({
       success: true,
-      message: 'Thêm địa chỉ thành công',
+      message: 'Add address successful',
       data: {
         address: newAddress,
         addresses: user.addresses
@@ -326,7 +326,7 @@ router.post('/address', async (req, res) => {
     console.error('Add address error:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Lỗi server. Vui lòng thử lại sau.' 
+      message: 'Server error. Please try again later.' 
     });
   }
 });
@@ -339,7 +339,7 @@ router.delete('/address/:addressId', async (req, res) => {
     if (!token) {
       return res.status(401).json({ 
         success: false, 
-        message: 'Token không hợp lệ' 
+        message: 'Invalid token' 
       });
     }
 
@@ -349,7 +349,7 @@ router.delete('/address/:addressId', async (req, res) => {
     if (!user) {
       return res.status(404).json({ 
         success: false, 
-        message: 'Không tìm thấy người dùng' 
+        message: 'No user found' 
       });
     }
 
@@ -361,7 +361,7 @@ router.delete('/address/:addressId', async (req, res) => {
     if (addressIndex === -1) {
       return res.status(404).json({ 
         success: false, 
-        message: 'Không tìm thấy địa chỉ' 
+        message: 'No address found' 
       });
     }
 
@@ -377,7 +377,7 @@ router.delete('/address/:addressId', async (req, res) => {
     
     res.json({
       success: true,
-      message: 'Xóa địa chỉ thành công',
+      message: 'Delete address successful',
       data: {
         addresses: user.addresses
       }
@@ -386,7 +386,7 @@ router.delete('/address/:addressId', async (req, res) => {
     console.error('Delete address error:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Lỗi server. Vui lòng thử lại sau.' 
+      message: 'Server error. Please try again later.' 
     });
   }
 });

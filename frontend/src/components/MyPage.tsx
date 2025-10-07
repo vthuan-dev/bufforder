@@ -217,12 +217,12 @@ export function MyPage() {
 
     const handleWithdrawal = async () => {
       if (!amount || parseFloat(amount) <= 0 || isNaN(parseFloat(amount))) {
-        toast.error('Vui lòng nhập số tiền hợp lệ');
+        toast.error('Please enter a valid amount');
         return;
       }
 
       if (!selectedBankCard) {
-        toast.error('Vui lòng chọn thẻ ngân hàng');
+        toast.error('Please select a bank card');
         return;
       }
 
@@ -230,7 +230,7 @@ export function MyPage() {
       const availableBalance = vipStatus?.balance || user?.balance || 0;
 
       if (withdrawalAmount > availableBalance) {
-        toast.error('Số dư không đủ để rút tiền');
+        toast.error('Insufficient balance to withdraw');
         return;
       }
 
@@ -238,22 +238,22 @@ export function MyPage() {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
-          toast.error('Vui lòng đăng nhập để rút tiền');
+          toast.error('Please login to withdraw');
           return;
         }
 
         const response = await api.withdrawal(token, withdrawalAmount, selectedBankCard);
         if (response.success) {
-          toast.success('Yêu cầu rút tiền đã được gửi! Admin sẽ liên hệ với bạn để xác nhận và chuyển tiền.');
+          toast.success('Withdrawal request submitted! Admin will contact you to confirm and transfer.');
           setAmount('');
           setSelectedBankCard('');
           await fetchVipStatus(); // Refresh VIP status
           navigateBack(); // Go back to main screen
         } else {
-          toast.error(response.message || 'Gửi yêu cầu rút tiền thất bại');
+          toast.error(response.message || 'Failed to submit withdrawal request');
         }
       } catch (error) {
-        toast.error(error.message || 'Rút tiền thất bại');
+        toast.error(error.message || 'Withdrawal failed');
       } finally {
         setIsProcessing(false);
       }

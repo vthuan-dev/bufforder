@@ -75,13 +75,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser(response.data.user);
         localStorage.setItem('user', JSON.stringify(response.data.user));
         localStorage.setItem('token', response.data.token);
-        toast.success('Đăng nhập thành công!');
+        toast.success('Logged in successfully!');
       } else {
         throw new Error(response.message);
       }
     } catch (error: any) {
-      toast.error(error.message || 'Đăng nhập thất bại');
-      throw new Error(error.message || 'Đăng nhập thất bại');
+      toast.error(error.message || 'Login failed');
+      throw new Error(error.message || 'Login failed');
     } finally {
       setIsLoading(false);
     }
@@ -97,13 +97,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser(response.data.user);
         localStorage.setItem('user', JSON.stringify(response.data.user));
         localStorage.setItem('token', response.data.token);
-        toast.success('Đăng ký thành công! Chào mừng bạn đến với Ashford!');
+        toast.success('Registration successful! Welcome to Ashford!');
       } else {
         throw new Error(response.message);
       }
     } catch (error: any) {
-      toast.error(error.message || 'Đăng ký thất bại');
-      throw new Error(error.message || 'Đăng ký thất bại');
+      toast.error(error.message || 'Registration failed');
+      throw new Error(error.message || 'Registration failed');
     } finally {
       setIsLoading(false);
     }
@@ -113,7 +113,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token');
-    toast.success('Logout successfully!');
+    toast.success('Logged out successfully!');
   };
 
   const value: AuthContextType = {
