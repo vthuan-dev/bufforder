@@ -26,7 +26,9 @@ const io = new Server(server, {
       'https://bufforder-1m9b.vercel.app',
       'https://bufforder.vercel.app'
     ], 
-    credentials: true 
+    credentials: true,
+    methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+    allowedHeaders: ['Content-Type','Authorization']
   }
 });
 // expose io to routes
@@ -39,8 +41,12 @@ app.use(cors({
     'https://bufforder-1m9b.vercel.app', // Vercel frontend
     'https://bufforder.vercel.app' // Alternative Vercel URL
   ],
-  credentials: true
+  credentials: true,
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization']
 }));
+// Handle preflight
+app.options('*', cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // serve ảnh upload
