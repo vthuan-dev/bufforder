@@ -985,7 +985,7 @@ export function MyPage() {
             <div className="text-center py-8 text-gray-600">Đang tải...</div>
           ) : (
             <div className="bg-white rounded-xl overflow-hidden">
-              {bankCards.length === 0 && <div className="p-4 text-gray-500">Chưa có thẻ</div>}
+              {bankCards.length === 0 && <div className="p-4 text-gray-500">No bank card</div>}
               {bankCards.map((card, index) => (
                 <div key={card.id}>
                   <div className="p-4 flex items-center justify-between">
@@ -1009,11 +1009,11 @@ export function MyPage() {
           {showAdd && (
             <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4" onClick={() => setShowAdd(false)}>
               <div className="bg-white rounded-lg p-4 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-                <h3 className="text-lg font-semibold mb-3">Thêm thẻ ngân hàng</h3>
+                <h3 className="text-lg font-semibold mb-3">Add bank card</h3>
                 <div className="space-y-3">
-                  <Input placeholder="Ngân hàng" value={newCard.bankName} onChange={(e) => setNewCard({ ...newCard, bankName: e.target.value })} />
-                  <Input placeholder="Số thẻ/TK" value={newCard.cardNumber} onChange={(e) => setNewCard({ ...newCard, cardNumber: e.target.value })} />
-                  <Input placeholder="Tên chủ tài khoản" value={newCard.accountName} onChange={(e) => setNewCard({ ...newCard, accountName: e.target.value })} />
+                  <Input placeholder="Bank" value={newCard.bankName} onChange={(e) => setNewCard({ ...newCard, bankName: e.target.value })} />
+                  <Input placeholder="Card/Account Number" value={newCard.cardNumber} onChange={(e) => setNewCard({ ...newCard, cardNumber: e.target.value })} />
+                  <Input placeholder="Account Name" value={newCard.accountName} onChange={(e) => setNewCard({ ...newCard, accountName: e.target.value })} />
                   <div className="flex items-center space-x-2">
                     <input type="checkbox" checked={newCard.isDefault} onChange={(e) => setNewCard({ ...newCard, isDefault: e.target.checked })} />
                     <span>Đặt làm mặc định</span>
@@ -1227,7 +1227,7 @@ export function MyPage() {
       { icon: CreditCard, label: 'Withdrawal bank card', action: () => navigateToScreen('bankcard') },
       { icon: Shield, label: 'Security Center', action: () => navigateToScreen('security') },
       // { icon: Settings, label: 'Set up', action: () => navigateToScreen('settings') },
-      { icon: LogOut, label: 'Đăng xuất', action: logout, isLogout: true },
+      { icon: LogOut, label: 'Logout', action: logout, isLogout: true },
     ];
 
     return (

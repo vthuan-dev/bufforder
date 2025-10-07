@@ -113,7 +113,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token');
-    toast.success('Đã đăng xuất thành công!');
+    toast.success('Logout successfully!');
   };
 
   const value: AuthContextType = {
