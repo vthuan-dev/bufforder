@@ -59,6 +59,21 @@ mongoose.connect(config.MONGODB_URI, {
 })
 .then(() => {
   console.log('✅ Connected to MongoDB successfully');
+  // Fix legacy unique index on email that allowed null duplicates to fail
+  try {
+    const User = require('./models/User');
+    // Drop old unique index if it exists, then sync new partial index from schema
+    User.collection.dropIndex('email_1')
+      .then(() => console.log('[index] Dropped legacy index email_1'))
+      .catch(() => {} )
+      .finally(() => {
+        User.syncIndexes()
+          .then(() => console.log('[index] User indexes synced'))
+          .catch((e) => console.warn('[index] syncIndexes warning', e?.message));
+      });
+  } catch (e) {
+    console.warn('[index] User index maintenance skipped', e?.message);
+  }
 })
 .catch((error) => {
   console.error('❌ MongoDB connection error:', error);
