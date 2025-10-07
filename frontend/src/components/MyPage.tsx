@@ -1171,18 +1171,18 @@ export function MyPage() {
             <span>Change Password</span>
             <ChevronRight className="w-5 h-5 text-gray-400" />
           </button>
-          <div className="p-4 border-b border-gray-100">
+          {/* <div className="p-4 border-b border-gray-100">
             <div className="flex items-center justify-between">
               <span>2-Factor Authentication</span>
               <Switch />
             </div>
-          </div>
-          <div className="p-4">
+          </div> */}
+          {/* <div className="p-4">
             <div className="flex items-center justify-between">
               <span>Manage Trusted Devices</span>
               <ChevronRight className="w-5 h-5 text-gray-400" />
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
@@ -1206,12 +1206,12 @@ export function MyPage() {
               <ChevronRight className="w-5 h-5 text-gray-400" />
             </div>
           </div>
-          <div className="p-4">
+          {/* <div className="p-4">
             <div className="flex items-center justify-between">
               <span>Dark Mode</span>
               <Switch />
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
@@ -1226,7 +1226,7 @@ export function MyPage() {
       { icon: FileText, label: 'Deposit and Withdrawal Records', action: () => navigateToScreen('history') },
       { icon: CreditCard, label: 'Withdrawal bank card', action: () => navigateToScreen('bankcard') },
       { icon: Shield, label: 'Security Center', action: () => navigateToScreen('security') },
-      { icon: Settings, label: 'Set up', action: () => navigateToScreen('settings') },
+      // { icon: Settings, label: 'Set up', action: () => navigateToScreen('settings') },
       { icon: LogOut, label: 'Đăng xuất', action: logout, isLogout: true },
     ];
 
