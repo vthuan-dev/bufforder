@@ -9,6 +9,7 @@ const { getVipLevelByAmount } = require('../config/vipLevels');
 const config = require('../config');
 
 const router = express.Router();
+const Order = require('../models/Order');
 
 // Middleware to verify admin JWT token
 const verifyAdminToken = (req, res, next) => {
@@ -591,6 +592,39 @@ router.get('/users', verifyAdminToken, async (req, res) => {
     });
   } catch (error) {
     console.error('List users error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// =====================
+// Orders Management
+// =====================
+
+// Admin: update order status (pending -> completed/cancelled)
+router.patch('/orders/:id/status', verifyAdminToken, async (req, res) => {
+  try {
+    const { status } = req.body || {};
+    if (!['pending','completed','cancelled'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status' });
+    }
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+    order.status = status;
+    if (status === 'completed') {
+      order.completedAt = new Date();
+      // credit user commission when completed
+      const user = await require('../models/User').findById(order.userId);
+      if (user) {
+        user.balance += order.commissionAmount;
+        user.commission += order.commissionAmount;
+        await user.save();
+      }
+    }
+    await order.save();
+    res.json({ success: true, data: { order } });
+  } catch (e) {
+    console.error('Admin update order status error:', e);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });

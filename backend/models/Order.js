@@ -26,6 +26,9 @@ const orderSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  brand: { type: String },
+  category: { type: String },
+  image: { type: String },
   status: {
     type: String,
     enum: ['pending', 'completed', 'cancelled'],

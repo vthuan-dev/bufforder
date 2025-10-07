@@ -118,7 +118,21 @@ router.post('/take', authenticateToken, async (req, res) => {
     // Calculate commission
     const commissionAmount = (randomProduct.price * commissionRate) / 100;
 
-    // Don't create order yet - just return the selected product for confirmation
+  // Create a pending order immediately
+  const newOrder = new Order({
+    userId: userId,
+    productId: randomProduct.id,
+    productName: randomProduct.name,
+    productPrice: randomProduct.price,
+    commissionRate: commissionRate,
+    commissionAmount: commissionAmount,
+    brand: randomProduct.brand,
+    category: randomProduct.category,
+    image: randomProduct.image,
+    status: 'pending',
+    orderDate: new Date()
+  });
+  await newOrder.save();
 
     // Get updated stats
     const updatedTodayOrders = await Order.find({
@@ -147,6 +161,11 @@ router.post('/take', authenticateToken, async (req, res) => {
           productId: randomProduct.id,
           category: randomProduct.category,
           image: randomProduct.image
+        },
+        order: {
+          id: newOrder._id,
+          status: newOrder.status,
+          orderDate: newOrder.orderDate
         }
       }
     });

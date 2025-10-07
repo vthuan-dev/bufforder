@@ -1,35 +1,42 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, FileText } from 'lucide-react';
 import { Badge } from './ui/badge';
-import exampleImage from 'figma:asset/c82abf320116b9529a10b5a08317ef15125a755e.png';
+import api from '../services/api';
+import { allProducts } from './OrdersPage';
 
 export function RecordPage() {
-  const [activeTab, setActiveTab] = useState('paid');
+  const [activeTab, setActiveTab] = useState<'pending' | 'paid' | 'settled'>('paid');
+  const [orders, setOrders] = useState<any[]>([]);
+  const [balance, setBalance] = useState<number>(0);
+  const [loading, setLoading] = useState(false);
 
-  // Mock data for settled orders
-  const settledOrders = [
-    {
-      id: 1,
-      image: exampleImage,
-      description: 'Ashford Luxury Watch Collection - Premium Swiss Movement Timepiece with Leather Band',
-      orderTotal: '1,299.99$',
-      commission: '65.00$'
-    },
-    {
-      id: 2,
-      image: exampleImage,
-      description: 'Elite Chronograph Watch - Stainless Steel Case with Sapphire Crystal',
-      orderTotal: '899.50$',
-      commission: '44.98$'
-    },
-    {
-      id: 3,
-      image: exampleImage,
-      description: 'Classic Dress Watch - Gold Plated with Genuine Leather Strap',
-      orderTotal: '599.00$',
-      commission: '29.95$'
+  const load = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setLoading(true);
+    try {
+      const stats = await api.getOrderStats(token);
+      setBalance(stats.data?.balance ?? 0);
+      const list = await api.getOrderHistory(token, { page: 1, limit: 100 });
+      const items = (list.data?.orders || []).map((o: any) => {
+        // backfill image from current product catalog if missing
+        if (!o.image && o.productId) {
+          const found = allProducts.find(p => p.id === o.productId);
+          if (found) {
+            o.image = found.image;
+          }
+        }
+        return o;
+      });
+      setOrders(items);
+    } catch (e) {
+      console.error('Load record error', e);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  useEffect(() => { load(); }, []);
 
   // Empty State Component
   const EmptyState = () => (
@@ -72,14 +79,15 @@ export function RecordPage() {
   );
 
   // Order Item Component for Settled tab
-  const OrderItem = ({ order }: { order: typeof settledOrders[0] }) => (
+  const OrderItem = ({ order }: { order: any }) => (
     <div className="flex p-4 border-b border-gray-100 last:border-b-0">
       {/* Product Image */}
       <div className="w-16 h-16 bg-gray-100 rounded-lg mr-4 flex-shrink-0 overflow-hidden">
-        <img 
-          src={order.image} 
-          alt="Product" 
+        <img
+          src={order.image || 'https://images.unsplash.com/photo-1523170335258-f5e6a4e8c4c5?w=300&h=300&fit=crop'}
+          alt={order.productName || 'Product'}
           className="w-full h-full object-cover"
+          onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1523170335258-f5e6a4e8c4c5?w=300&h=300&fit=crop'; }}
         />
       </div>
       
@@ -87,25 +95,25 @@ export function RecordPage() {
       <div className="flex-1">
         {/* Settled Badge */}
         <div className="flex justify-end mb-2">
-          <Badge className="bg-green-100 text-green-800 border-green-200 rounded-full px-3 py-1 text-xs">
-            Settled
+          <Badge className={`rounded-full px-3 py-1 text-xs ${order.status === 'completed' ? 'bg-green-100 text-green-800 border-green-200' : order.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' : 'bg-gray-100 text-gray-800 border-gray-200' }`}>
+            {order.status === 'completed' ? 'Settled' : order.status === 'pending' ? 'Pending' : 'Cancelled'}
           </Badge>
         </div>
         
         {/* Product Description */}
         <p className="text-gray-800 text-sm mb-3 line-clamp-3 leading-relaxed">
-          {order.description}
+          {order.productName}
         </p>
         
         {/* Order Details */}
         <div className="space-y-1">
           <div className="flex justify-between text-sm">
             <span className="text-gray-600">Order Total:</span>
-            <span className="text-gray-800 font-medium">{order.orderTotal}</span>
+            <span className="text-gray-800 font-medium">${order.productPrice?.toLocaleString?.() || order.productPrice}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-gray-600">Commission:</span>
-            <span className="text-green-600 font-medium">{order.commission}</span>
+            <span className="text-green-600 font-medium">${order.commissionAmount?.toLocaleString?.() || order.commissionAmount}</span>
           </div>
         </div>
       </div>
@@ -127,7 +135,7 @@ export function RecordPage() {
         <div className="space-y-2">
           <div className="flex justify-between">
             <span className="text-gray-800">Available balance:</span>
-            <span className="text-gray-800 font-medium">10039.30$</span>
+            <span className="text-gray-800 font-medium">{balance.toLocaleString()}$</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-800">Freeze Balance:</span>
@@ -139,7 +147,7 @@ export function RecordPage() {
       {/* Tab Navigation */}
       <div className="bg-white border-b border-gray-200">
         <div className="flex">
-          {['pending', 'paid', 'settled'].map((tab) => (
+          {(['pending', 'paid', 'settled'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -160,15 +168,17 @@ export function RecordPage() {
 
       {/* Tab Content */}
       <div className="flex-1">
-        {activeTab === 'settled' ? (
-          <div className="bg-white">
-            {settledOrders.map((order) => (
-              <OrderItem key={order.id} order={order} />
-            ))}
-          </div>
-        ) : (
-          <EmptyState />
-        )}
+        <div className="bg-white min-h-[200px]">
+          {orders.filter(o => activeTab === 'settled' ? o.status === 'completed' : activeTab === 'pending' ? o.status === 'pending' : o.status === 'completed').length === 0 ? (
+            <EmptyState />
+          ) : (
+            orders
+              .filter(o => activeTab === 'settled' ? o.status === 'completed' : activeTab === 'pending' ? o.status === 'pending' : o.status === 'completed')
+              .map((order) => (
+                <OrderItem key={order._id} order={order} />
+              ))
+          )}
+        </div>
       </div>
     </div>
   );

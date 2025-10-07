@@ -217,6 +217,18 @@ class ApiService {
     });
   }
 
+  // Admin: update order status
+  async adminUpdateOrderStatus(orderId, status) {
+    return this.request(`/admin/orders/${orderId}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.adminTokenHeader()
+      },
+      body: JSON.stringify({ status })
+    });
+  }
+
   // Take order (client selects product and sends minimal data)
   async takeOrder(token, product) {
     return this.request('/orders/take', {
