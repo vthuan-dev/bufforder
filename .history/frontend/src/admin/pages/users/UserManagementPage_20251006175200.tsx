@@ -69,16 +69,16 @@ function UserFormModal({ isOpen, onClose, initialData, onSubmit }: UserFormModal
   if (!isOpen) return null;
 
   const vipLevels = [
-    { value: 'vip-0', label: 'VIP 0 - Thành viên mới' },
-    { value: 'vip-1', label: 'VIP 1 - Thành viên bạc' },
-    { value: 'vip-2', label: 'VIP 2 - Thành viên vàng' },
-    { value: 'vip-3', label: 'VIP 3 - Thành viên kim cương' },
-    { value: 'vip-4', label: 'VIP 4 - Thành viên bạch kim' },
-    { value: 'vip-5', label: 'VIP 5 - Thành viên ruby' },
-    { value: 'vip-6', label: 'VIP 6 - Thành viên emerald' },
-    { value: 'vip-7', label: 'VIP 7 - Thành viên sapphire' },
-    { value: 'svip', label: 'SVIP - Thành viên super' },
-    { value: 'royal-vip', label: 'ROYAL VIP - Thành viên hoàng gia' },
+    { value: 'vip-0', label: 'VIP 0 - New member' },
+    { value: 'vip-1', label: 'VIP 1 - Silver member' },
+    { value: 'vip-2', label: 'VIP 2 - Gold member' },
+    { value: 'vip-3', label: 'VIP 3 - Diamond member' },
+    { value: 'vip-4', label: 'VIP 4 - Platinum member' },
+    { value: 'vip-5', label: 'VIP 5 - Ruby member' },
+    { value: 'vip-6', label: 'VIP 6 - Emerald member' },
+    { value: 'vip-7', label: 'VIP 7 - Sapphire member' },
+    { value: 'svip', label: 'SVIP - Super member' },
+    { value: 'royal-vip', label: 'ROYAL VIP - Royal member' },
   ];
 
   return (

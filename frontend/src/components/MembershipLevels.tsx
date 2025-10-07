@@ -11,7 +11,7 @@ const membershipTiers = [
     numberOfOrders: 330,
     gradient: 'from-purple-600 to-pink-600',
     crown: '👑',
-    description: 'Thành viên hoàng gia'
+    description: 'Royal member'
   },
   {
     id: 'svip',
@@ -21,7 +21,7 @@ const membershipTiers = [
     numberOfOrders: 280,
     gradient: 'from-black to-amber-600',
     crown: '👑',
-    description: 'Thành viên super'
+    description: 'Super member'
   },
   {
     id: 'vip-7',
@@ -31,7 +31,7 @@ const membershipTiers = [
     numberOfOrders: 250,
     gradient: 'from-amber-600 to-red-600',
     crown: '👑',
-    description: 'Thành viên sapphire'
+    description: 'Sapphire member'
   },
   {
     id: 'vip-6',
@@ -41,7 +41,7 @@ const membershipTiers = [
     numberOfOrders: 220,
     gradient: 'from-red-600 to-pink-600',
     crown: '👑',
-    description: 'Thành viên emerald'
+    description: 'Emerald member'
   },
   {
     id: 'vip-5',
@@ -51,7 +51,7 @@ const membershipTiers = [
     numberOfOrders: 180,
     gradient: 'from-blue-600 to-purple-600',
     crown: '👑',
-    description: 'Thành viên ruby'
+    description: 'Ruby member'
   },
   {
     id: 'vip-4',
@@ -61,7 +61,7 @@ const membershipTiers = [
     numberOfOrders: 150,
     gradient: 'from-green-600 to-blue-600',
     crown: '👑',
-    description: 'Thành viên bạch kim'
+    description: 'Platinum member'
   },
   {
     id: 'vip-3',
@@ -71,7 +71,7 @@ const membershipTiers = [
     numberOfOrders: 120,
     gradient: 'from-yellow-600 to-green-600',
     crown: '👑',
-    description: 'Thành viên kim cương'
+    description: 'Diamond member'
   },
   {
     id: 'vip-2',
@@ -81,7 +81,7 @@ const membershipTiers = [
     numberOfOrders: 100,
     gradient: 'from-orange-600 to-yellow-600',
     crown: '👑',
-    description: 'Thành viên vàng'
+    description: 'Gold member'
   },
   {
     id: 'vip-1',
@@ -91,7 +91,7 @@ const membershipTiers = [
     numberOfOrders: 80,
     gradient: 'from-gray-600 to-orange-600',
     crown: '👑',
-    description: 'Thành viên bạc'
+    description: 'Silver member'
   },
   {
     id: 'vip-0',
@@ -101,7 +101,7 @@ const membershipTiers = [
     numberOfOrders: 0,
     gradient: 'from-gray-400 to-gray-600',
     crown: '👤',
-    description: 'Thành viên mới'
+    description: 'New member'
   }
 ];
 
