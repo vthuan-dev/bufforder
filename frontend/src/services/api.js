@@ -1,6 +1,5 @@
 const API_BASE_URL = 'https://bufforder.onrender.com/api';
 
-
 class ApiService {
   // Generic request method
   async request(endpoint, options = {}) {
@@ -140,6 +139,16 @@ class ApiService {
     });
   }
 
+  // List user's withdrawal requests
+  async getWithdrawalRequests(token) {
+    return this.request('/vip/withdrawal-requests', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+  }
+
   // Get bank cards
   async getBankCards(token) {
     return this.request('/vip/bank-cards', {
@@ -208,14 +217,15 @@ class ApiService {
     });
   }
 
-  // Take order
-  async takeOrder(token) {
+  // Take order (client selects product and sends minimal data)
+  async takeOrder(token, product) {
     return this.request('/orders/take', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ product })
     });
   }
 
@@ -357,6 +367,15 @@ class ApiService {
     });
   }
 
+  async adminDeleteThread(threadId) {
+    return this.request(`/chat/admin/threads/${threadId}`, {
+      method: 'DELETE',
+      headers: {
+        ...this.adminTokenHeader()
+      }
+    });
+  }
+
   async adminMarkThreadRead(threadId) {
     return this.request(`/chat/admin/threads/${threadId}/read`, {
       method: 'POST',
@@ -418,6 +437,41 @@ class ApiService {
       headers: {
         ...this.adminTokenHeader()
       }
+    });
+  }
+
+  // Admin: Withdrawal requests
+  async adminListWithdrawalRequests({ status = 'pending', page = 1, limit = 20 } = {}) {
+    const params = new URLSearchParams();
+    params.set('status', status);
+    params.set('page', String(page));
+    params.set('limit', String(limit));
+    return this.request(`/admin/withdrawal-requests?${params.toString()}`, {
+      headers: {
+        ...this.adminTokenHeader()
+      }
+    });
+  }
+
+  async adminApproveWithdrawal(id, notes) {
+    return this.request(`/admin/withdrawal-requests/${id}/approve`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.adminTokenHeader()
+      },
+      body: JSON.stringify({ notes })
+    });
+  }
+
+  async adminRejectWithdrawal(id, reason) {
+    return this.request(`/admin/withdrawal-requests/${id}/reject`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.adminTokenHeader()
+      },
+      body: JSON.stringify({ reason })
     });
   }
 

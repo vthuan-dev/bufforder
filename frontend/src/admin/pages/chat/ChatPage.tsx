@@ -2,7 +2,7 @@ import React from 'react';
 import styles from './ChatPage.module.css';
 import api from '../../../services/api';
 import { getAdminSocket } from '../../../lib/socket';
-import { FaSearch, FaPaperclip, FaPaperPlane, FaUser, FaPhone, FaEnvelope, FaClock, FaEye } from 'react-icons/fa';
+import { FaSearch, FaPaperclip, FaPaperPlane, FaUser, FaPhone, FaEnvelope, FaClock, FaEye, FaTrash } from 'react-icons/fa';
 
 type Message = { 
   id: string; 
@@ -250,6 +250,24 @@ export function ChatPage() {
   const currentMessages: Message[] = activeConversationId ? (conversations[activeConversationId] || []) : [];
   const activeThreadUser = users.find(u => u.threadId === activeConversationId) || null;
 
+  const onDeleteThread = async () => {
+    if (!activeConversationId) return;
+    if (!confirm('Xóa toàn bộ cuộc trò chuyện này?')) return;
+    try {
+      await api.adminDeleteThread(activeConversationId);
+      // remove from local state
+      setUsers(prev => prev.filter(u => u.threadId !== activeConversationId));
+      setConversations(prev => {
+        const copy = { ...prev } as any;
+        delete copy[activeConversationId];
+        return copy;
+      });
+      setActiveConversationId(null as any);
+    } catch (error) {
+      console.error('Error deleting thread:', error);
+    }
+  };
+
   return (
     <div className={styles.container}>
       {/* Left Panel - User List */}
@@ -356,6 +374,9 @@ export function ChatPage() {
               <div className={styles.chatActions}>
                 <button className={styles.chatActionBtn} title="Xem thông tin">
                   <FaEye />
+                </button>
+                <button className={styles.chatActionBtn} title="Xóa cuộc trò chuyện" onClick={onDeleteThread}>
+                  <FaTrash />
                 </button>
               </div>
             </div>

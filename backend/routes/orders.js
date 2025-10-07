@@ -67,6 +67,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
 router.post('/take', authenticateToken, async (req, res) => {
   try {
     const userId = req.userId;
+    const clientProduct = req.body && req.body.product;
     
     // Get user data
     const user = await User.findById(userId);
@@ -101,7 +102,7 @@ router.post('/take', authenticateToken, async (req, res) => {
     const vipLevel = getVipLevelByAmount(user.totalDeposited);
     const commissionRate = vipLevel ? vipLevel.commissionRate : 0;
 
-    // Diverse product catalog with real images
+    // Diverse product catalog with real images (used to validate client choice)
     const allProducts = [
       // Luxury Watches
       { id: 1, name: "Rolex Submariner", price: 8500, brand: "Rolex", category: "Watches", image: "https://24kara.com/files/sanpham/4581/1/jpg/dong-ho-rolex-submariner-date-40-m116613lb-0005-116613lb-0005-thep-oystersteel-va-vang-kim-18ct-mat-xanh-luot.jpg" },
@@ -179,20 +180,32 @@ router.post('/take', authenticateToken, async (req, res) => {
       { id: 105, name: "Razor Electric Scooter", price: 259, brand: "Razor", category: "Toys", image: "https://images.unsplash.com/photo-1520974841046-6c0e3f7c3b58?w=500&h=500&fit=crop" }
     ];
 
+    // If client sent a product, validate it; otherwise pick server-side
+    let randomProduct;
+    if (clientProduct) {
+      const match = allProducts.find(p => p.id === clientProduct.id);
+      if (!match) {
+        return res.status(400).json({ success: false, message: 'Invalid product selection' });
+      }
+      if (match.price > user.balance) {
+        return res.status(400).json({ success: false, message: 'Selected product exceeds current balance' });
+      }
+      randomProduct = match;
+    } else {
     // Filter products that user can afford
-    const affordableProducts = allProducts.filter(product => product.price <= user.balance);
+      const affordableProducts = allProducts.filter(product => product.price <= user.balance);
     
     // Check if there are any products within user's budget
     if (affordableProducts.length === 0) {
-      const minPrice = Math.min(...allProducts.map(p => p.price));
+        const minPrice = Math.min(...allProducts.map(p => p.price));
       return res.status(400).json({
         success: false,
         message: `No products available within your budget. Minimum product price is $${minPrice.toLocaleString()} but you only have $${user.balance.toLocaleString()}. Please deposit more money to your account.`
       });
     }
-    
     // Select random product from affordable products only
-    const randomProduct = affordableProducts[Math.floor(Math.random() * affordableProducts.length)];
+      randomProduct = affordableProducts[Math.floor(Math.random() * affordableProducts.length)];
+    }
     
     // Calculate commission
     const commissionAmount = (randomProduct.price * commissionRate) / 100;

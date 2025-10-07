@@ -167,6 +167,30 @@ router.post('/admin/threads/:id/read', verifyAdmin, async (req, res) => {
   }
 });
 
+// Admin: delete a thread and its messages
+router.delete('/admin/threads/:id', verifyAdmin, async (req, res) => {
+  try {
+    const threadId = req.params.id;
+    const thread = await ChatThread.findById(threadId);
+    if (!thread) return res.status(404).json({ success: false, message: 'Thread not found' });
+
+    await ChatMessage.deleteMany({ threadId });
+    await ChatThread.deleteOne({ _id: threadId });
+
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`thread:${threadId}`).emit('chat:threadDeleted', { threadId });
+      }
+    } catch {}
+
+    res.json({ success: true });
+  } catch (e) {
+    console.error('admin delete thread error', e);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // Admin: get user info by phone number
 router.get('/admin/users/by-phone/:phone', verifyAdmin, async (req, res) => {
   try {

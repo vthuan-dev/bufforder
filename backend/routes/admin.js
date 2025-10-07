@@ -4,6 +4,7 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const Admin = require('../models/Admin');
 const DepositRequest = require('../models/DepositRequest');
+const WithdrawalRequest = require('../models/WithdrawalRequest');
 const { getVipLevelByAmount } = require('../config/vipLevels');
 const config = require('../config');
 
@@ -363,6 +364,88 @@ router.post('/deposit-requests/:requestId/reject', verifyAdminToken, async (req,
       success: false,
       message: 'Server error. Please try again later.'
     });
+  }
+});
+
+// ===== Withdrawal requests admin =====
+// List withdrawal requests
+router.get('/withdrawal-requests', verifyAdminToken, async (req, res) => {
+  try {
+    const { status = 'pending', page = 1, limit = 10 } = req.query;
+    const query = {};
+    if (status !== 'all') query.status = status;
+
+    const requests = await WithdrawalRequest.find(query)
+      .populate('userId', 'username email phoneNumber fullName balance')
+      .sort({ requestDate: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+
+    const total = await WithdrawalRequest.countDocuments(query);
+
+    res.json({
+      success: true,
+      data: {
+        requests,
+        pagination: {
+          current: parseInt(page),
+          pages: Math.ceil(total / limit),
+          total
+        }
+      }
+    });
+  } catch (e) {
+    console.error('Get withdrawal requests error:', e);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Approve withdrawal request (deduct user balance)
+router.post('/withdrawal-requests/:id/approve', verifyAdminToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const wr = await WithdrawalRequest.findById(id).populate('userId');
+    if (!wr) return res.status(404).json({ success: false, message: 'Withdrawal request not found' });
+    if (wr.status !== 'pending') return res.status(400).json({ success: false, message: 'Request already processed' });
+
+    const user = wr.userId;
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    if (user.balance < wr.amount) return res.status(400).json({ success: false, message: 'Insufficient user balance' });
+
+    user.balance -= wr.amount;
+    await user.save();
+
+    wr.status = 'approved';
+    wr.approvedBy = req.adminId;
+    wr.approvedAt = new Date();
+    await wr.save();
+
+    res.json({ success: true, message: 'Withdrawal approved', data: { request: wr } });
+  } catch (e) {
+    console.error('Approve withdrawal error:', e);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Reject withdrawal request
+router.post('/withdrawal-requests/:id/reject', verifyAdminToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body || {};
+    const wr = await WithdrawalRequest.findById(id);
+    if (!wr) return res.status(404).json({ success: false, message: 'Withdrawal request not found' });
+    if (wr.status !== 'pending') return res.status(400).json({ success: false, message: 'Request already processed' });
+
+    wr.status = 'rejected';
+    wr.rejectionReason = reason || 'Rejected by admin';
+    wr.approvedBy = req.adminId;
+    wr.approvedAt = new Date();
+    await wr.save();
+
+    res.json({ success: true, message: 'Withdrawal rejected', data: { request: wr } });
+  } catch (e) {
+    console.error('Reject withdrawal error:', e);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 

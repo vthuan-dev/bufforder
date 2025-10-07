@@ -22,7 +22,7 @@ async function createAdmin() {
     // Create default admin
     const admin = new Admin({
       username: 'admin',
-      email: 'admin@example.com',
+      // email: 'admin@example.com',
       password: 'admin123', // This will be hashed automatically
       role: 'super_admin'
     });

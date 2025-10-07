@@ -109,7 +109,7 @@ export function Sidebar({ onLogout, adminData }: SidebarProps) {
           </NavLink>
         </div>
 
-        <div className={styles.navSection}>
+        {/* <div className={styles.navSection}>
           <div className={styles.navLabel}>Tools</div>
           <button className={styles.link} title="Analytics">
             <FaChartBar className={styles.linkIcon} />
@@ -120,7 +120,7 @@ export function Sidebar({ onLogout, adminData }: SidebarProps) {
             <FaCog className={styles.linkIcon} />
             {!isCollapsed && <span>Settings</span>}
           </button>
-        </div>
+        </div> */}
       </nav>
 
       {/* User Section */}

@@ -2,6 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const DepositRequest = require('../models/DepositRequest');
+const WithdrawalRequest = require('../models/WithdrawalRequest');
 const { VIP_LEVELS, getVipLevelByAmount, getNextVipLevel, getProgressToNextLevel } = require('../config/vipLevels');
 const config = require('../config');
 
@@ -237,19 +238,43 @@ router.delete('/bank-cards/:id', verifyToken, async (req, res) => {
 router.post('/withdrawal', verifyToken, async (req, res) => {
   try {
     const { amount, bankCardId } = req.body || {};
-    if (!amount || isNaN(amount) || amount <= 0) {
+    const parsed = Number(amount);
+    if (!parsed || isNaN(parsed) || parsed <= 0) {
       return res.status(400).json({ success: false, message: 'Số tiền rút không hợp lệ' });
     }
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     const card = (user.bankCards || []).find(c => c.id === bankCardId);
     if (!card) return res.status(400).json({ success: false, message: 'Vui lòng chọn thẻ ngân hàng' });
-    if (amount > user.balance) return res.status(400).json({ success: false, message: 'Số dư không đủ' });
+    if (parsed > user.balance) return res.status(400).json({ success: false, message: 'Số dư không đủ' });
 
-    // For now, just simulate creation of withdrawal ticket, do not change balance until admin approves (not implemented)
-    return res.json({ success: true, message: 'Đã tạo yêu cầu rút tiền. Vui lòng chờ admin duyệt.' });
+    // Create withdrawal request (pending)
+    const wr = await WithdrawalRequest.create({ userId: user._id, amount: parsed, bankCardId });
+
+    res.json({
+      success: true,
+      message: 'Đã tạo yêu cầu rút tiền. Vui lòng chờ admin duyệt.',
+      data: {
+        requestId: wr._id,
+        status: wr.status,
+        amount: wr.amount,
+        bankCardId: wr.bankCardId,
+        requestDate: wr.requestDate
+      }
+    });
   } catch (e) {
+    console.error('Withdrawal create error', e);
     return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// List user's withdrawal requests
+router.get('/withdrawal-requests', verifyToken, async (req, res) => {
+  try {
+    const list = await WithdrawalRequest.find({ userId: req.userId }).sort({ requestDate: -1 });
+    res.json({ success: true, data: { requests: list } });
+  } catch (e) {
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 

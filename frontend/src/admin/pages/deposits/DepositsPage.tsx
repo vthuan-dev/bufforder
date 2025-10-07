@@ -19,20 +19,29 @@ type DepositRequest = {
 };
 
 export function DepositsPage() {
-  const [deposits, setDeposits] = React.useState([]);
+  const [deposits, setDeposits] = React.useState<DepositRequest[]>([]);
+  const [requestType, setRequestType] = React.useState<'deposit' | 'withdrawal'>('deposit');
   const [status, setStatus] = React.useState('pending');
   const [searchTerm, setSearchTerm] = React.useState('');
   const [sortBy, setSortBy] = React.useState('requestDate');
   const [sortOrder, setSortOrder] = React.useState('desc');
   const [loading, setLoading] = React.useState(false);
-  const [selectedDeposit, setSelectedDeposit] = React.useState(null);
+  const [selectedDeposit, setSelectedDeposit] = React.useState<DepositRequest | null>(null);
   const [showModal, setShowModal] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.adminListDepositRequests({ status });
-      const list = (res.data?.requests || res.data?.data?.requests || []).map((r: any) => ({
+      // Hiện tại chỉ có API duyệt nạp tiền cho admin; phần rút tiền sẽ bổ sung sau
+      let listRaw: any[] = [];
+      if (requestType === 'withdrawal') {
+        const res = await api.adminListWithdrawalRequests({ status });
+        listRaw = (res.data?.requests || res.data?.data?.requests || []);
+      } else {
+        const res = await api.adminListDepositRequests({ status });
+        listRaw = (res.data?.requests || res.data?.data?.requests || []);
+      }
+      const list = listRaw.map((r: any) => ({
         id: r._id,
         userId: r.userId?._id || r.userId,
         userName: r.userId?.fullName || r.userId?.username || 'Unknown User',
@@ -52,7 +61,7 @@ export function DepositsPage() {
     } finally {
       setLoading(false);
     }
-  }, [status]);
+  }, [status, requestType]);
 
   React.useEffect(() => { load(); }, [load]);
 
@@ -151,7 +160,11 @@ export function DepositsPage() {
 
   const approve = async (id: string) => {
     try {
-      await api.adminApproveDeposit(id, 'Approved via admin dashboard');
+      if (requestType === 'withdrawal') {
+        await api.adminApproveWithdrawal(id, 'Approved via admin dashboard');
+      } else {
+        await api.adminApproveDeposit(id, 'Approved via admin dashboard');
+      }
       load();
     } catch (error) {
       console.error('Error approving deposit:', error);
@@ -162,7 +175,11 @@ export function DepositsPage() {
     const reason = prompt('Lý do từ chối?');
     if (!reason) return;
     try {
-      await api.adminRejectDeposit(id, reason, 'Rejected via admin dashboard');
+      if (requestType === 'withdrawal') {
+        await api.adminRejectWithdrawal(id, reason);
+      } else {
+        await api.adminRejectDeposit(id, reason, 'Rejected via admin dashboard');
+      }
       load();
     } catch (error) {
       console.error('Error rejecting deposit:', error);
@@ -178,8 +195,8 @@ export function DepositsPage() {
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.titleSection}>
-          <h1 className={styles.title}>Quản lý yêu cầu nạp tiền</h1>
-          <p className={styles.subtitle}>Phê duyệt và quản lý các yêu cầu nạp tiền từ người dùng</p>
+          <h1 className={styles.title}>Quản lý nạp / rút tiền</h1>
+          <p className={styles.subtitle}>Phê duyệt và quản lý các yêu cầu giao dịch từ người dùng</p>
         </div>
       </div>
 
@@ -195,6 +212,14 @@ export function DepositsPage() {
         </div>
         
         <div className={styles.filterControls}>
+          <select 
+            value={requestType}
+            onChange={(e) => setRequestType(e.target.value as any)}
+            className={styles.filterSelect}
+          >
+            <option value="deposit">Nạp tiền</option>
+            <option value="withdrawal">Rút tiền</option>
+          </select>
           <select 
             value={status} 
             onChange={(e) => setStatus(e.target.value as any)}
@@ -254,7 +279,7 @@ export function DepositsPage() {
           <div className={styles.statIcon}><FaDollarSign /></div>
           <div className={styles.statContent}>
             <div className={styles.statNumber}>{formatCurrency(stats.totalAmount)}</div>
-            <div className={styles.statLabel}>Tổng đã duyệt</div>
+            <div className={styles.statLabel}>Tổng đã duyệt ({requestType === 'deposit' ? 'nạp' : 'rút'})</div>
           </div>
         </div>
       </div>
@@ -282,7 +307,11 @@ export function DepositsPage() {
                 <td colSpan={5} className={styles.emptyCell}>
                   <div className={styles.emptyState}>
                     <FaSearch />
-                    <p>Không tìm thấy yêu cầu nạp tiền nào</p>
+                    <p>
+                      {requestType === 'deposit' 
+                        ? 'Không tìm thấy yêu cầu nạp tiền nào'
+                        : 'Chưa có yêu cầu rút tiền hoặc tính năng quản trị rút tiền đang được bổ sung'}
+                    </p>
                   </div>
                 </td>
               </tr>

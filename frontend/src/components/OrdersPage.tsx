@@ -15,7 +15,7 @@ const allProducts = [
   { id: 5, name: "Cartier Santos", brand: "Cartier", category: "Watches", image: "https://bizweb.dktcdn.net/100/175/988/products/wro16ms27rb21aa-1-copy.jpg?v=1722223341387", price: 7200 },
   
   // Luxury Handbags
-  { id: 21, name: "Hermès Birkin Bag", brand: "Hermès", category: "Handbags", image: "", price: 15000 },
+  { id: 21, name: "Hermès Birkin Bag", brand: "Hermès", category: "Handbags", image: "https://product.hstatic.net/200000465663/product/2b92308f-7d4c-4845-b8d3-7af5c333b83b_33d3cb42159a434a856ab0537f181c85_master.jpg", price: 15000 },
   { id: 22, name: "Chanel Classic Flap", brand: "Chanel", category: "Handbags", image: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=500&h=500&fit=crop", price: 8500 },
 
   // Fashion & Shoes
@@ -116,8 +116,24 @@ export function OrdersPage() {
           return;
         }
 
-        // Call backend to get a random product selection
-        const response = await api.takeOrder(token);
+        // Choose a product from local catalog that the user can afford
+        const affordable = allProducts.filter(p => p.price <= availableBalance);
+        if (affordable.length === 0) {
+          toast.error('Không có sản phẩm phù hợp với số dư hiện tại');
+          setShowProgressModal(false);
+          return;
+        }
+        const chosen = affordable[Math.floor(Math.random() * affordable.length)];
+
+        // Send chosen product to backend for validation
+        const response = await api.takeOrder(token, {
+          id: chosen.id,
+          name: chosen.name,
+          price: chosen.price,
+          brand: chosen.brand,
+          category: chosen.category,
+          image: chosen.image
+        });
         if (response.success) {
           toast.success('Product selected successfully!');
           // Store selected product data
