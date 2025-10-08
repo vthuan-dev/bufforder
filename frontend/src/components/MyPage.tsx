@@ -186,6 +186,7 @@ export function MyPage() {
     const [selectedBankCard, setSelectedBankCard] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [bankCards, setBankCards] = useState<any[]>([]);
+    const [password, setPassword] = useState('');
 
     // Load bank cards on component mount
     useEffect(() => {
@@ -238,6 +239,11 @@ export function MyPage() {
         return;
       }
 
+      if (!password) {
+        toast.error('Please enter your login password to confirm');
+        return;
+      }
+
       setIsProcessing(true);
       try {
         const token = localStorage.getItem('token');
@@ -246,11 +252,12 @@ export function MyPage() {
           return;
         }
 
-        const response = await api.withdrawal(token, withdrawalAmount, selectedBankCard);
+        const response = await api.withdrawal(token, withdrawalAmount, selectedBankCard, password);
         if (response.success) {
           toast.success('Withdrawal request submitted! Admin will contact you to confirm and transfer.');
           setAmount('');
           setSelectedBankCard('');
+          setPassword('');
           await fetchVipStatus(); // Refresh VIP status
           navigateBack(); // Go back to main screen
         } else {
@@ -293,6 +300,19 @@ export function MyPage() {
               className="mt-1"
             />
           </div>
+
+        {/* Password Confirmation */}
+        <div>
+          <Label htmlFor="withdrawal-password">Password</Label>
+          <Input 
+            id="withdrawal-password" 
+            placeholder="Enter your login password" 
+            type="password" 
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="mt-1"
+          />
+        </div>
           
           {/* Quick Select Amounts */}
           <div>
@@ -339,7 +359,7 @@ export function MyPage() {
           <Button 
             className="w-full h-12 text-lg font-medium"
             onClick={handleWithdrawal}
-            disabled={isProcessing || !amount || !selectedBankCard}
+          disabled={isProcessing || !amount || !selectedBankCard || !password}
           >
             {isProcessing ? 'Processing...' : 'Confirm Withdrawal'}
           </Button>
@@ -894,7 +914,7 @@ export function MyPage() {
                   <Input placeholder="Account Name" value={newCard.accountName} onChange={(e) => setNewCard({ ...newCard, accountName: e.target.value })} />
                   <div className="flex items-center space-x-2">
                     <input type="checkbox" checked={newCard.isDefault} onChange={(e) => setNewCard({ ...newCard, isDefault: e.target.checked })} />
-                    <span>Đặt làm mặc định</span>
+                    <span>Set as default</span>
                   </div>
                   <div className="flex gap-2">
                     <Button className="flex-1" onClick={addCard}>Lưu</Button>

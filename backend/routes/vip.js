@@ -237,13 +237,16 @@ router.delete('/bank-cards/:id', verifyToken, async (req, res) => {
 // ===== Withdrawal request (placeholder record) =====
 router.post('/withdrawal', verifyToken, async (req, res) => {
   try {
-    const { amount, bankCardId } = req.body || {};
+    const { amount, bankCardId, password } = req.body || {};
     const parsed = Number(amount);
     if (!parsed || isNaN(parsed) || parsed <= 0) {
       return res.status(400).json({ success: false, message: 'Số tiền rút không hợp lệ' });
     }
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    if (!password) return res.status(400).json({ success: false, message: 'Vui lòng nhập mật khẩu để xác nhận' });
+    const ok = await user.comparePassword(password);
+    if (!ok) return res.status(401).json({ success: false, message: 'Mật khẩu không đúng' });
     const card = (user.bankCards || []).find(c => c.id === bankCardId);
     if (!card) return res.status(400).json({ success: false, message: 'Vui lòng chọn thẻ ngân hàng' });
     if (parsed > user.balance) return res.status(400).json({ success: false, message: 'Số dư không đủ' });

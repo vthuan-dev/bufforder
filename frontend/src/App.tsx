@@ -11,6 +11,7 @@ import { MyPage } from './components/MyPage';
 import { HelpPage } from './components/HelpPage';
 import { BottomNavigation } from './components/BottomNavigation';
 import { AdminApp } from './components/AdminApp';
+import './styles/global1.css';
 
 function AppContent() {
   const { user, isAuthenticated, isLoading, login, register } = useAuth();

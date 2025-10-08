@@ -129,14 +129,14 @@ class ApiService {
   }
 
   // Withdrawal
-  async withdrawal(token, amount, bankCardId) {
+  async withdrawal(token, amount, bankCardId, password) {
     return this.request('/vip/withdrawal', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ amount, bankCardId }),
+      body: JSON.stringify({ amount, bankCardId, password }),
     });
   }
 

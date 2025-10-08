@@ -411,8 +411,8 @@ router.post('/withdrawal-requests/:id/approve', verifyAdminToken, async (req, re
 
     const user = wr.userId;
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    // Deduct directly from available balance on approval
     if (user.balance < wr.amount) return res.status(400).json({ success: false, message: 'Insufficient user balance' });
-
     user.balance -= wr.amount;
     await user.save();
 
@@ -421,7 +421,7 @@ router.post('/withdrawal-requests/:id/approve', verifyAdminToken, async (req, re
     wr.approvedAt = new Date();
     await wr.save();
 
-    res.json({ success: true, message: 'Withdrawal approved', data: { request: wr } });
+    res.json({ success: true, message: 'Withdrawal approved', data: { request: wr, user: { balance: user.balance, freezeBalance: user.freezeBalance } } });
   } catch (e) {
     console.error('Approve withdrawal error:', e);
     res.status(500).json({ success: false, message: 'Server error' });
@@ -433,9 +433,12 @@ router.post('/withdrawal-requests/:id/reject', verifyAdminToken, async (req, res
   try {
     const { id } = req.params;
     const { reason } = req.body || {};
-    const wr = await WithdrawalRequest.findById(id);
+    const wr = await WithdrawalRequest.findById(id).populate('userId');
     if (!wr) return res.status(404).json({ success: false, message: 'Withdrawal request not found' });
     if (wr.status !== 'pending') return res.status(400).json({ success: false, message: 'Request already processed' });
+
+    // No balance changes on rejection (since nothing was deducted yet)
+    const user = wr.userId;
 
     wr.status = 'rejected';
     wr.rejectionReason = reason || 'Rejected by admin';
@@ -443,7 +446,7 @@ router.post('/withdrawal-requests/:id/reject', verifyAdminToken, async (req, res
     wr.approvedAt = new Date();
     await wr.save();
 
-    res.json({ success: true, message: 'Withdrawal rejected', data: { request: wr } });
+    res.json({ success: true, message: 'Withdrawal rejected', data: { request: wr, user: user ? { balance: user.balance, freezeBalance: user.freezeBalance } : undefined } });
   } catch (e) {
     console.error('Reject withdrawal error:', e);
     res.status(500).json({ success: false, message: 'Server error' });
