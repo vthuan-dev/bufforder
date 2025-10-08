@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import {
-  MapPin,
-  DollarSign,
+import { 
+  MapPin, 
+  DollarSign, 
   Minus,
-  FileText,
-  CreditCard,
-  Shield,
+  FileText, 
+  CreditCard, 
+  Shield, 
   Settings,
   ChevronRight,
   Star,
@@ -19,10 +19,7 @@ import {
   LogOut,
   Crown,
   TrendingUp,
-  Sparkles,
-  User,
-  Phone,
-  Home
+  Sparkles
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -32,12 +29,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import toast from 'react-hot-toast';
-import AddAddressScreen from './AddAddressScreen.tsx';
 
 export function MyPage() {
   const { user, logout } = useAuth();
   const [currentScreen, setCurrentScreen] = useState('main');
-  const [vipStatus, setVipStatus] = useState<any>(null);
+  const [vipStatus, setVipStatus] = useState(null);
   const [isLoadingVip, setIsLoadingVip] = useState(false);
 
   const navigateToScreen = (screen: string) => {
@@ -83,25 +79,13 @@ export function MyPage() {
     return (
       <div className="relative mb-6 overflow-hidden">
         {/* Modern Header Card with Gradient Background */}
-        <div
-          className="relative rounded-2xl p-6 shadow-2xl overflow-hidden border"
-          style={{
-            background: 'linear-gradient(135deg, rgb(79, 124, 191) 0%, rgb(22, 62, 165) 100%)',
-            borderColor: 'rgba(59, 130, 246, 0.18)'
-          }}
-        >
-          {/* Blue overlay to ensure visible blue background */}
-          <div
-            className="absolute inset-0 rounded-2xl pointer-events-none"
-            style={{
-              backgroundColor: 'rgba(59, 130, 246, 0.08)',
-              boxShadow: 'inset 0 0 0 1px rgba(147, 197, 253, 0.18)'
-            }}
-          ></div>
+        <div className="relative bg-gradient-to-br from-blue-500 via-purple-500 to-blue-600 rounded-3xl p-6 shadow-2xl">
+          {/* Glassmorphism overlay */}
+          <div className="absolute inset-0 bg-white/10 backdrop-blur-sm rounded-3xl"></div>
 
           {/* Decorative elements */}
-          <div className="absolute top-4 right-4 w-20 h-20 bg-blue-100/20 rounded-full blur-xl"></div>
-          <div className="absolute bottom-4 left-4 w-16 h-16 bg-blue-100/20 rounded-full blur-lg"></div>
+          <div className="absolute top-4 right-4 w-20 h-20 bg-white/5 rounded-full blur-xl"></div>
+          <div className="absolute bottom-4 left-4 w-16 h-16 bg-white/5 rounded-full blur-lg"></div>
 
           <div className="relative z-10">
             {/* Profile Avatar and Title */}
@@ -111,10 +95,10 @@ export function MyPage() {
               </div>
               <div>
                 <h1 className="text-white text-2xl font-bold mb-1">
-                  {isLoadingVip ? 'Loading...' : 'New Member'}
+                  {isLoadingVip ? 'Loading...' : 'Thành viên mới'}
                 </h1>
                 <p className="text-white/80 text-sm">
-                  New Member
+                  Thành viên mới
                 </p>
               </div>
             </div>
@@ -185,7 +169,7 @@ export function MyPage() {
     const [amount, setAmount] = useState('');
     const [selectedBankCard, setSelectedBankCard] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
-    const [bankCards, setBankCards] = useState<any[]>([]);
+    const [bankCards, setBankCards] = useState([]);
 
     // Load bank cards on component mount
     useEffect(() => {
@@ -391,11 +375,21 @@ export function MyPage() {
     </div>
   );
 
-  // Modern Shipping Address Screen
+  // Shipping Address Screen
   const ShippingAddressScreen = () => {
-    const [addresses, setAddresses] = useState<any[]>([]);
+    const [addresses, setAddresses] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
-    
+    const [showAddForm, setShowAddForm] = useState(false);
+    const [isClosing, setIsClosing] = useState(false);
+    const [addressData, setAddressData] = useState({
+      fullName: '',
+      phoneNumber: '',
+      addressLine1: '',
+      city: '',
+      postalCode: '',
+      isDefault: false
+    });
+    const [isSaving, setIsSaving] = useState(false);
 
     // Load addresses on component mount
     useEffect(() => {
@@ -419,7 +413,50 @@ export function MyPage() {
       }
     };
 
-    
+    const handleCloseForm = () => {
+      setIsClosing(true);
+      setTimeout(() => {
+        setShowAddForm(false);
+        setIsClosing(false);
+        setAddressData({
+          fullName: '',
+          phoneNumber: '',
+          addressLine1: '',
+          city: '',
+          postalCode: '',
+          isDefault: false
+        });
+      }, 300);
+    };
+
+    const handleAddAddress = async () => {
+      if (!addressData.fullName || !addressData.phoneNumber || !addressData.addressLine1 || !addressData.city || !addressData.postalCode) {
+        toast.error('Vui lòng điền đầy đủ thông tin');
+        return;
+      }
+
+      setIsSaving(true);
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          toast.error('Vui lòng đăng nhập để lưu địa chỉ');
+          return;
+        }
+
+        const response = await api.addAddress(token, addressData);
+        if (response.success) {
+          toast.success('Thêm địa chỉ thành công!');
+          setAddresses(response.data.addresses);
+          handleCloseForm();
+        } else {
+          toast.error(response.message || 'Thêm địa chỉ thất bại');
+        }
+      } catch (error) {
+        toast.error(error.message || 'Thêm địa chỉ thất bại');
+      } finally {
+        setIsSaving(false);
+      }
+    };
 
     const handleDeleteAddress = async (addressId) => {
       try {
@@ -439,99 +476,155 @@ export function MyPage() {
     };
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="bg-gray-50 min-h-screen">
         <ScreenHeader title="Shipping Address" />
-
-        <div className="p-4 space-y-4 max-w-sm mx-auto">
-          {/* Existing Addresses */}
+        <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+          {/* Address List */}
           {isLoading ? (
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-3 text-gray-600 font-medium text-sm">Loading addresses...</p>
-              </div>
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+              <p className="mt-2 text-gray-600">Loading...</p>
             </div>
           ) : addresses.length > 0 ? (
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4">
-                <h2 className="text-lg font-bold text-white mb-1">Saved Addresses</h2>
-                <p className="text-blue-100 text-sm">Manage your delivery addresses</p>
-              </div>
-
-              <div className="p-4 space-y-3">
-                {addresses.map((address, index) => (
-                  <div
-                    key={address._id || index}
-                    className="relative bg-white rounded-xl p-4 border border-gray-200/80 shadow-sm hover:shadow-lg hover:-translate-y-0.5 hover:border-blue-200 transition-all duration-200"
-                  >
-                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-t-xl"></div>
-
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2 min-w-0">
-                          <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center">
-                            <User className="w-3.5 h-3.5 text-blue-600" />
-                          </div>
-                          <h3 className="font-bold text-gray-900 text-sm truncate">
-                            {address.fullName}
-                          </h3>
-                          {address.isDefault && (
-                            <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
-                              Default
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteAddress(address._id)}
-                        className="w-7 h-7 bg-red-50 rounded-full flex items-center justify-center hover:bg-red-100 transition-colors"
-                        aria-label="Delete address"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-red-600" />
-                      </button>
+            <div className="space-y-3 max-w-sm mx-auto">
+              {addresses.map((address, index) => (
+                <div key={address._id || index} className="bg-white rounded-lg p-3 sm:p-4 shadow-sm border">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex-1 pr-2">
+                      <h3 className="font-semibold text-gray-900 text-sm sm:text-base">{address.fullName}</h3>
+                      {address.isDefault && (
+                        <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mt-1">
+                          Mặc định
+                        </span>
+                      )}
                     </div>
-
-                    <div className="space-y-1 pl-9">
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <Phone className="w-3.5 h-3.5 text-gray-500" />
-                        <span className="text-xs leading-relaxed">{address.phoneNumber}</span>
-                      </div>
-                      <div className="flex items-start gap-2 text-gray-700">
-                        <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-gray-500" />
-                        <div className="text-xs leading-relaxed break-words">
-                          <p>{address.addressLine1}</p>
-                          <p>{address.city}, {address.postalCode}</p>
-                        </div>
-                      </div>
-                    </div>
+                    <button
+                      onClick={() => handleDeleteAddress(address._id)}
+                      className="text-red-500 hover:text-red-700 p-2 flex-shrink-0 touch-manipulation"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                ))}
-              </div>
+                  <p className="text-xs sm:text-sm text-gray-600 mb-1 break-all">{address.phoneNumber}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 mb-1 break-words">{address.addressLine1}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 break-words">{address.city}, {address.postalCode}</p>
+                </div>
+              ))}
             </div>
           ) : (
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-              <div className="text-center">
-                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <MapPin className="w-6 h-6 text-gray-400" />
-                </div>
-                <p className="text-gray-500 font-medium text-sm">No saved addresses yet</p>
-                <p className="text-gray-400 text-xs mt-1">Add your first address below</p>
-              </div>
+            <div className="text-center py-8">
+              <p className="text-gray-500">No addresses yet</p>
             </div>
           )}
 
           {/* Add Address Button */}
           {addresses.length < 3 && (
-            <button
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-4 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg flex items-center justify-center space-x-2 text-sm active:scale-95"
-              onClick={() => navigateToScreen('add-address')}
-              disabled={isLoading}
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add New Address ({addresses.length}/3)</span>
-            </button>
+            <div className="max-w-sm mx-auto">
+              <Button 
+                className="w-full h-10 sm:h-11 text-sm sm:text-base touch-manipulation" 
+                onClick={() => setShowAddForm(true)}
+                disabled={isLoading}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add new address ({addresses.length}/3)
+              </Button>
+            </div>
           )}
 
+          {/* Add Address Form Modal */}
+          {showAddForm && (
+            <div 
+              className={`fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50 transition-all duration-300 ${isClosing ? 'animate-out fade-out' : 'animate-in fade-in'}`}
+              onClick={handleCloseForm}
+            >
+              <div 
+                className={`bg-white rounded-lg p-4 sm:p-6 w-full max-w-sm sm:max-w-md max-h-[95vh] overflow-y-auto mx-2 sm:mx-0 transition-all duration-300 ${isClosing ? 'animate-out zoom-out-95 slide-out-to-bottom-2' : 'animate-in zoom-in-95 slide-in-from-bottom-2'}`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3 className="text-lg font-semibold mb-4">Add new address</h3>
+                
+                <div className="space-y-3 sm:space-y-4">
+                  <div>
+                    <Label htmlFor="fullName" className="text-sm font-medium">Full Name</Label>
+                    <Input 
+                      id="fullName" 
+                      placeholder="Enter your full name" 
+                      value={addressData.fullName}
+                      onChange={(e) => setAddressData({...addressData, fullName: e.target.value})}
+                      className="mt-1 text-base"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="phone" className="text-sm font-medium">Phone Number</Label>
+                    <Input 
+                      id="phone" 
+                      placeholder="Enter your phone number" 
+                      value={addressData.phoneNumber}
+                      onChange={(e) => setAddressData({...addressData, phoneNumber: e.target.value})}
+                      className="mt-1 text-base"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="address" className="text-sm font-medium">Address Line 1</Label>
+                    <Input 
+                      id="address" 
+                      placeholder="Enter your address" 
+                      value={addressData.addressLine1}
+                      onChange={(e) => setAddressData({...addressData, addressLine1: e.target.value})}
+                      className="mt-1 text-base"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="city" className="text-sm font-medium">City</Label>
+                    <Input 
+                      id="city" 
+                      placeholder="Enter your city" 
+                      value={addressData.city}
+                      onChange={(e) => setAddressData({...addressData, city: e.target.value})}
+                      className="mt-1 text-base"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="postal" className="text-sm font-medium">Postal Code</Label>
+                    <Input 
+                      id="postal" 
+                      placeholder="Enter postal code" 
+                      value={addressData.postalCode}
+                      onChange={(e) => setAddressData({...addressData, postalCode: e.target.value})}
+                      className="mt-1 text-base"
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2 pt-2">
+                    <input
+                      type="checkbox"
+                      id="isDefault"
+                      checked={addressData.isDefault}
+                      onChange={(e) => setAddressData({...addressData, isDefault: e.target.checked})}
+                      className="rounded w-4 h-4"
+                    />
+                    <Label htmlFor="isDefault" className="text-sm">Set as default</Label>
+                  </div>
+                </div>
+
+                <div className="flex space-x-2 sm:space-x-3 mt-4 sm:mt-6">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 h-10 sm:h-11 text-sm sm:text-base touch-manipulation" 
+                    onClick={handleCloseForm}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    className="flex-1 h-10 sm:h-11 text-sm sm:text-base touch-manipulation" 
+                    onClick={handleAddAddress}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? 'Saving...' : 'Add address'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -541,7 +634,7 @@ export function MyPage() {
   const TopUpScreen = () => {
     const [amount, setAmount] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
-    const [depositRequests, setDepositRequests] = useState<any[]>([]);
+    const [depositRequests, setDepositRequests] = useState([]);
 
     const fetchDepositRequests = async () => {
       try {
@@ -1198,7 +1291,7 @@ export function MyPage() {
     );
   };
 
-  // Modern Customer Service Chat Screen
+  // Chat Screen
   const ChatScreen = () => {
     const [messages, setMessages] = useState([
       {
@@ -1231,10 +1324,10 @@ export function MyPage() {
         id: messages.length + 1,
         text: newMessage,
         sender: 'user',
-        timestamp: new Date().toLocaleTimeString('en-US', {
-          hour: '2-digit',
+        timestamp: new Date().toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
           minute: '2-digit',
-          hour12: true
+          hour12: true 
         })
       };
 
@@ -1250,10 +1343,10 @@ export function MyPage() {
           id: messages.length + 2,
           text: "Thank you for your message. Our support team will respond to you shortly. Is there anything specific you need help with?",
           sender: 'support',
-          timestamp: new Date().toLocaleTimeString('en-US', {
-            hour: '2-digit',
+          timestamp: new Date().toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
             minute: '2-digit',
-            hour12: true
+            hour12: true 
           })
         };
         setMessages(prev => [...prev, supportMessage]);
@@ -1270,262 +1363,122 @@ export function MyPage() {
     };
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col">
-        {/* Modern Header */}
-        <div className="bg-white shadow-lg">
-          <div className="flex items-center p-6">
-            <button
-              onClick={navigateBack}
-              className="mr-4 w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center hover:bg-gray-200 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-gray-700" />
-            </button>
-
-            <div className="flex items-center flex-1">
-              <div className="relative">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mr-4">
-                  <User className="w-6 h-6 text-white" />
-                </div>
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
-              </div>
-
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Customer Service</h1>
-                <div className="flex items-center mt-1">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-                  <span className="text-sm text-green-600 font-medium">Online • Typically replies instantly</span>
-                </div>
+      <div className="bg-gray-50 min-h-screen flex flex-col">
+        <div className="flex items-center p-4 border-b border-gray-100 bg-white">
+          <Button variant="ghost" size="sm" onClick={navigateBack} className="mr-4">
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <div className="flex items-center">
+            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+              <span className="text-blue-600 text-sm">👤</span>
+            </div>
+            <div>
+              <h1 className="text-lg font-medium">Live Support</h1>
+              <div className="flex items-center">
+                <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                <span className="text-sm text-green-600">Online</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Chat Messages */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((message) => (
             <div
               key={message.id}
               className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <div className={`flex items-end space-x-2 max-w-xs lg:max-w-md ${message.sender === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                {message.sender === 'support' && (
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
-                    <User className="w-4 h-4 text-white" />
-                  </div>
-                )}
-
-                <div
-                  className={`px-4 py-3 rounded-2xl shadow-sm ${
-                    message.sender === 'user'
-                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-br-md'
-                      : 'bg-white text-gray-800 border border-gray-200 rounded-bl-md'
-                  }`}
-                >
-                  <p className="text-sm leading-relaxed">{message.text}</p>
-                  <p className={`text-xs mt-2 ${
-                    message.sender === 'user' ? 'text-blue-100' : 'text-gray-500'
-                  }`}>
-                    {message.timestamp}
-                  </p>
-                </div>
-
-                {message.sender === 'user' && (
-                  <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
-                    <User className="w-4 h-4 text-gray-600" />
-                  </div>
-                )}
+              <div
+                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                  message.sender === 'user'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-200 text-gray-800'
+                }`}
+              >
+                <p className="text-sm">{message.text}</p>
+                <p className={`text-xs mt-1 ${
+                  message.sender === 'user' ? 'text-blue-100' : 'text-gray-500'
+                }`}>
+                  {message.timestamp}
+                </p>
               </div>
             </div>
           ))}
-
+          
           {isTyping && (
             <div className="flex justify-start">
-              <div className="flex items-end space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
-                  <User className="w-4 h-4 text-white" />
-                </div>
-                <div className="bg-white text-gray-800 px-4 py-3 rounded-2xl rounded-bl-md shadow-sm border border-gray-200">
-                  <div className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                  </div>
+              <div className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg">
+                <div className="flex items-center space-x-1">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
                 </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* Modern Input Area */}
-        <div className="bg-white border-t border-gray-200 p-6">
-          <div className="flex items-center space-x-4">
-            <div className="flex-1 relative">
-              <input
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Type your message..."
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 pr-12"
-              />
-              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                <div className="text-gray-400">💬</div>
-              </div>
-            </div>
-
-            <button
+        <div className="p-4 bg-white border-t border-gray-100">
+          <div className="flex space-x-2">
+            <Input
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Type your message..."
+              className="flex-1"
+            />
+            <Button 
               onClick={handleSendMessage}
               disabled={!newMessage.trim()}
-              className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              className="px-4"
             >
-              <span className="text-lg">➤</span>
-            </button>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="flex flex-wrap gap-2 mt-4">
-            <button
-              onClick={() => setNewMessage("I need help with my order")}
-              className="px-3 py-2 bg-gray-100 text-gray-700 text-sm rounded-full hover:bg-gray-200 transition-colors"
-            >
-              Order Help
-            </button>
-            <button
-              onClick={() => setNewMessage("How do I make a deposit?")}
-              className="px-3 py-2 bg-gray-100 text-gray-700 text-sm rounded-full hover:bg-gray-200 transition-colors"
-            >
-              Deposit Help
-            </button>
-            <button
-              onClick={() => setNewMessage("I have a technical issue")}
-              className="px-3 py-2 bg-gray-100 text-gray-700 text-sm rounded-full hover:bg-gray-200 transition-colors"
-            >
-              Technical Issue
-            </button>
+              Send
+            </Button>
           </div>
         </div>
       </div>
     );
   };
 
-  // Modern Help & Support Screen
+  // Help Screen
   const HelpScreen = () => (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="bg-gray-50 min-h-screen">
       <ScreenHeader title="Help & Support" />
-
-      <div className="p-6 space-y-6">
-        {/* Contact Customer Service */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6">
-            <h2 className="text-xl font-bold text-white mb-2">Customer Service</h2>
-            <p className="text-blue-100">Get help from our support team</p>
-          </div>
-
-          <div className="p-6">
-            <div className="text-center mb-6">
-              <p className="text-gray-600 leading-relaxed">
-                If you have any questions or need help, please contact our online customer service team.
-              </p>
-            </div>
-
-            <button
-              onClick={() => setCurrentScreen('chat')}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-4 px-6 rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg flex items-center justify-center space-x-2"
-            >
-              <span className="text-lg">💬</span>
-              <span>Contact Customer Service</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Contact Methods */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900">Contact Information</h3>
-            <p className="text-gray-500 text-sm mt-1">Multiple ways to reach us</p>
-          </div>
-
-          <div className="p-6 space-y-4">
-            <div className="flex items-center p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-100">
-              <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mr-4">
-                <Phone className="w-6 h-6 text-white" />
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-gray-900">24/7 Hotline</p>
-                <p className="text-sm text-gray-600">1900-xxxx (Available 24/7)</p>
+      <div className="p-4 space-y-6">
+        <div className="bg-white rounded-xl p-6 shadow-sm">
+          <h2 className="text-lg font-semibold mb-4">Chăm sóc khách hàng</h2>
+          <div className="space-y-4">
+            <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+              <span className="text-2xl mr-3">📞</span>
+              <div>
+                <p className="font-medium">Hotline hỗ trợ</p>
+                <p className="text-sm text-gray-600">1900-xxxx (24/7)</p>
               </div>
             </div>
-
-            <div className="flex items-center p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border border-green-100">
-              <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mr-4">
-                <span className="text-white text-lg">💬</span>
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-gray-900">Live Chat</p>
-                <p className="text-sm text-gray-600">Instant support via chat</p>
+            <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+              <span className="text-2xl mr-3">💬</span>
+              <div>
+                <p className="font-medium">Chat trực tuyến</p>
+                <p className="text-sm text-gray-600">Hỗ trợ trực tiếp qua chat</p>
               </div>
             </div>
-
-            <div className="flex items-center p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-100">
-              <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center mr-4">
-                <span className="text-white text-lg">📧</span>
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-gray-900">Email Support</p>
+            <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+              <span className="text-2xl mr-3">📧</span>
+              <div>
+                <p className="font-medium">Email hỗ trợ</p>
                 <p className="text-sm text-gray-600">support@ashford.com</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Deposit Guide */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900">Deposit Guide</h3>
-            <p className="text-gray-500 text-sm mt-1">Step-by-step instructions</p>
-          </div>
-
-          <div className="p-6">
-            <div className="space-y-4">
-              <div className="flex items-start space-x-4">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-blue-600 font-bold text-sm">1</span>
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">Choose Amount</p>
-                  <p className="text-sm text-gray-600">Select the amount you want to deposit (USD)</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-4">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-blue-600 font-bold text-sm">2</span>
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">Contact Support</p>
-                  <p className="text-sm text-gray-600">Contact customer service for detailed instructions</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-4">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-blue-600 font-bold text-sm">3</span>
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">Complete Transaction</p>
-                  <p className="text-sm text-gray-600">Confirm information and complete the transaction</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-4">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">Balance Updated</p>
-                  <p className="text-sm text-gray-600">Your balance will be updated immediately after successful deposit</p>
-                </div>
-              </div>
-            </div>
+        <div className="bg-white rounded-xl p-6 shadow-sm">
+          <h3 className="text-lg font-semibold mb-4">Hướng dẫn nạp tiền</h3>
+          <div className="space-y-3 text-sm text-gray-700">
+            <p>• Chọn số tiền muốn nạp (USD)</p>
+            <p>• Liên hệ CSKH để được hướng dẫn chi tiết</p>
+            <p>• Xác nhận thông tin và hoàn tất giao dịch</p>
+            <p>• Số dư sẽ được cập nhật ngay sau khi nạp thành công</p>
           </div>
         </div>
       </div>
@@ -1535,12 +1488,6 @@ export function MyPage() {
   // Render based on current screen
   switch (currentScreen) {
     case 'shipping': return <ShippingAddressScreen />;
-    case 'add-address': return (
-      <AddAddressScreen 
-        onCancel={navigateBack} 
-        onSuccess={() => navigateToScreen('shipping')} 
-      />
-    );
     case 'topup': return <TopUpScreen />;
     case 'withdrawal': return <WithdrawalScreen />;
     case 'history': return <TransactionHistoryScreen />;

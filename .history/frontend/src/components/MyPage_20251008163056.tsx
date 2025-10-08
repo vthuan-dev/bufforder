@@ -32,7 +32,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import toast from 'react-hot-toast';
-import AddAddressScreen from './AddAddressScreen.tsx';
 
 export function MyPage() {
   const { user, logout } = useAuth();
@@ -83,25 +82,13 @@ export function MyPage() {
     return (
       <div className="relative mb-6 overflow-hidden">
         {/* Modern Header Card with Gradient Background */}
-        <div
-          className="relative rounded-2xl p-6 shadow-2xl overflow-hidden border"
-          style={{
-            background: 'linear-gradient(135deg, rgb(79, 124, 191) 0%, rgb(22, 62, 165) 100%)',
-            borderColor: 'rgba(59, 130, 246, 0.18)'
-          }}
-        >
-          {/* Blue overlay to ensure visible blue background */}
-          <div
-            className="absolute inset-0 rounded-2xl pointer-events-none"
-            style={{
-              backgroundColor: 'rgba(59, 130, 246, 0.08)',
-              boxShadow: 'inset 0 0 0 1px rgba(147, 197, 253, 0.18)'
-            }}
-          ></div>
+        <div className="relative bg-gradient-to-br from-blue-400 to-blue-500 rounded-2xl p-6 shadow-2xl overflow-hidden border border-white/30">
+          {/* Glassmorphism overlay */}
+          <div className="absolute inset-0 bg-white/5 backdrop-blur-sm rounded-2xl ring-1 ring-inset ring-white/20 pointer-events-none"></div>
 
           {/* Decorative elements */}
-          <div className="absolute top-4 right-4 w-20 h-20 bg-blue-100/20 rounded-full blur-xl"></div>
-          <div className="absolute bottom-4 left-4 w-16 h-16 bg-blue-100/20 rounded-full blur-lg"></div>
+          <div className="absolute top-4 right-4 w-20 h-20 bg-white/5 rounded-full blur-xl"></div>
+          <div className="absolute bottom-4 left-4 w-16 h-16 bg-white/5 rounded-full blur-lg"></div>
 
           <div className="relative z-10">
             {/* Profile Avatar and Title */}
@@ -111,10 +98,10 @@ export function MyPage() {
               </div>
               <div>
                 <h1 className="text-white text-2xl font-bold mb-1">
-                  {isLoadingVip ? 'Loading...' : 'New Member'}
+                  {isLoadingVip ? 'Loading...' : 'Thành viên mới'}
                 </h1>
                 <p className="text-white/80 text-sm">
-                  New Member
+                  Thành viên mới
                 </p>
               </div>
             </div>
@@ -395,7 +382,24 @@ export function MyPage() {
   const ShippingAddressScreen = () => {
     const [addresses, setAddresses] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    
+    const [showAddForm, setShowAddForm] = useState(false);
+    const [isClosing, setIsClosing] = useState(false);
+    const [addressData, setAddressData] = useState({
+      fullName: '',
+      phoneNumber: '',
+      addressLine1: '',
+      city: '',
+      postalCode: ''
+    });
+
+    const [formErrors, setFormErrors] = useState({
+      fullName: '',
+      phoneNumber: '',
+      addressLine1: '',
+      city: '',
+      postalCode: ''
+    });
+    const [isSaving, setIsSaving] = useState(false);
 
     // Load addresses on component mount
     useEffect(() => {
@@ -419,7 +423,90 @@ export function MyPage() {
       }
     };
 
-    
+    const handleCloseForm = () => {
+      setIsClosing(true);
+      setTimeout(() => {
+        setShowAddForm(false);
+        setIsClosing(false);
+        setAddressData({
+          fullName: '',
+          phoneNumber: '',
+          addressLine1: '',
+          city: '',
+          postalCode: ''
+        });
+        setFormErrors({
+          fullName: '',
+          phoneNumber: '',
+          addressLine1: '',
+          city: '',
+          postalCode: ''
+        });
+      }, 500);
+    };
+
+    const validateForm = () => {
+      const errors = {
+        fullName: '',
+        phoneNumber: '',
+        addressLine1: '',
+        city: '',
+        postalCode: ''
+      };
+
+      if (!addressData.fullName.trim()) {
+        errors.fullName = 'Full name is required';
+      }
+
+      if (!addressData.phoneNumber.trim()) {
+        errors.phoneNumber = 'Phone number is required';
+      } else if (!/^\+?[\d\s\-\(\)]+$/.test(addressData.phoneNumber)) {
+        errors.phoneNumber = 'Please enter a valid phone number';
+      }
+
+      if (!addressData.addressLine1.trim()) {
+        errors.addressLine1 = 'Address is required';
+      }
+
+      if (!addressData.city.trim()) {
+        errors.city = 'City is required';
+      }
+
+      if (!addressData.postalCode.trim()) {
+        errors.postalCode = 'Postal code is required';
+      }
+
+      setFormErrors(errors);
+      return Object.values(errors).every(error => error === '');
+    };
+
+    const handleAddAddress = async () => {
+      if (!validateForm()) {
+        return;
+      }
+
+      setIsSaving(true);
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          toast.error('Please login to save address');
+          return;
+        }
+
+        const response = await api.addAddress(token, addressData);
+        if (response.success) {
+          toast.success('Address added successfully!');
+          setAddresses(response.data.addresses);
+          handleCloseForm();
+        } else {
+          toast.error(response.message || 'Failed to add address');
+        }
+      } catch (error) {
+        toast.error('Failed to add address');
+      } finally {
+        setIsSaving(false);
+      }
+    };
 
     const handleDeleteAddress = async (addressId) => {
       try {
@@ -460,23 +547,16 @@ export function MyPage() {
 
               <div className="p-4 space-y-3">
                 {addresses.map((address, index) => (
-                  <div
-                    key={address._id || index}
-                    className="relative bg-white rounded-xl p-4 border border-gray-200/80 shadow-sm hover:shadow-lg hover:-translate-y-0.5 hover:border-blue-200 transition-all duration-200"
-                  >
-                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-t-xl"></div>
-
+                  <div key={address._id || index} className="bg-gray-50 rounded-xl p-3 border border-gray-200 hover:shadow-md transition-all duration-200">
                     <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2 min-w-0">
-                          <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center">
-                            <User className="w-3.5 h-3.5 text-blue-600" />
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                            <User className="w-3 h-3 text-blue-600" />
                           </div>
-                          <h3 className="font-bold text-gray-900 text-sm truncate">
-                            {address.fullName}
-                          </h3>
+                          <h3 className="font-bold text-gray-900 text-sm">{address.fullName}</h3>
                           {address.isDefault && (
-                            <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
+                            <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs px-2 py-1 rounded-full font-medium">
                               Default
                             </span>
                           )}
@@ -484,21 +564,20 @@ export function MyPage() {
                       </div>
                       <button
                         onClick={() => handleDeleteAddress(address._id)}
-                        className="w-7 h-7 bg-red-50 rounded-full flex items-center justify-center hover:bg-red-100 transition-colors"
-                        aria-label="Delete address"
+                        className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center hover:bg-red-200 transition-colors"
                       >
-                        <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                        <Trash2 className="w-3 h-3 text-red-600" />
                       </button>
                     </div>
 
-                    <div className="space-y-1 pl-9">
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <Phone className="w-3.5 h-3.5 text-gray-500" />
-                        <span className="text-xs leading-relaxed">{address.phoneNumber}</span>
+                    <div className="space-y-1 ml-8">
+                      <div className="flex items-center space-x-2 text-gray-600">
+                        <Phone className="w-3 h-3" />
+                        <span className="text-xs">{address.phoneNumber}</span>
                       </div>
-                      <div className="flex items-start gap-2 text-gray-700">
-                        <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-gray-500" />
-                        <div className="text-xs leading-relaxed break-words">
+                      <div className="flex items-start space-x-2 text-gray-600">
+                        <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                        <div className="text-xs">
                           <p>{address.addressLine1}</p>
                           <p>{address.city}, {address.postalCode}</p>
                         </div>
@@ -524,7 +603,7 @@ export function MyPage() {
           {addresses.length < 3 && (
             <button
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-4 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg flex items-center justify-center space-x-2 text-sm active:scale-95"
-              onClick={() => navigateToScreen('add-address')}
+              onClick={() => setShowAddForm(true)}
               disabled={isLoading}
             >
               <Plus className="w-4 h-4" />
@@ -532,6 +611,254 @@ export function MyPage() {
             </button>
           )}
 
+          {/* Mobile-First Popup Modal */}
+          {showAddForm && (
+            <div
+              className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-all duration-300 ease-out ${
+                isClosing ? 'opacity-0' : 'opacity-100'
+              }`}
+              onClick={handleCloseForm}
+            >
+              {/* Popup Container - Mobile Optimized */}
+              <div
+                className={`bg-white rounded-2xl shadow-2xl w-full max-w-sm transform transition-all duration-300 ease-out ${
+                  isClosing
+                    ? 'scale-95 opacity-0 translate-y-4'
+                    : 'scale-100 opacity-100 translate-y-0'
+                }`}
+                onClick={(e) => e.stopPropagation()}
+                style={{ maxHeight: '90vh' }}
+              >
+                {/* Enhanced Header with Blue Theme Gradient */}
+                <div className="relative bg-gradient-to-br from-blue-600 via-cyan-600 to-teal-600 px-6 py-6 rounded-t-2xl overflow-hidden">
+                  {/* Decorative elements */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-16 translate-x-16"></div>
+                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-12 -translate-x-12"></div>
+                  
+                  <div className="relative z-10 flex items-center justify-between">
+                    <div>
+                      <h2 className="text-white text-xl font-bold drop-shadow-lg">Add New Address</h2>
+                      <p className="text-white/90 text-sm mt-1 font-medium">Fill in your shipping details</p>
+                    </div>
+                    <button
+                      onClick={handleCloseForm}
+                      className="w-9 h-9 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center hover:bg-white/30 hover:scale-105 transition-all duration-200 shadow-lg border border-white/20"
+                      aria-label="Close"
+                    >
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Enhanced Form Content with Glass Morphism */}
+                <div className="px-6 py-6 space-y-5 max-h-[60vh] overflow-y-auto">
+                  {/* Full Name */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">Full Name</label>
+                    <div className="relative group">
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-xl blur-sm opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Enter your full name"
+                          value={addressData.fullName}
+                          onChange={(e) => {
+                            setAddressData({...addressData, fullName: e.target.value});
+                            if (formErrors.fullName) {
+                              setFormErrors({...formErrors, fullName: ''});
+                            }
+                          }}
+                          className={`w-full h-12 px-4 bg-white/80 backdrop-blur-sm border-2 rounded-xl focus:outline-none focus:ring-4 transition-all duration-300 text-sm placeholder-gray-500 shadow-lg hover:shadow-xl ${
+                            formErrors.fullName
+                              ? 'border-red-300 focus:ring-red-200 focus:border-red-400 bg-red-50/80'
+                              : 'border-gray-200/50 focus:ring-blue-200 focus:border-blue-400 hover:border-gray-300/70'
+                          }`}
+                          autoCapitalize="words"
+                          autoComplete="name"
+                        />
+                      </div>
+                    </div>
+                    {formErrors.fullName && (
+                      <p className="text-red-500 text-xs mt-1 flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {formErrors.fullName}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Phone Number */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">Phone Number</label>
+                    <div className="relative group">
+                      <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 rounded-xl blur-sm opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+                      <div className="relative">
+                        <input
+                          type="tel"
+                          placeholder="Enter your phone number"
+                          value={addressData.phoneNumber}
+                          onChange={(e) => {
+                            setAddressData({...addressData, phoneNumber: e.target.value});
+                            if (formErrors.phoneNumber) {
+                              setFormErrors({...formErrors, phoneNumber: ''});
+                            }
+                          }}
+                          className={`w-full h-12 px-4 bg-white/80 backdrop-blur-sm border-2 rounded-xl focus:outline-none focus:ring-4 transition-all duration-300 text-sm placeholder-gray-500 shadow-lg hover:shadow-xl ${
+                            formErrors.phoneNumber
+                              ? 'border-red-300 focus:ring-red-200 focus:border-red-400 bg-red-50/80'
+                              : 'border-gray-200/50 focus:ring-emerald-200 focus:border-emerald-400 hover:border-gray-300/70'
+                          }`}
+                          inputMode="tel"
+                          autoComplete="tel"
+                        />
+                      </div>
+                    </div>
+                    {formErrors.phoneNumber && (
+                      <p className="text-red-500 text-xs mt-1 flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {formErrors.phoneNumber}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Address Line 1 */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">Street Address</label>
+                    <div className="relative group">
+                      <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-blue-500/20 rounded-xl blur-sm opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Enter your street address"
+                          value={addressData.addressLine1}
+                          onChange={(e) => {
+                            setAddressData({...addressData, addressLine1: e.target.value});
+                            if (formErrors.addressLine1) {
+                              setFormErrors({...formErrors, addressLine1: ''});
+                            }
+                          }}
+                          className={`w-full h-12 px-4 bg-white/80 backdrop-blur-sm border-2 rounded-xl focus:outline-none focus:ring-4 transition-all duration-300 text-sm placeholder-gray-500 shadow-lg hover:shadow-xl ${
+                            formErrors.addressLine1
+                              ? 'border-red-300 focus:ring-red-200 focus:border-red-400 bg-red-50/80'
+                              : 'border-gray-200/50 focus:ring-indigo-200 focus:border-indigo-400 hover:border-gray-300/70'
+                          }`}
+                          autoComplete="address-line1"
+                        />
+                      </div>
+                    </div>
+                    {formErrors.addressLine1 && (
+                      <p className="text-red-500 text-xs mt-1 flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {formErrors.addressLine1}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* City and Postal Code */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-gray-800 mb-2">City</label>
+                      <div className="relative group">
+                        <div className="absolute inset-0 bg-gradient-to-r from-sky-500/20 to-blue-500/20 rounded-xl blur-sm opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="City"
+                            value={addressData.city}
+                            onChange={(e) => {
+                              setAddressData({...addressData, city: e.target.value});
+                              if (formErrors.city) {
+                                setFormErrors({...formErrors, city: ''});
+                              }
+                            }}
+                            className={`w-full h-12 px-3 bg-white/80 backdrop-blur-sm border-2 rounded-xl focus:outline-none focus:ring-4 transition-all duration-300 text-sm placeholder-gray-500 shadow-lg hover:shadow-xl ${
+                              formErrors.city
+                                ? 'border-red-300 focus:ring-red-200 focus:border-red-400 bg-red-50/80'
+                                : 'border-gray-200/50 focus:ring-sky-200 focus:border-sky-400 hover:border-gray-300/70'
+                            }`}
+                            autoComplete="address-level2"
+                          />
+                        </div>
+                      </div>
+                      {formErrors.city && (
+                        <p className="text-red-500 text-xs mt-1 flex items-center">
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          {formErrors.city}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-gray-800 mb-2">Postal Code</label>
+                      <div className="relative group">
+                        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-teal-500/20 rounded-xl blur-sm opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="12345"
+                            value={addressData.postalCode}
+                            onChange={(e) => {
+                              setAddressData({...addressData, postalCode: e.target.value});
+                              if (formErrors.postalCode) {
+                                setFormErrors({...formErrors, postalCode: ''});
+                              }
+                            }}
+                            className={`w-full h-12 px-3 bg-white/80 backdrop-blur-sm border-2 rounded-xl focus:outline-none focus:ring-4 transition-all duration-300 text-sm placeholder-gray-500 shadow-lg hover:shadow-xl ${
+                              formErrors.postalCode
+                                ? 'border-red-300 focus:ring-red-200 focus:border-red-400 bg-red-50/80'
+                                : 'border-gray-200/50 focus:ring-teal-200 focus:border-teal-400 hover:border-gray-300/70'
+                            }`}
+                            autoComplete="postal-code"
+                            inputMode="numeric"
+                          />
+                        </div>
+                      </div>
+                      {formErrors.postalCode && (
+                        <p className="text-red-500 text-xs mt-1 flex items-center">
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          {formErrors.postalCode}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Enhanced Action Buttons */}
+                <div className="px-6 py-5 bg-gradient-to-r from-gray-50 to-gray-100 rounded-b-2xl border-t border-gray-200/50">
+                  <div className="flex space-x-4">
+                    <button
+                      className="flex-1 h-12 text-gray-700 font-semibold text-sm bg-white/90 backdrop-blur-sm border-2 border-gray-200/50 rounded-xl hover:bg-white hover:border-gray-300/70 hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
+                      onClick={handleCloseForm}
+                      type="button"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="flex-1 h-12 bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 text-white font-bold text-sm rounded-xl hover:from-blue-700 hover:via-cyan-700 hover:to-teal-700 transition-all duration-300 shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transform hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden"
+                      onClick={handleAddAddress}
+                      disabled={isSaving}
+                      type="submit"
+                    >
+                      {/* Shimmer effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                      
+                      {isSaving ? (
+                        <div className="flex items-center space-x-2 relative z-10">
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span>Adding...</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center relative z-10">
+                          <span>Add Address</span>
+                        </div>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -1535,12 +1862,6 @@ export function MyPage() {
   // Render based on current screen
   switch (currentScreen) {
     case 'shipping': return <ShippingAddressScreen />;
-    case 'add-address': return (
-      <AddAddressScreen 
-        onCancel={navigateBack} 
-        onSuccess={() => navigateToScreen('shipping')} 
-      />
-    );
     case 'topup': return <TopUpScreen />;
     case 'withdrawal': return <WithdrawalScreen />;
     case 'history': return <TransactionHistoryScreen />;

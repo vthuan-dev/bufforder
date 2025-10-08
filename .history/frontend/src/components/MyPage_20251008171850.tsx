@@ -32,7 +32,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import toast from 'react-hot-toast';
-import AddAddressScreen from './AddAddressScreen.tsx';
 
 export function MyPage() {
   const { user, logout } = useAuth();
@@ -111,10 +110,10 @@ export function MyPage() {
               </div>
               <div>
                 <h1 className="text-white text-2xl font-bold mb-1">
-                  {isLoadingVip ? 'Loading...' : 'New Member'}
+                  {isLoadingVip ? 'Loading...' : 'Thành viên mới'}
                 </h1>
                 <p className="text-white/80 text-sm">
-                  New Member
+                  Thành viên mới
                 </p>
               </div>
             </div>
@@ -395,7 +394,24 @@ export function MyPage() {
   const ShippingAddressScreen = () => {
     const [addresses, setAddresses] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    
+    const [showAddForm, setShowAddForm] = useState(false);
+    const [isClosing, setIsClosing] = useState(false);
+    const [addressData, setAddressData] = useState({
+      fullName: '',
+      phoneNumber: '',
+      addressLine1: '',
+      city: '',
+      postalCode: ''
+    });
+
+    const [formErrors, setFormErrors] = useState({
+      fullName: '',
+      phoneNumber: '',
+      addressLine1: '',
+      city: '',
+      postalCode: ''
+    });
+    const [isSaving, setIsSaving] = useState(false);
 
     // Load addresses on component mount
     useEffect(() => {
@@ -419,7 +435,90 @@ export function MyPage() {
       }
     };
 
-    
+    const handleCloseForm = () => {
+      setIsClosing(true);
+      setTimeout(() => {
+        setShowAddForm(false);
+        setIsClosing(false);
+        setAddressData({
+          fullName: '',
+          phoneNumber: '',
+          addressLine1: '',
+          city: '',
+          postalCode: ''
+        });
+        setFormErrors({
+          fullName: '',
+          phoneNumber: '',
+          addressLine1: '',
+          city: '',
+          postalCode: ''
+        });
+      }, 500);
+    };
+
+    const validateForm = () => {
+      const errors = {
+        fullName: '',
+        phoneNumber: '',
+        addressLine1: '',
+        city: '',
+        postalCode: ''
+      };
+
+      if (!addressData.fullName.trim()) {
+        errors.fullName = 'Full name is required';
+      }
+
+      if (!addressData.phoneNumber.trim()) {
+        errors.phoneNumber = 'Phone number is required';
+      } else if (!/^\+?[\d\s\-\(\)]+$/.test(addressData.phoneNumber)) {
+        errors.phoneNumber = 'Please enter a valid phone number';
+      }
+
+      if (!addressData.addressLine1.trim()) {
+        errors.addressLine1 = 'Address is required';
+      }
+
+      if (!addressData.city.trim()) {
+        errors.city = 'City is required';
+      }
+
+      if (!addressData.postalCode.trim()) {
+        errors.postalCode = 'Postal code is required';
+      }
+
+      setFormErrors(errors);
+      return Object.values(errors).every(error => error === '');
+    };
+
+    const handleAddAddress = async () => {
+      if (!validateForm()) {
+        return;
+      }
+
+      setIsSaving(true);
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          toast.error('Please login to save address');
+          return;
+        }
+
+        const response = await api.addAddress(token, addressData);
+        if (response.success) {
+          toast.success('Address added successfully!');
+          setAddresses(response.data.addresses);
+          handleCloseForm();
+        } else {
+          toast.error(response.message || 'Failed to add address');
+        }
+      } catch (error) {
+        toast.error('Failed to add address');
+      } finally {
+        setIsSaving(false);
+      }
+    };
 
     const handleDeleteAddress = async (addressId) => {
       try {
@@ -524,7 +623,7 @@ export function MyPage() {
           {addresses.length < 3 && (
             <button
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-4 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg flex items-center justify-center space-x-2 text-sm active:scale-95"
-              onClick={() => navigateToScreen('add-address')}
+              onClick={() => setShowAddForm(true)}
               disabled={isLoading}
             >
               <Plus className="w-4 h-4" />
@@ -532,6 +631,243 @@ export function MyPage() {
             </button>
           )}
 
+          {/* Mobile-First Popup Modal */}
+          {showAddForm && (
+            <div
+              className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-all duration-300 ease-out ${
+                isClosing ? 'opacity-0' : 'opacity-100'
+              }`}
+              onClick={handleCloseForm}
+            >
+              {/* Popup Container - Mobile Optimized */}
+              <div
+                className={`bg-white rounded-2xl shadow-2xl add-address-modal-card w-full max-w-sm transform transition-all duration-300 ease-out ${
+                  isClosing
+                    ? 'scale-95 opacity-0 translate-y-4'
+                    : 'scale-100 opacity-100 translate-y-0'
+                }`}
+                onClick={(e) => e.stopPropagation()}
+                style={{ maxHeight: '90vh' }}
+              >
+                {/* Modern Minimal Header */}
+                <div className="relative bg-gradient-to-br from-blue-600 to-blue-700 px-5 py-5 rounded-t-2xl">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-white text-lg font-semibold">Add New Address</h2>
+                      <p className="text-blue-100 text-sm mt-0.5">Fill in your shipping details</p>
+                    </div>
+                    <button
+                      onClick={handleCloseForm}
+                      className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors duration-200"
+                      aria-label="Close"
+                    >
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>                {/* Enhanced Form Content with Glass Morphism */}
+                <div className="px-6 py-6 space-y-5 max-h-[60vh] overflow-y-auto">
+                  {/* Full Name */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">Full Name</label>
+                    <div className="relative group">
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-xl blur-sm opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Enter your full name"
+                          value={addressData.fullName}
+                          onChange={(e) => {
+                            setAddressData({...addressData, fullName: e.target.value});
+                            if (formErrors.fullName) {
+                              setFormErrors({...formErrors, fullName: ''});
+                            }
+                          }}
+                          className={`w-full h-12 px-4 add-address-input transition-all duration-300 text-sm placeholder-gray-500 ${
+                            formErrors.fullName
+                              ? 'border-red-300 focus:ring-red-200 focus:border-red-400'
+                              : ''
+                          }`}
+                          autoCapitalize="words"
+                          autoComplete="name"
+                        />
+                      </div>
+                    </div>
+                    {formErrors.fullName && (
+                      <p className="text-red-500 text-xs mt-1 flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {formErrors.fullName}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Phone Number */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">Phone Number</label>
+                    <div className="relative group">
+                      <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 rounded-xl blur-sm opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+                      <div className="relative">
+                        <input
+                          type="tel"
+                          placeholder="Enter your phone number"
+                          value={addressData.phoneNumber}
+                          onChange={(e) => {
+                            setAddressData({...addressData, phoneNumber: e.target.value});
+                            if (formErrors.phoneNumber) {
+                              setFormErrors({...formErrors, phoneNumber: ''});
+                            }
+                          }}
+                          className={`w-full h-12 px-4 add-address-input transition-all duration-300 text-sm placeholder-gray-500 ${
+                            formErrors.phoneNumber
+                              ? 'border-red-300 focus:ring-red-200 focus:border-red-400'
+                              : ''
+                          }`}
+                          inputMode="tel"
+                          autoComplete="tel"
+                        />
+                      </div>
+                    </div>
+                    {formErrors.phoneNumber && (
+                      <p className="text-red-500 text-xs mt-1 flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {formErrors.phoneNumber}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Address Line 1 */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">Street Address</label>
+                    <div className="relative group">
+                      <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-blue-500/20 rounded-xl blur-sm opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Enter your street address"
+                          value={addressData.addressLine1}
+                          onChange={(e) => {
+                            setAddressData({...addressData, addressLine1: e.target.value});
+                            if (formErrors.addressLine1) {
+                              setFormErrors({...formErrors, addressLine1: ''});
+                            }
+                          }}
+                          className={`w-full h-12 px-4 add-address-input transition-all duration-300 text-sm placeholder-gray-500 ${
+                            formErrors.addressLine1
+                              ? 'border-red-300 focus:ring-red-200 focus:border-red-400'
+                              : ''
+                          }`}
+                          autoComplete="address-line1"
+                        />
+                      </div>
+                    </div>
+                    {formErrors.addressLine1 && (
+                      <p className="text-red-500 text-xs mt-1 flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {formErrors.addressLine1}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* City and Postal Code */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-gray-800 mb-2">City</label>
+                      <div className="relative group">
+                        <div className="absolute inset-0 bg-gradient-to-r from-sky-500/20 to-blue-500/20 rounded-xl blur-sm opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="City"
+                            value={addressData.city}
+                            onChange={(e) => {
+                              setAddressData({...addressData, city: e.target.value});
+                              if (formErrors.city) {
+                                setFormErrors({...formErrors, city: ''});
+                              }
+                            }}
+                            className={`w-full h-12 px-3 add-address-input transition-all duration-300 text-sm placeholder-gray-500 ${
+                              formErrors.city
+                                ? 'border-red-300 focus:ring-red-200 focus:border-red-400'
+                                : ''
+                            }`}
+                            autoComplete="address-level2"
+                          />
+                        </div>
+                      </div>
+                      {formErrors.city && (
+                        <p className="text-red-500 text-xs mt-1 flex items-center">
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          {formErrors.city}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-gray-800 mb-2">Postal Code</label>
+                      <div className="relative group">
+                        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-teal-500/20 rounded-xl blur-sm opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="12345"
+                            value={addressData.postalCode}
+                            onChange={(e) => {
+                              setAddressData({...addressData, postalCode: e.target.value});
+                              if (formErrors.postalCode) {
+                                setFormErrors({...formErrors, postalCode: ''});
+                              }
+                            }}
+                            className={`w-full h-12 px-3 add-address-input transition-all duration-300 text-sm placeholder-gray-500 ${
+                              formErrors.postalCode
+                                ? 'border-red-300 focus:ring-red-200 focus:border-red-400'
+                                : ''
+                            }`}
+                            autoComplete="postal-code"
+                            inputMode="numeric"
+                          />
+                        </div>
+                      </div>
+                      {formErrors.postalCode && (
+                        <p className="text-red-500 text-xs mt-1 flex items-center">
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          {formErrors.postalCode}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Modern Compact Action Buttons */}
+                <div className="px-4 py-4 bg-gray-50/70 backdrop-blur-sm rounded-b-2xl border-t border-gray-100/50">
+                  <div className="flex space-x-3">
+                    <button
+                      className="flex-1 h-10 text-gray-600 font-medium text-sm bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 active:scale-95"
+                      onClick={handleCloseForm}
+                      type="button"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="flex-1 h-10 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium text-sm rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center active:scale-95"
+                      onClick={handleAddAddress}
+                      disabled={isSaving}
+                      type="submit"
+                    >
+                      {isSaving ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span>Adding...</span>
+                        </div>
+                      ) : (
+                        <span>Add Address</span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -1535,12 +1871,6 @@ export function MyPage() {
   // Render based on current screen
   switch (currentScreen) {
     case 'shipping': return <ShippingAddressScreen />;
-    case 'add-address': return (
-      <AddAddressScreen 
-        onCancel={navigateBack} 
-        onSuccess={() => navigateToScreen('shipping')} 
-      />
-    );
     case 'topup': return <TopUpScreen />;
     case 'withdrawal': return <WithdrawalScreen />;
     case 'history': return <TransactionHistoryScreen />;

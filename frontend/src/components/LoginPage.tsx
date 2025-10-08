@@ -62,7 +62,7 @@ export function LoginPage({ onLogin, onSwitchToRegister, onBack }: LoginPageProp
             <Button variant="ghost" size="sm" onClick={onBack} className="mr-4">
               <ArrowLeft className="w-5 h-5 text-gray-700" />
             </Button>
-            <h1 className="text-lg font-medium text-gray-900">Đăng nhập</h1>
+            <h1 className="text-lg font-medium text-gray-900">Login</h1>
           </div>
         </div>
 
@@ -70,19 +70,19 @@ export function LoginPage({ onLogin, onSwitchToRegister, onBack }: LoginPageProp
         <div className="p-4">
           {/* Welcome Message */}
           <div className="text-center mb-8 mt-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Chào mừng trở lại</h2>
-            <p className="text-gray-600">Đăng nhập để tiếp tục sử dụng dịch vụ</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome back</h2>
+            <p className="text-gray-600">Login to continue using the service</p>
           </div>
 
           {/* Login Form */}
           <form onSubmit={handleLogin} className="space-y-6">
             {/* Phone Number Input */}
             <div className="space-y-2">
-              <Label htmlFor="phone" className="text-sm font-medium text-gray-700">Số điện thoại</Label>
+              <Label htmlFor="phone" className="text-sm font-medium text-gray-700">Phone Number</Label>
               <Input
                 id="phone"
                 type="tel"
-                placeholder="Nhập số điện thoại"
+                placeholder="Enter your phone number"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 className="h-12 text-base border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -92,11 +92,11 @@ export function LoginPage({ onLogin, onSwitchToRegister, onBack }: LoginPageProp
 
             {/* Password Input */}
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium text-gray-700">Mật khẩu</Label>
+              <Label htmlFor="password" className="text-sm font-medium text-gray-700">Password</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Nhập mật khẩu"
+                placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="h-12 text-base border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -117,20 +117,20 @@ export function LoginPage({ onLogin, onSwitchToRegister, onBack }: LoginPageProp
               className="w-full h-12 bg-gray-900 text-white text-base font-medium rounded-lg hover:bg-gray-800 transition-colors" 
               disabled={isLoading}
             >
-              {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+              {isLoading ? 'Logging in...' : 'Login'}
             </Button>
           </form>
 
           {/* Switch to Register */}
           <div className="mt-8 text-center">
             <p className="text-gray-600 text-sm">
-              Chưa có tài khoản?{' '}
+              Don't have an account?{' '}
               <button
                 type="button"
                 onClick={onSwitchToRegister}
                 className="text-blue-600 hover:text-blue-800 font-medium underline"
               >
-                Đăng ký ngay
+                Register now
               </button>
             </p>
           </div>

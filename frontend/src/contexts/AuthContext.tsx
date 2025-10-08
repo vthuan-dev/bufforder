@@ -22,10 +22,10 @@ interface AuthContextType {
   isLoading: boolean;
   login: (phoneNumber: string, password: string) => Promise<void>;
   register: (userData: { phoneNumber: string; password: string; fullName: string; inviteCode: string }) => Promise<void>;
-  logout: () => void;
+  logout: () => void; 
 }
 
-const AuthContext = createContext(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface AuthProviderProps {
   children: any;

@@ -32,12 +32,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import toast from 'react-hot-toast';
-import AddAddressScreen from './AddAddressScreen.tsx';
 
 export function MyPage() {
   const { user, logout } = useAuth();
   const [currentScreen, setCurrentScreen] = useState('main');
-  const [vipStatus, setVipStatus] = useState<any>(null);
+  const [vipStatus, setVipStatus] = useState(null);
   const [isLoadingVip, setIsLoadingVip] = useState(false);
 
   const navigateToScreen = (screen: string) => {
@@ -83,25 +82,13 @@ export function MyPage() {
     return (
       <div className="relative mb-6 overflow-hidden">
         {/* Modern Header Card with Gradient Background */}
-        <div
-          className="relative rounded-2xl p-6 shadow-2xl overflow-hidden border"
-          style={{
-            background: 'linear-gradient(135deg, rgb(79, 124, 191) 0%, rgb(22, 62, 165) 100%)',
-            borderColor: 'rgba(59, 130, 246, 0.18)'
-          }}
-        >
-          {/* Blue overlay to ensure visible blue background */}
-          <div
-            className="absolute inset-0 rounded-2xl pointer-events-none"
-            style={{
-              backgroundColor: 'rgba(59, 130, 246, 0.08)',
-              boxShadow: 'inset 0 0 0 1px rgba(147, 197, 253, 0.18)'
-            }}
-          ></div>
+        <div className="relative bg-gradient-to-br from-blue-500 via-purple-500 to-blue-600 rounded-3xl p-6 shadow-2xl">
+          {/* Glassmorphism overlay */}
+          <div className="absolute inset-0 bg-white/10 backdrop-blur-sm rounded-3xl"></div>
 
           {/* Decorative elements */}
-          <div className="absolute top-4 right-4 w-20 h-20 bg-blue-100/20 rounded-full blur-xl"></div>
-          <div className="absolute bottom-4 left-4 w-16 h-16 bg-blue-100/20 rounded-full blur-lg"></div>
+          <div className="absolute top-4 right-4 w-20 h-20 bg-white/5 rounded-full blur-xl"></div>
+          <div className="absolute bottom-4 left-4 w-16 h-16 bg-white/5 rounded-full blur-lg"></div>
 
           <div className="relative z-10">
             {/* Profile Avatar and Title */}
@@ -111,10 +98,10 @@ export function MyPage() {
               </div>
               <div>
                 <h1 className="text-white text-2xl font-bold mb-1">
-                  {isLoadingVip ? 'Loading...' : 'New Member'}
+                  {isLoadingVip ? 'Loading...' : 'Thành viên mới'}
                 </h1>
                 <p className="text-white/80 text-sm">
-                  New Member
+                  Thành viên mới
                 </p>
               </div>
             </div>
@@ -185,7 +172,7 @@ export function MyPage() {
     const [amount, setAmount] = useState('');
     const [selectedBankCard, setSelectedBankCard] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
-    const [bankCards, setBankCards] = useState<any[]>([]);
+    const [bankCards, setBankCards] = useState([]);
 
     // Load bank cards on component mount
     useEffect(() => {
@@ -393,9 +380,19 @@ export function MyPage() {
 
   // Modern Shipping Address Screen
   const ShippingAddressScreen = () => {
-    const [addresses, setAddresses] = useState<any[]>([]);
+    const [addresses, setAddresses] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
-    
+    const [showAddForm, setShowAddForm] = useState(false);
+    const [isClosing, setIsClosing] = useState(false);
+    const [addressData, setAddressData] = useState({
+      fullName: '',
+      phoneNumber: '',
+      addressLine1: '',
+      city: '',
+      postalCode: '',
+      isDefault: false
+    });
+    const [isSaving, setIsSaving] = useState(false);
 
     // Load addresses on component mount
     useEffect(() => {
@@ -419,7 +416,50 @@ export function MyPage() {
       }
     };
 
-    
+    const handleCloseForm = () => {
+      setIsClosing(true);
+      setTimeout(() => {
+        setShowAddForm(false);
+        setIsClosing(false);
+        setAddressData({
+          fullName: '',
+          phoneNumber: '',
+          addressLine1: '',
+          city: '',
+          postalCode: '',
+          isDefault: false
+        });
+      }, 500);
+    };
+
+    const handleAddAddress = async () => {
+      if (!addressData.fullName || !addressData.phoneNumber || !addressData.addressLine1 || !addressData.city || !addressData.postalCode) {
+        toast.error('Vui lòng điền đầy đủ thông tin');
+        return;
+      }
+
+      setIsSaving(true);
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          toast.error('Vui lòng đăng nhập để lưu địa chỉ');
+          return;
+        }
+
+        const response = await api.addAddress(token, addressData);
+        if (response.success) {
+          toast.success('Thêm địa chỉ thành công!');
+          setAddresses(response.data.addresses);
+          handleCloseForm();
+        } else {
+          toast.error(response.message || 'Thêm địa chỉ thất bại');
+        }
+      } catch (error) {
+        toast.error(error.message || 'Thêm địa chỉ thất bại');
+      } finally {
+        setIsSaving(false);
+      }
+    };
 
     const handleDeleteAddress = async (addressId) => {
       try {
@@ -460,23 +500,16 @@ export function MyPage() {
 
               <div className="p-4 space-y-3">
                 {addresses.map((address, index) => (
-                  <div
-                    key={address._id || index}
-                    className="relative bg-white rounded-xl p-4 border border-gray-200/80 shadow-sm hover:shadow-lg hover:-translate-y-0.5 hover:border-blue-200 transition-all duration-200"
-                  >
-                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-t-xl"></div>
-
+                  <div key={address._id || index} className="bg-gray-50 rounded-xl p-3 border border-gray-200 hover:shadow-md transition-all duration-200">
                     <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2 min-w-0">
-                          <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center">
-                            <User className="w-3.5 h-3.5 text-blue-600" />
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                            <User className="w-3 h-3 text-blue-600" />
                           </div>
-                          <h3 className="font-bold text-gray-900 text-sm truncate">
-                            {address.fullName}
-                          </h3>
+                          <h3 className="font-bold text-gray-900 text-sm">{address.fullName}</h3>
                           {address.isDefault && (
-                            <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
+                            <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs px-2 py-1 rounded-full font-medium">
                               Default
                             </span>
                           )}
@@ -484,21 +517,20 @@ export function MyPage() {
                       </div>
                       <button
                         onClick={() => handleDeleteAddress(address._id)}
-                        className="w-7 h-7 bg-red-50 rounded-full flex items-center justify-center hover:bg-red-100 transition-colors"
-                        aria-label="Delete address"
+                        className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center hover:bg-red-200 transition-colors"
                       >
-                        <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                        <Trash2 className="w-3 h-3 text-red-600" />
                       </button>
                     </div>
 
-                    <div className="space-y-1 pl-9">
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <Phone className="w-3.5 h-3.5 text-gray-500" />
-                        <span className="text-xs leading-relaxed">{address.phoneNumber}</span>
+                    <div className="space-y-1 ml-8">
+                      <div className="flex items-center space-x-2 text-gray-600">
+                        <Phone className="w-3 h-3" />
+                        <span className="text-xs">{address.phoneNumber}</span>
                       </div>
-                      <div className="flex items-start gap-2 text-gray-700">
-                        <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-gray-500" />
-                        <div className="text-xs leading-relaxed break-words">
+                      <div className="flex items-start space-x-2 text-gray-600">
+                        <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                        <div className="text-xs">
                           <p>{address.addressLine1}</p>
                           <p>{address.city}, {address.postalCode}</p>
                         </div>
@@ -523,15 +555,181 @@ export function MyPage() {
           {/* Add Address Button */}
           {addresses.length < 3 && (
             <button
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-4 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg flex items-center justify-center space-x-2 text-sm active:scale-95"
-              onClick={() => navigateToScreen('add-address')}
+              className="group w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-4 px-6 rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center space-x-3"
+              onClick={() => setShowAddForm(true)}
               disabled={isLoading}
             >
-              <Plus className="w-4 h-4" />
-              <span>Add New Address ({addresses.length}/3)</span>
+              <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center group-hover:bg-white/30 transition-colors duration-200">
+                <Plus className="w-4 h-4" />
+              </div>
+              <span className="text-base">Add New Address ({addresses.length}/3)</span>
             </button>
           )}
 
+          {/* Beautiful Animated Add Address Modal */}
+          {showAddForm && (
+            <div
+              className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 transition-all duration-500 ${isClosing ? 'opacity-0' : 'opacity-100'}`}
+              onClick={handleCloseForm}
+            >
+              <div
+                className={`bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-[380px] max-h-[85vh] overflow-hidden shadow-2xl transform transition-all duration-500 ease-out ${
+                  isClosing
+                    ? 'translate-y-full sm:translate-y-0 sm:scale-95 opacity-0'
+                    : 'translate-y-0 sm:scale-100 opacity-100'
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Drag Handle for Mobile */}
+                <div className="flex justify-center pt-3 pb-1 sm:hidden">
+                  <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
+                </div>
+
+                {/* Header */}
+                <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xl font-bold text-white">Add New Address</h3>
+                      <p className="text-blue-100 text-sm mt-1">Fill in your shipping details below</p>
+                    </div>
+                    <button
+                      onClick={handleCloseForm}
+                      className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
+                    >
+                      <span className="text-white text-lg">×</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Form */}
+                <div className="p-6 space-y-5 max-h-[60vh] overflow-y-auto">
+                  {/* Full Name */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-bold text-gray-800">Full Name</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Enter your full name"
+                        value={addressData.fullName}
+                        onChange={(e) => setAddressData({...addressData, fullName: e.target.value})}
+                        className="w-full px-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base font-medium"
+                      />
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-4">
+                        <User className="w-5 h-5 text-gray-400" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Phone Number */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-bold text-gray-800">Phone Number</label>
+                    <div className="relative">
+                      <input
+                        type="tel"
+                        placeholder="Enter your phone number"
+                        value={addressData.phoneNumber}
+                        onChange={(e) => setAddressData({...addressData, phoneNumber: e.target.value})}
+                        className="w-full px-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base font-medium"
+                      />
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-4">
+                        <Phone className="w-5 h-5 text-gray-400" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Address Line 1 */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-bold text-gray-800">Address Line 1</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Enter your street address"
+                        value={addressData.addressLine1}
+                        onChange={(e) => setAddressData({...addressData, addressLine1: e.target.value})}
+                        className="w-full px-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base font-medium"
+                      />
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-4">
+                        <MapPin className="w-5 h-5 text-gray-400" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* City and Postal Code Row */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="block text-sm font-bold text-gray-800">City</label>
+                      <input
+                        type="text"
+                        placeholder="Enter city"
+                        value={addressData.city}
+                        onChange={(e) => setAddressData({...addressData, city: e.target.value})}
+                        className="w-full px-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base font-medium"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-sm font-bold text-gray-800">Postal Code</label>
+                      <input
+                        type="text"
+                        placeholder="Enter postal code"
+                        value={addressData.postalCode}
+                        onChange={(e) => setAddressData({...addressData, postalCode: e.target.value})}
+                        className="w-full px-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Default Address Toggle */}
+                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl border border-blue-100">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                        <Home className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-gray-800">Set as default</p>
+                        <p className="text-sm text-gray-600">Use this address for future orders</p>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={addressData.isDefault}
+                        onChange={(e) => setAddressData({...addressData, isDefault: e.target.checked})}
+                      />
+                      <div className="relative w-12 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-blue-500 peer-checked:to-purple-500"></div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="p-6 bg-gray-50 border-t border-gray-100">
+                  <div className="flex space-x-3">
+                    <button
+                      className="flex-1 px-6 py-4 bg-white border-2 border-gray-300 text-gray-700 font-bold rounded-2xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 text-base"
+                      onClick={handleCloseForm}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="flex-1 px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg disabled:opacity-50 text-base"
+                      onClick={handleAddAddress}
+                      disabled={isSaving}
+                    >
+                      {isSaving ? (
+                        <div className="flex items-center justify-center space-x-2">
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span>Adding...</span>
+                        </div>
+                      ) : (
+                        'Add Address'
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -541,7 +739,7 @@ export function MyPage() {
   const TopUpScreen = () => {
     const [amount, setAmount] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
-    const [depositRequests, setDepositRequests] = useState<any[]>([]);
+    const [depositRequests, setDepositRequests] = useState([]);
 
     const fetchDepositRequests = async () => {
       try {
@@ -1535,12 +1733,6 @@ export function MyPage() {
   // Render based on current screen
   switch (currentScreen) {
     case 'shipping': return <ShippingAddressScreen />;
-    case 'add-address': return (
-      <AddAddressScreen 
-        onCancel={navigateBack} 
-        onSuccess={() => navigateToScreen('shipping')} 
-      />
-    );
     case 'topup': return <TopUpScreen />;
     case 'withdrawal': return <WithdrawalScreen />;
     case 'history': return <TransactionHistoryScreen />;

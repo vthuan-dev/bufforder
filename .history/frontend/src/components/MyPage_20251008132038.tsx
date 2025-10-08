@@ -32,12 +32,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import toast from 'react-hot-toast';
-import AddAddressScreen from './AddAddressScreen.tsx';
 
 export function MyPage() {
   const { user, logout } = useAuth();
   const [currentScreen, setCurrentScreen] = useState('main');
-  const [vipStatus, setVipStatus] = useState<any>(null);
+  const [vipStatus, setVipStatus] = useState(null);
   const [isLoadingVip, setIsLoadingVip] = useState(false);
 
   const navigateToScreen = (screen: string) => {
@@ -83,25 +82,13 @@ export function MyPage() {
     return (
       <div className="relative mb-6 overflow-hidden">
         {/* Modern Header Card with Gradient Background */}
-        <div
-          className="relative rounded-2xl p-6 shadow-2xl overflow-hidden border"
-          style={{
-            background: 'linear-gradient(135deg, rgb(79, 124, 191) 0%, rgb(22, 62, 165) 100%)',
-            borderColor: 'rgba(59, 130, 246, 0.18)'
-          }}
-        >
-          {/* Blue overlay to ensure visible blue background */}
-          <div
-            className="absolute inset-0 rounded-2xl pointer-events-none"
-            style={{
-              backgroundColor: 'rgba(59, 130, 246, 0.08)',
-              boxShadow: 'inset 0 0 0 1px rgba(147, 197, 253, 0.18)'
-            }}
-          ></div>
+        <div className="relative bg-gradient-to-br from-blue-500 via-purple-500 to-blue-600 rounded-3xl p-6 shadow-2xl">
+          {/* Glassmorphism overlay */}
+          <div className="absolute inset-0 bg-white/10 backdrop-blur-sm rounded-3xl"></div>
 
           {/* Decorative elements */}
-          <div className="absolute top-4 right-4 w-20 h-20 bg-blue-100/20 rounded-full blur-xl"></div>
-          <div className="absolute bottom-4 left-4 w-16 h-16 bg-blue-100/20 rounded-full blur-lg"></div>
+          <div className="absolute top-4 right-4 w-20 h-20 bg-white/5 rounded-full blur-xl"></div>
+          <div className="absolute bottom-4 left-4 w-16 h-16 bg-white/5 rounded-full blur-lg"></div>
 
           <div className="relative z-10">
             {/* Profile Avatar and Title */}
@@ -111,10 +98,10 @@ export function MyPage() {
               </div>
               <div>
                 <h1 className="text-white text-2xl font-bold mb-1">
-                  {isLoadingVip ? 'Loading...' : 'New Member'}
+                  {isLoadingVip ? 'Loading...' : 'Thành viên mới'}
                 </h1>
                 <p className="text-white/80 text-sm">
-                  New Member
+                  Thành viên mới
                 </p>
               </div>
             </div>
@@ -185,7 +172,7 @@ export function MyPage() {
     const [amount, setAmount] = useState('');
     const [selectedBankCard, setSelectedBankCard] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
-    const [bankCards, setBankCards] = useState<any[]>([]);
+    const [bankCards, setBankCards] = useState([]);
 
     // Load bank cards on component mount
     useEffect(() => {
@@ -393,9 +380,26 @@ export function MyPage() {
 
   // Modern Shipping Address Screen
   const ShippingAddressScreen = () => {
-    const [addresses, setAddresses] = useState<any[]>([]);
+    const [addresses, setAddresses] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
-    
+    const [showAddForm, setShowAddForm] = useState(false);
+    const [isClosing, setIsClosing] = useState(false);
+    const [addressData, setAddressData] = useState({
+      fullName: '',
+      phoneNumber: '',
+      addressLine1: '',
+      city: '',
+      postalCode: ''
+    });
+
+    const [formErrors, setFormErrors] = useState({
+      fullName: '',
+      phoneNumber: '',
+      addressLine1: '',
+      city: '',
+      postalCode: ''
+    });
+    const [isSaving, setIsSaving] = useState(false);
 
     // Load addresses on component mount
     useEffect(() => {
@@ -419,7 +423,83 @@ export function MyPage() {
       }
     };
 
-    
+    const handleCloseForm = () => {
+      setIsClosing(true);
+      setTimeout(() => {
+        setShowAddForm(false);
+        setIsClosing(false);
+        setAddressData({
+          fullName: '',
+          phoneNumber: '',
+          addressLine1: '',
+          city: '',
+          postalCode: ''
+        });
+      }, 500);
+    };
+
+    const validateForm = () => {
+      const errors = {
+        fullName: '',
+        phoneNumber: '',
+        addressLine1: '',
+        city: '',
+        postalCode: ''
+      };
+
+      if (!addressData.fullName.trim()) {
+        errors.fullName = 'Full name is required';
+      }
+
+      if (!addressData.phoneNumber.trim()) {
+        errors.phoneNumber = 'Phone number is required';
+      } else if (!/^\+?[\d\s\-\(\)]+$/.test(addressData.phoneNumber)) {
+        errors.phoneNumber = 'Please enter a valid phone number';
+      }
+
+      if (!addressData.addressLine1.trim()) {
+        errors.addressLine1 = 'Address is required';
+      }
+
+      if (!addressData.city.trim()) {
+        errors.city = 'City is required';
+      }
+
+      if (!addressData.postalCode.trim()) {
+        errors.postalCode = 'Postal code is required';
+      }
+
+      setFormErrors(errors);
+      return Object.values(errors).every(error => error === '');
+    };
+
+    const handleAddAddress = async () => {
+      if (!validateForm()) {
+        return;
+      }
+
+      setIsSaving(true);
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          toast.error('Please login to save address');
+          return;
+        }
+
+        const response = await api.addAddress(token, addressData);
+        if (response.success) {
+          toast.success('Address added successfully!');
+          setAddresses(response.data.addresses);
+          handleCloseForm();
+        } else {
+          toast.error(response.message || 'Failed to add address');
+        }
+      } catch (error) {
+        toast.error('Failed to add address');
+      } finally {
+        setIsSaving(false);
+      }
+    };
 
     const handleDeleteAddress = async (addressId) => {
       try {
@@ -460,23 +540,16 @@ export function MyPage() {
 
               <div className="p-4 space-y-3">
                 {addresses.map((address, index) => (
-                  <div
-                    key={address._id || index}
-                    className="relative bg-white rounded-xl p-4 border border-gray-200/80 shadow-sm hover:shadow-lg hover:-translate-y-0.5 hover:border-blue-200 transition-all duration-200"
-                  >
-                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-t-xl"></div>
-
+                  <div key={address._id || index} className="bg-gray-50 rounded-xl p-3 border border-gray-200 hover:shadow-md transition-all duration-200">
                     <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2 min-w-0">
-                          <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center">
-                            <User className="w-3.5 h-3.5 text-blue-600" />
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                            <User className="w-3 h-3 text-blue-600" />
                           </div>
-                          <h3 className="font-bold text-gray-900 text-sm truncate">
-                            {address.fullName}
-                          </h3>
+                          <h3 className="font-bold text-gray-900 text-sm">{address.fullName}</h3>
                           {address.isDefault && (
-                            <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
+                            <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs px-2 py-1 rounded-full font-medium">
                               Default
                             </span>
                           )}
@@ -484,21 +557,20 @@ export function MyPage() {
                       </div>
                       <button
                         onClick={() => handleDeleteAddress(address._id)}
-                        className="w-7 h-7 bg-red-50 rounded-full flex items-center justify-center hover:bg-red-100 transition-colors"
-                        aria-label="Delete address"
+                        className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center hover:bg-red-200 transition-colors"
                       >
-                        <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                        <Trash2 className="w-3 h-3 text-red-600" />
                       </button>
                     </div>
 
-                    <div className="space-y-1 pl-9">
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <Phone className="w-3.5 h-3.5 text-gray-500" />
-                        <span className="text-xs leading-relaxed">{address.phoneNumber}</span>
+                    <div className="space-y-1 ml-8">
+                      <div className="flex items-center space-x-2 text-gray-600">
+                        <Phone className="w-3 h-3" />
+                        <span className="text-xs">{address.phoneNumber}</span>
                       </div>
-                      <div className="flex items-start gap-2 text-gray-700">
-                        <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-gray-500" />
-                        <div className="text-xs leading-relaxed break-words">
+                      <div className="flex items-start space-x-2 text-gray-600">
+                        <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                        <div className="text-xs">
                           <p>{address.addressLine1}</p>
                           <p>{address.city}, {address.postalCode}</p>
                         </div>
@@ -524,7 +596,7 @@ export function MyPage() {
           {addresses.length < 3 && (
             <button
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-4 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg flex items-center justify-center space-x-2 text-sm active:scale-95"
-              onClick={() => navigateToScreen('add-address')}
+              onClick={() => setShowAddForm(true)}
               disabled={isLoading}
             >
               <Plus className="w-4 h-4" />
@@ -532,6 +604,239 @@ export function MyPage() {
             </button>
           )}
 
+          {/* Modern Mobile-First Bottom Sheet Modal */}
+          {showAddForm && (
+            <div
+              className={`fixed inset-0 bg-black/60 z-50 transition-all duration-300 ease-out ${
+                isClosing ? 'opacity-0' : 'opacity-100'
+              }`}
+              onClick={handleCloseForm}
+            >
+              {/* Bottom Sheet Container */}
+              <div
+                className={`fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl transform transition-all duration-300 ease-out ${
+                  isClosing
+                    ? 'translate-y-full opacity-0'
+                    : 'translate-y-0 opacity-100'
+                } mx-4 sm:mx-auto sm:max-w-lg sm:left-1/2 sm:-translate-x-1/2 sm:bottom-8 sm:rounded-3xl`}
+                onClick={(e) => e.stopPropagation()}
+                style={{ maxHeight: '90vh' }}
+              >
+                {/* Drag Handle */}
+                <div className="flex justify-center pt-3 pb-2">
+                  <div className="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+                </div>
+
+                {/* Header with Purple Gradient */}
+                <div className="bg-gradient-to-r from-purple-600 to-purple-500 px-5 py-5 rounded-t-3xl -mt-5">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h2 className="text-white text-xl font-bold leading-tight">Add New Address</h2>
+                      <p className="text-white/80 text-base mt-1">Fill in your shipping details below</p>
+                    </div>
+                    <button
+                      onClick={handleCloseForm}
+                      className="w-11 h-11 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors ml-3 mt-1"
+                      aria-label="Close modal"
+                    >
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Mobile-Optimized Form */}
+                <div className="px-5 py-6 space-y-4 max-h-[50vh] overflow-y-auto">
+                  {/* Full Name */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-800 mb-1">Full Name</label>
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="text"
+                        placeholder="Enter your full name"
+                        value={addressData.fullName}
+                        onChange={(e) => {
+                          setAddressData({...addressData, fullName: e.target.value});
+                          if (formErrors.fullName) {
+                            setFormErrors({...formErrors, fullName: ''});
+                          }
+                        }}
+                        className={`flex-1 h-12 px-4 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-200 text-base placeholder-gray-400 ${
+                          formErrors.fullName
+                            ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                            : 'border-gray-200 focus:ring-purple-500 focus:border-purple-500'
+                        }`}
+                        autoCapitalize="words"
+                        autoComplete="name"
+                      />
+                      <div className="w-6 h-6 flex items-center justify-center">
+                        <User className={`w-5 h-5 ${formErrors.fullName ? 'text-red-400' : 'text-gray-400'}`} />
+                      </div>
+                    </div>
+                    {formErrors.fullName && (
+                      <p className="text-red-500 text-sm mt-1 animate-pulse">{formErrors.fullName}</p>
+                    )}
+                  </div>
+
+                  {/* Phone Number */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-800 mb-1">Phone Number</label>
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="tel"
+                        placeholder="Enter your phone number"
+                        value={addressData.phoneNumber}
+                        onChange={(e) => {
+                          setAddressData({...addressData, phoneNumber: e.target.value});
+                          if (formErrors.phoneNumber) {
+                            setFormErrors({...formErrors, phoneNumber: ''});
+                          }
+                        }}
+                        className={`flex-1 h-12 px-4 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-200 text-base placeholder-gray-400 ${
+                          formErrors.phoneNumber
+                            ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                            : 'border-gray-200 focus:ring-purple-500 focus:border-purple-500'
+                        }`}
+                        inputMode="tel"
+                        autoComplete="tel"
+                      />
+                      <div className="w-6 h-6 flex items-center justify-center">
+                        <Phone className={`w-5 h-5 ${formErrors.phoneNumber ? 'text-red-400' : 'text-gray-400'}`} />
+                      </div>
+                    </div>
+                    {formErrors.phoneNumber && (
+                      <p className="text-red-500 text-sm mt-1 animate-pulse">{formErrors.phoneNumber}</p>
+                    )}
+                  </div>
+
+                  {/* Address Line 1 */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-800 mb-1">Address Line 1</label>
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="text"
+                        placeholder="Enter your street address"
+                        value={addressData.addressLine1}
+                        onChange={(e) => {
+                          setAddressData({...addressData, addressLine1: e.target.value});
+                          if (formErrors.addressLine1) {
+                            setFormErrors({...formErrors, addressLine1: ''});
+                          }
+                        }}
+                        className={`flex-1 h-12 px-4 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-200 text-base placeholder-gray-400 ${
+                          formErrors.addressLine1
+                            ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                            : 'border-gray-200 focus:ring-purple-500 focus:border-purple-500'
+                        }`}
+                        autoComplete="address-line1"
+                      />
+                      <div className="w-6 h-6 flex items-center justify-center">
+                        <MapPin className={`w-5 h-5 ${formErrors.addressLine1 ? 'text-red-400' : 'text-gray-400'}`} />
+                      </div>
+                    </div>
+                    {formErrors.addressLine1 && (
+                      <p className="text-red-500 text-sm mt-1 animate-pulse">{formErrors.addressLine1}</p>
+                    )}
+                  </div>
+
+                  {/* City and Postal Code Row */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-800 mb-1">City</label>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="text"
+                          placeholder="Enter city"
+                          value={addressData.city}
+                          onChange={(e) => {
+                            setAddressData({...addressData, city: e.target.value});
+                            if (formErrors.city) {
+                              setFormErrors({...formErrors, city: ''});
+                            }
+                          }}
+                          className={`flex-1 h-12 px-3 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-200 text-base placeholder-gray-400 ${
+                            formErrors.city
+                              ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                              : 'border-gray-200 focus:ring-purple-500 focus:border-purple-500'
+                          }`}
+                          autoComplete="address-level2"
+                        />
+                        <div className="w-5 h-5 flex items-center justify-center">
+                          <MapPin className={`w-4 h-4 ${formErrors.city ? 'text-red-400' : 'text-gray-400'}`} />
+                        </div>
+                      </div>
+                      {formErrors.city && (
+                        <p className="text-red-500 text-sm mt-1 animate-pulse">{formErrors.city}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-800 mb-1">Postal Code</label>
+                      <input
+                        type="text"
+                        placeholder="Enter postal code"
+                        value={addressData.postalCode}
+                        onChange={(e) => {
+                          setAddressData({...addressData, postalCode: e.target.value});
+                          if (formErrors.postalCode) {
+                            setFormErrors({...formErrors, postalCode: ''});
+                          }
+                        }}
+                        className={`w-full h-12 px-3 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-200 text-base placeholder-gray-400 ${
+                          formErrors.postalCode
+                            ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                            : 'border-gray-200 focus:ring-purple-500 focus:border-purple-500'
+                        }`}
+                        autoComplete="postal-code"
+                        inputMode="numeric"
+                      />
+                      {formErrors.postalCode && (
+                        <p className="text-red-500 text-sm mt-1 animate-pulse">{formErrors.postalCode}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mobile-First Action Buttons */}
+                <div className="px-5 py-6 bg-white border-t border-gray-100 rounded-b-3xl safe-area-bottom">
+                  <div className="space-y-3">
+                    {/* Cancel Button - Ghost Style */}
+                    <button
+                      className="w-full h-12 text-gray-600 font-medium text-base hover:text-gray-800 transition-colors duration-200 flex items-center justify-center"
+                      onClick={handleCloseForm}
+                      type="button"
+                    >
+                      Cancel
+                    </button>
+
+                    {/* Primary Add Address Button */}
+                    <button
+                      className="w-full bg-gradient-to-r from-purple-600 to-purple-500 text-white font-semibold text-base rounded-xl hover:from-purple-700 hover:to-purple-600 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95 flex items-center justify-center"
+                      onClick={handleAddAddress}
+                      disabled={isSaving}
+                      type="submit"
+                      style={{ minHeight: '52px' }}
+                    >
+                      {isSaving ? (
+                        <div className="flex items-center justify-center space-x-3">
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span>Adding Address...</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center space-x-2">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                          <span>Add Address</span>
+                        </div>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -541,7 +846,7 @@ export function MyPage() {
   const TopUpScreen = () => {
     const [amount, setAmount] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
-    const [depositRequests, setDepositRequests] = useState<any[]>([]);
+    const [depositRequests, setDepositRequests] = useState([]);
 
     const fetchDepositRequests = async () => {
       try {
@@ -1535,12 +1840,6 @@ export function MyPage() {
   // Render based on current screen
   switch (currentScreen) {
     case 'shipping': return <ShippingAddressScreen />;
-    case 'add-address': return (
-      <AddAddressScreen 
-        onCancel={navigateBack} 
-        onSuccess={() => navigateToScreen('shipping')} 
-      />
-    );
     case 'topup': return <TopUpScreen />;
     case 'withdrawal': return <WithdrawalScreen />;
     case 'history': return <TransactionHistoryScreen />;

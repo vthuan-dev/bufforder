@@ -103,7 +103,7 @@ export function RegisterPage({ onRegister, onSwitchToLogin, onBack }: RegisterPa
             <Button variant="ghost" size="sm" onClick={onBack} className="mr-4">
               <ArrowLeft className="w-5 h-5 text-gray-700" />
             </Button>
-            <h1 className="text-lg font-medium text-gray-900">Đăng ký</h1>
+            <h1 className="text-lg font-medium text-gray-900">Register</h1>
           </div>
         </div>
 
@@ -111,19 +111,19 @@ export function RegisterPage({ onRegister, onSwitchToLogin, onBack }: RegisterPa
         <div className="p-4">
           {/* Welcome Message */}
           <div className="text-center mb-8 mt-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Tạo tài khoản mới</h2>
-            <p className="text-gray-600">Điền thông tin để tạo tài khoản</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Create new account</h2>
+            <p className="text-gray-600">Enter your information to create an account</p>
           </div>
 
           {/* Register Form */}
           <form onSubmit={handleRegister} className="space-y-6">
             {/* Full Name Input */}
             <div className="space-y-2">
-              <Label htmlFor="fullName" className="text-sm font-medium text-gray-700">Họ và tên</Label>
+              <Label htmlFor="fullName" className="text-sm font-medium text-gray-700">Full Name</Label>
               <Input
                 id="fullName"
                 type="text"
-                placeholder="Nhập họ và tên"
+                placeholder="Enter your full name"
                 value={formData.fullName}
                 onChange={(e) => handleInputChange('fullName', e.target.value)}
                 className="h-12 text-base border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -133,11 +133,11 @@ export function RegisterPage({ onRegister, onSwitchToLogin, onBack }: RegisterPa
 
             {/* Phone Number Input */}
             <div className="space-y-2">
-              <Label htmlFor="phone" className="text-sm font-medium text-gray-700">Số điện thoại</Label>
+              <Label htmlFor="phone" className="text-sm font-medium text-gray-700">Phone Number</Label>
               <Input
                 id="phone"
                 type="tel"
-                placeholder="Nhập số điện thoại"
+                placeholder="Enter your phone number"
                 value={formData.phoneNumber}
                 onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                 className="h-12 text-base border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -147,11 +147,11 @@ export function RegisterPage({ onRegister, onSwitchToLogin, onBack }: RegisterPa
 
             {/* Invite Code Input */}
             <div className="space-y-2">
-              <Label htmlFor="inviteCode" className="text-sm font-medium text-gray-700">Mã thành viên</Label>
+              <Label htmlFor="inviteCode" className="text-sm font-medium text-gray-700">Invite Code</Label>
               <Input
                 id="inviteCode"
                 type="text"
-                placeholder="Nhập mã thành viên"
+                placeholder="Enter your invite code"
                 value={formData.inviteCode}
                 onChange={(e) => handleInputChange('inviteCode', e.target.value)}
                 className="h-12 text-base border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -161,11 +161,11 @@ export function RegisterPage({ onRegister, onSwitchToLogin, onBack }: RegisterPa
 
             {/* Password Input */}
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium text-gray-700">Mật khẩu</Label>
+              <Label htmlFor="password" className="text-sm font-medium text-gray-700">Password</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Nhập mật khẩu (ít nhất 6 ký tự)"
+                placeholder="Enter your password (at least 6 characters)"
                 value={formData.password}
                 onChange={(e) => handleInputChange('password', e.target.value)}
                 className="h-12 text-base border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -175,11 +175,11 @@ export function RegisterPage({ onRegister, onSwitchToLogin, onBack }: RegisterPa
 
             {/* Confirm Password Input */}
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">Xác nhận mật khẩu</Label>
+              <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">Confirm Password</Label>
               <Input
                 id="confirmPassword"
                 type="password"
-                placeholder="Nhập lại mật khẩu"
+                placeholder="Enter your password again"
                 value={formData.confirmPassword}
                 onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                 className="h-12 text-base border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -200,20 +200,20 @@ export function RegisterPage({ onRegister, onSwitchToLogin, onBack }: RegisterPa
               className="w-full h-12 bg-gray-900 text-white text-base font-medium rounded-lg hover:bg-gray-800 transition-colors" 
               disabled={isLoading}
             >
-              {isLoading ? 'Đang tạo tài khoản...' : 'Đăng ký'}
+              {isLoading ? 'Creating account...' : 'Register'}
             </Button>
           </form>
 
           {/* Switch to Login */}
           <div className="mt-8 text-center">
             <p className="text-gray-600 text-sm">
-              Đã có tài khoản?{' '}
+              Already have an account?{' '}
               <button
                 type="button"
                 onClick={onSwitchToLogin}
                 className="text-blue-600 hover:text-blue-800 font-medium underline"
               >
-                Đăng nhập ngay
+                Login now
               </button>
             </p>
           </div>
