@@ -856,7 +856,7 @@ export function MyPage() {
         <div className="p-4 space-y-4">
           <Button className="w-full" variant="outline" onClick={() => setShowAdd(true)}>
             <Plus className="w-4 h-4 mr-2" />
-            Thêm thẻ mới
+            Add new card
           </Button>
 
           {isLoading ? (
@@ -918,7 +918,7 @@ export function MyPage() {
 
     const handleChangePassword = async () => {
       if (!currentPassword || !newPassword || !confirmPassword) {
-        toast.error('Vui lòng điền đầy đủ thông tin');
+        toast.error('Please enter all information');
         return;
       }
 
@@ -936,22 +936,22 @@ export function MyPage() {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
-          toast.error('Vui lòng đăng nhập để thay đổi mật khẩu');
+          toast.error('Please login to change password');
           return;
         }
 
         const response = await api.changePassword(token, currentPassword, newPassword);
         if (response.success) {
-          toast.success('Thay đổi mật khẩu thành công!');
+          toast.success('Change password successfully!');
           setCurrentPassword('');
           setNewPassword('');
           setConfirmPassword('');
           navigateBack();
         } else {
-          toast.error(response.message || 'Thay đổi mật khẩu thất bại');
+          toast.error(response.message || 'Change password failed');
         }
       } catch (error) {
-        toast.error(error.message || 'Thay đổi mật khẩu thất bại');
+        toast.error(error.message || 'Change password failed');
       } finally {
         setIsLoading(false);
       }
@@ -962,15 +962,15 @@ export function MyPage() {
         <ScreenHeader title="Change Password" />
         <div className="p-4 space-y-6">
           <div className="bg-white rounded-xl p-6 shadow-sm">
-            <h3 className="text-lg font-semibold mb-4 text-gray-800">Thay đổi mật khẩu</h3>
+            <h3 className="text-lg font-semibold mb-4 text-gray-800">Change Password</h3>
             
             <div className="space-y-4">
               <div>
-                <Label htmlFor="current-password">Mật khẩu hiện tại</Label>
+                <Label htmlFor="current-password">Current Password</Label>
                 <Input
                   id="current-password"
                   type="password"
-                  placeholder="Nhập mật khẩu hiện tại"
+                  placeholder="Enter current password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   className="mt-1"
@@ -978,11 +978,11 @@ export function MyPage() {
               </div>
 
               <div>
-                <Label htmlFor="new-password">Mật khẩu mới</Label>
+                <Label htmlFor="new-password">New Password</Label>
                 <Input
                   id="new-password"
                   type="password"
-                  placeholder="Nhập mật khẩu mới"
+                  placeholder="Enter new password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="mt-1"
@@ -990,11 +990,11 @@ export function MyPage() {
               </div>
 
               <div>
-                <Label htmlFor="confirm-password">Xác nhận mật khẩu mới</Label>
+                <Label htmlFor="confirm-password">Confirm New Password</Label>
                 <Input
                   id="confirm-password"
                   type="password"
-                  placeholder="Nhập lại mật khẩu mới"
+                  placeholder="Enter new password again"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="mt-1"
@@ -1008,7 +1008,7 @@ export function MyPage() {
                 onClick={handleChangePassword}
                 disabled={isLoading}
               >
-                {isLoading ? 'Đang xử lý...' : 'Thay đổi mật khẩu'}
+                {isLoading ? 'Processing...' : 'Change Password'}
               </Button>
 
               <Button
@@ -1016,19 +1016,19 @@ export function MyPage() {
                 className="w-full"
                 onClick={navigateBack}
               >
-                Hủy
+                Cancel
               </Button>
             </div>
           </div>
 
           {/* Security Tips */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-blue-800 mb-2">Mẹo bảo mật:</h4>
+            <h4 className="text-sm font-medium text-blue-800 mb-2">Security Tips:</h4>
             <ul className="text-sm text-blue-700 space-y-1">
-              <li>• Sử dụng ít nhất 6 ký tự</li>
-              <li>• Kết hợp chữ cái, số và ký tự đặc biệt</li>
-              <li>• Không sử dụng thông tin cá nhân</li>
-              <li>• Thay đổi mật khẩu định kỳ</li>
+              <li>• Use at least 6 characters</li>
+              <li>• Combine letters, numbers and special characters</li>
+              <li>• Do not use personal information</li>
+              <li>• Change password regularly</li>
             </ul>
           </div>
         </div>
