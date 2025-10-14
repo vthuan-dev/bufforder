@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Eye, EyeOff, Phone, Lock, ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
 import api from "../services/api";
+import logoImage from '../assets/image.png';
 
 interface LoginPageProps {
   onLogin: () => void;
@@ -43,7 +44,7 @@ export function LoginPage({ onLogin, onSwitchToRegister, onSwitchToAdmin }: Logi
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-8"
         >
-          <img src="/src/assets/image.png" alt="Ashford" className="h-10 md:h-12 inline-block mb-2" />
+          <img src={logoImage} alt="Ashford" className="h-10 md:h-12 inline-block mb-2" />
           {/* <p className="text-gray-500 text-sm">Welcome Back</p> */}
         </motion.div>
 
