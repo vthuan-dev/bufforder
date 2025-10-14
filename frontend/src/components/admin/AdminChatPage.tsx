@@ -36,6 +36,7 @@ export function AdminChatPage() {
   const socketRef = useRef<Socket | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const selectedThreadIdRef = useRef<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const scrollToBottom = (smooth = false) => {
     const container = messagesContainerRef.current;
@@ -139,6 +140,25 @@ export function AdminChatPage() {
     // IMPORTANT: avoid REST call here to prevent duplicate messages
     socketRef.current?.emit('chat:send', { threadId, text: messageInput });
     setMessageInput("");
+  };
+
+  const handlePickImage = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const threadId = selectedThreadIdRef.current || selectedThread?.id;
+      if (!threadId) return;
+      await api.chatSendImage(threadId, file as any);
+      // message will appear through socket 'chat:message'
+    } catch (err) {
+      // optional: toast can be added
+    } finally {
+      e.target.value = '';
+    }
   };
 
   const totalUnread = threads.reduce((sum, thread) => sum + (thread.unread || 0), 0);
@@ -300,9 +320,10 @@ export function AdminChatPage() {
             {/* Input Area */}
             <div className="p-4 border-t border-gray-100 sticky bottom-0 bg-white z-10 flex-shrink-0">
               <div className="flex items-end gap-3">
-                <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+                <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg" onClick={handlePickImage} disabled={!selectedThread}>
                   <Paperclip className="w-5 h-5" />
                 </button>
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                 <div className="flex-1">
                   <textarea
                     value={messageInput}
