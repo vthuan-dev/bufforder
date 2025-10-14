@@ -135,16 +135,16 @@ export function LoginPage({ onLogin, onSwitchToRegister, onSwitchToAdmin }: Logi
           </div>
 
           {/* Admin Access */}
-          {onSwitchToAdmin && (
-            <div className="mt-4 text-center">
-              <button
-                onClick={onSwitchToAdmin}
-                className="text-xs text-gray-400 hover:text-gray-600 underline"
-              >
-                Admin Access
-              </button>
-            </div>
-          )}
+          {/* {onSwitchToAdmin && (
+            // <div className="mt-4 text-center">
+            //   <button
+            //     onClick={onSwitchToAdmin}
+            //     className="text-xs text-gray-400 hover:text-gray-600 underline"
+            //   >
+            //     Admin Access
+            //   </button>
+            // </div>
+          )} */}
         </motion.div>
       </div>
     </div>
