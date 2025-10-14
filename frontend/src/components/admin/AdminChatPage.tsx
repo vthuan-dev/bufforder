@@ -152,7 +152,8 @@ export function AdminChatPage() {
     try {
       const threadId = selectedThreadIdRef.current || selectedThread?.id;
       if (!threadId) return;
-      await api.chatSendImage(threadId, file as any);
+      // use admin upload endpoint so senderType=admin
+      await api.adminChatSendImage(threadId, file as any);
       // message will appear through socket 'chat:message'
     } catch (err) {
       // optional: toast can be added
@@ -292,26 +293,30 @@ export function AdminChatPage() {
                     key={message.id}
                     className={`flex ${message.sender === "admin" ? "justify-end" : "justify-start"}`}
                   >
-                    <div
-                      className={`max-w-md ${
-                        message.sender === "admin"
-                          ? "bg-blue-600 text-white rounded-2xl rounded-br-sm"
-                          : "bg-gray-100 text-gray-900 rounded-2xl rounded-bl-sm"
-                      } px-4 py-2`}
-                    >
-                      {message.imageUrl ? (
-                        <img src={message.imageUrl} alt="image" className="max-w-[260px] max-h-[300px] rounded-lg object-contain" />
-                      ) : (
-                        <p className="text-sm">{message.text}</p>
-                      )}
-                      <p
-                        className={`text-xs mt-1 ${
-                          message.sender === "admin" ? "text-blue-100" : "text-gray-500"
-                        }`}
-                      >
-                        {message.timestamp}
-                      </p>
-                    </div>
+                    {(() => {
+                      const isImage = !!message.imageUrl;
+                      const sideBase = message.sender === "admin" ? "rounded-2xl rounded-br-sm" : "rounded-2xl rounded-bl-sm";
+                      const bubbleBase = message.sender === "admin" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-900";
+                      const bubbleClasses = isImage ? `${sideBase} p-0` : `${bubbleBase} ${sideBase} px-4 py-2`;
+                      return (
+                        <div className={`max-w-md ${bubbleClasses}`}>
+                          {isImage ? (
+                            <img src={message.imageUrl} alt="image" className="max-w-[320px] max-h-[380px] rounded-lg object-contain" />
+                          ) : (
+                            <p className="text-sm">{message.text}</p>
+                          )}
+                          {!isImage && (
+                            <p
+                              className={`text-xs mt-1 ${
+                                message.sender === "admin" ? "text-blue-100" : "text-gray-500"
+                              }`}
+                            >
+                              {message.timestamp}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>

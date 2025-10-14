@@ -273,6 +273,20 @@ export default {
       return d;
     });
   },
+  adminChatSendImage(threadId: string, file: File) {
+    const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
+    const form = new FormData();
+    form.append('image', file);
+    return fetch(`${API_BASE_URL}/chat/admin/threads/${threadId}/images`, {
+      method: 'POST',
+      headers: headers as any,
+      body: form as any,
+    }).then(async (r) => {
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d?.message || `Upload failed (${r.status})`);
+      return d;
+    });
+  },
   adminChatListMessages(threadId: string) {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
     return request(`/chat/admin/threads/${threadId}/messages`, { headers });
