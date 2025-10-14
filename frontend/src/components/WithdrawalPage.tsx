@@ -11,6 +11,10 @@ export function WithdrawalPage({ onBack }: WithdrawalPageProps) {
   const [amount, setAmount] = useState("");
   const [password, setPassword] = useState("");
   const [availableBalance, setAvailableBalance] = useState(0);
+  const [pendingWithdrawals, setPendingWithdrawals] = useState<any[]>([]);
+  const [dailyTasks, setDailyTasks] = useState(0);
+  const [completedToday, setCompletedToday] = useState(0);
+  const [hasWithdrawToday, setHasWithdrawToday] = useState(false);
   const [bankCards, setBankCards] = useState<{ id: string; bankName: string; cardNumber: string; accountName: string; isDefault?: boolean; }[]>([]);
   const [selectedCardId, setSelectedCardId] = useState<string>("");
   const minWithdrawal = 50;
@@ -23,6 +27,14 @@ export function WithdrawalPage({ onBack }: WithdrawalPageProps) {
         const user = profile?.data?.user;
         if (user) setAvailableBalance(Number(user.balance || 0));
       } catch {}
+      // Load order stats for daily completion requirement
+      try {
+        const stats = await api.userOrderStats();
+        if (stats?.success) {
+          setDailyTasks(Number(stats.data?.totalDailyTasks || 0));
+          setCompletedToday(Number(stats.data?.completedToday || 0));
+        }
+      } catch {}
       try {
         const cards = await api.getBankCards();
         const list = cards?.data?.bankCards || [];
@@ -30,10 +42,39 @@ export function WithdrawalPage({ onBack }: WithdrawalPageProps) {
         const def = list.find((c: any) => c.isDefault) || list[0];
         setSelectedCardId(def?.id || "");
       } catch {}
+      try {
+        const list = await api.getWithdrawalRequests();
+        const all = (list?.data?.requests || []);
+        const items = all.filter((w: any) => (w.status === 'pending'));
+        setPendingWithdrawals(items);
+        // Determine if user already withdrew today (pending or approved today)
+        const isSameDay = (d: any) => {
+          const dt = new Date(d);
+          const now = new Date();
+          return dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth() && dt.getDate() === now.getDate();
+        };
+        const withdrew = all.some((w: any) => {
+          const date = w.requestDate || w.createdAt || w.updatedAt;
+          const today = date && isSameDay(date);
+          const processed = String(w.status).toLowerCase() === 'approved' || String(w.status).toLowerCase() === 'pending';
+          return processed && today;
+        });
+        setHasWithdrawToday(withdrew);
+      } catch {}
     })();
   }, []);
 
   const handleWithdrawal = async () => {
+    // Guard: daily tasks must be completed
+    if (completedToday < dailyTasks) {
+      alert(`Please complete all daily orders first (${completedToday}/${dailyTasks}).`);
+      return;
+    }
+    // Guard: only one withdrawal per day
+    if (hasWithdrawToday) {
+      alert('You have already made a withdrawal today. Only one withdrawal per day is allowed.');
+      return;
+    }
     const withdrawAmount = parseFloat(amount);
     
     if (!amount || withdrawAmount <= 0) {
@@ -70,6 +111,15 @@ export function WithdrawalPage({ onBack }: WithdrawalPageProps) {
         alert("Withdrawal request submitted!");
         setAmount("");
         setPassword("");
+        setHasWithdrawToday(true);
+        // refresh pending list to reflect new request
+        try {
+          const list = await api.getWithdrawalRequests();
+          const items = (list?.data?.requests || []).filter((w: any) => w.status === 'pending');
+          setPendingWithdrawals(items);
+        } catch {}
+        // Inform daily limit
+        alert('Note: Only one withdrawal is allowed per day.');
       }
     } catch (e: any) {
       alert(e?.message || "Failed to submit withdrawal request");
@@ -109,6 +159,17 @@ export function WithdrawalPage({ onBack }: WithdrawalPageProps) {
 
         {/* Withdrawal Form */}
         <div className="bg-white rounded-2xl p-5 shadow-md mb-4">
+          {/* Eligibility notice */}
+          {completedToday < dailyTasks && (
+            <div className="mb-3 text-sm text-orange-700 bg-orange-50 border border-orange-200 rounded-lg p-3">
+              Complete all orders to withdraw today ({completedToday}/{dailyTasks}).
+            </div>
+          )}
+          {hasWithdrawToday && (
+            <div className="mb-3 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
+              You have already submitted a withdrawal today.
+            </div>
+          )}
           <label className="block text-sm text-gray-600 mb-3">Select Bank Card</label>
           <select
             value={selectedCardId}
@@ -176,11 +237,26 @@ export function WithdrawalPage({ onBack }: WithdrawalPageProps) {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={handleWithdrawal}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl shadow-lg"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={completedToday < dailyTasks || hasWithdrawToday}
         >
           Submit Withdrawal
         </motion.button>
       </div>
+      {/* Pending list */}
+      {pendingWithdrawals.length > 0 && (
+        <div className="px-6">
+          <h3 className="text-sm text-gray-700 mb-2">Pending withdrawal requests</h3>
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-2">
+            {pendingWithdrawals.map((w: any) => (
+              <div key={w._id} className="flex items-center justify-between text-sm">
+                <span className="text-gray-700">${w.amount.toFixed(2)}</span>
+                <span className="text-orange-600">Pending</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

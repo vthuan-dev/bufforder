@@ -110,9 +110,9 @@ export function AdminDashboard() {
           <h1 className="text-2xl text-gray-900 mb-1">Dashboard Overview</h1>
           <p className="text-gray-600">Welcome back, Admin! Here's what's happening today.</p>
         </div>
-        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+        {/* <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
           Download Report
-        </button>
+        </button> */}
       </div>
 
       {/* Statistics Cards */}

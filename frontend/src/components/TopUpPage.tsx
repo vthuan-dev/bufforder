@@ -11,6 +11,7 @@ export function TopUpPage({ onBack }: TopUpPageProps) {
   const [amount, setAmount] = useState("");
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [balance, setBalance] = useState<number>(0);
+  const [pendingDeposits, setPendingDeposits] = useState<any[]>([]);
 
   const quickAmounts = [50, 100, 200, 500, 1000, 2000];
 
@@ -20,6 +21,11 @@ export function TopUpPage({ onBack }: TopUpPageProps) {
         const res = await api.profile();
         const user = res?.data?.user;
         if (user) setBalance(Number(user.balance || 0));
+      } catch {}
+      try {
+        const reqs = await api.getDepositRequests();
+        const list = (reqs?.data?.requests || []).filter((r: any) => r.status === 'pending');
+        setPendingDeposits(list);
       } catch {}
     })();
   }, []);
@@ -114,7 +120,7 @@ export function TopUpPage({ onBack }: TopUpPageProps) {
         </div>
 
         {/* Payment Instructions */}
-        <div className="bg-blue-50 rounded-3xl p-5 mb-6 border border-blue-100">
+        {/* <div className="bg-blue-50 rounded-3xl p-5 mb-6 border border-blue-100">
           <h3 className="text-sm text-gray-800 mb-3">Payment Instructions:</h3>
           <ol className="space-y-2 text-xs text-gray-700">
             <li className="flex gap-2">
@@ -130,7 +136,7 @@ export function TopUpPage({ onBack }: TopUpPageProps) {
               <span>Balance will be updated within 5-10 minutes</span>
             </li>
           </ol>
-        </div>
+        </div> */}
 
         {/* Submit Button */}
         <motion.button
@@ -151,6 +157,20 @@ export function TopUpPage({ onBack }: TopUpPageProps) {
           />
           <span className="relative z-10 text-base">Submit Request</span>
         </motion.button>
+        {/* Pending list */}
+        {pendingDeposits.length > 0 && (
+          <div className="mt-6">
+            <h3 className="text-sm text-gray-700 mb-2">Pending requests</h3>
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-2">
+              {pendingDeposits.map((r: any) => (
+                <div key={r._id} className="flex items-center justify-between text-sm">
+                  <span className="text-gray-700">${r.amount.toFixed(2)}</span>
+                  <span className="text-orange-600">Pending</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

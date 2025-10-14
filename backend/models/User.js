@@ -46,6 +46,10 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0.00
   },
+  lastSeenAt: {
+    type: Date,
+    default: null
+  },
   inviteCodeUsed: {
     type: String,
     default: null

@@ -54,6 +54,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // serve ảnh upload
 app.use('/uploads', express.static(require('path').join(__dirname, 'uploads')));
+// Disable HTTP caching for API JSON responses to avoid stale data (balances etc.)
+app.disable('etag');
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
 
 // Connect to MongoDB
 mongoose.connect(config.MONGODB_URI, {
@@ -206,6 +212,11 @@ io.on('connection', (socket) => {
       const current = onlineUsers.get(uid) || 0;
       if (current <= 1) {
         onlineUsers.delete(uid);
+        // update lastSeenAt for user
+        try {
+          const User = require('./models/User');
+          User.findByIdAndUpdate(uid, { lastSeenAt: new Date() }).exec().catch(() => {});
+        } catch {}
         try { io.to('admins').emit('presence:update', { userId: uid, online: false }); } catch {}
       } else {
         onlineUsers.set(uid, current - 1);

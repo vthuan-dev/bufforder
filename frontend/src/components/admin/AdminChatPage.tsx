@@ -25,7 +25,7 @@ interface Message {
   isRead: boolean;
 }
 
-const API_BASE = 'http://localhost:5000';
+const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:5000';
 
 export function AdminChatPage() {
   const [threads, setThreads] = useState<ChatThread[]>([]);
@@ -81,7 +81,9 @@ export function AdminChatPage() {
       timestamp: t.lastMessageAt ? new Date(t.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
       unread: Number(t.unreadForAdmin || 0),
       status: t.userOnline ? 'online' : 'offline',
-      userIp: t.userIp || ''
+      userIp: t.userIp || '',
+      // carry last seen for UI (optional)
+      lastSeenAt: t.userLastSeenAt || null
     }));
     setThreads(list);
     if (!selectedThread && list.length) setSelectedThread(list[0]);
@@ -200,8 +202,12 @@ export function AdminChatPage() {
                           {thread.user.name.split(" ").map((n) => n[0]).join("")}
                         </AvatarFallback>
                       </Avatar>
-                      {thread.status === "online" && (
+                      {thread.status === "online" ? (
                         <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
+                      ) : (
+                        <div className="absolute bottom-0 right-0 text-[10px] text-gray-500 bg-white/80 px-1 rounded">
+                          {thread.lastSeenAt ? new Date(thread.lastSeenAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                        </div>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">

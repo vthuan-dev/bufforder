@@ -3,7 +3,7 @@ import { Send, Smile, Paperclip, MoreVertical, Phone, Video, ArrowLeft } from "l
 import { motion, AnimatePresence } from "motion/react";
 import api from "../services/api";
 import { io, Socket } from "socket.io-client";
-const API_BASE = 'http://localhost:5000';
+const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:5000';
 
 interface Message {
   id: string;

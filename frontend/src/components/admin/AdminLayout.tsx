@@ -66,7 +66,8 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
     try {
       const token = typeof localStorage !== 'undefined' ? localStorage.getItem('adminToken') : null;
       if (!token) return;
-      const s = io('http://localhost:5000', { auth: { adminToken: token } });
+      const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:5000';
+      const s = io(API_BASE, { auth: { adminToken: token } });
       (AdminLayout as any)._socket = s; // store to static for cleanup
       s.on('chat:threadUpdated', () => {
         setChatUnread((u) => u + 1);

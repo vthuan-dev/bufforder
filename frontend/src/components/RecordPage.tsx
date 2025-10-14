@@ -1,17 +1,56 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PackageOpen } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import api from "../services/api";
 
 export function RecordPage() {
-  const [activeTab, setActiveTab] = useState<'pending' | 'paid' | 'settled'>('pending');
-  const [availableBalance] = useState(1824.30);
-  const [freezeBalance] = useState(350.00);
+  const [activeTab, setActiveTab] = useState<'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'>('pending');
+  const [availableBalance, setAvailableBalance] = useState(0);
+  const [freezeBalance, setFreezeBalance] = useState(0);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const tabs = [
     { id: 'pending', label: 'Pending' },
-    { id: 'paid', label: 'Paid' },
-    { id: 'settled', label: 'Settled' }
+    { id: 'processing', label: 'Processing' },
+    { id: 'shipped', label: 'Shipped' },
+    { id: 'delivered', label: 'Delivered' },
+    { id: 'cancelled', label: 'Cancelled' }
   ] as const;
+
+  const loadStats = async () => {
+    try {
+      const res = await api.userOrderStats();
+      if (res.success) {
+        setAvailableBalance(res.data.balance || 0);
+        setFreezeBalance(res.data.freezeBalance || 0);
+      }
+    } catch {}
+  };
+
+  const loadOrders = async () => {
+    try {
+      setLoading(true);
+      const res = await api.userOrderHistory({ status: activeTab, page: 1, limit: 20, sortBy: 'orderDate', sortOrder: 'desc' });
+      if (res.success) setOrders(res.data.orders || []);
+    } catch {
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadStats(); }, []);
+  // Listen for cross-page order updates (e.g., user completed an order from OrdersPage)
+  useEffect(() => {
+    const onOrderUpdated = () => {
+      loadStats();
+      loadOrders();
+    };
+    window.addEventListener('orderUpdated', onOrderUpdated as any);
+    return () => window.removeEventListener('orderUpdated', onOrderUpdated as any);
+  }, [activeTab]);
+  useEffect(() => { loadOrders(); }, [activeTab]);
 
   return (
     <div className="pb-20 bg-white min-h-screen">
@@ -90,7 +129,12 @@ export function RecordPage() {
           transition={{ duration: 0.3 }}
           className="flex flex-col items-center justify-center py-20 px-6"
         >
-          {/* Empty State Illustration */}
+          {/* Orders list or empty state */}
+          {loading ? (
+            <p className="text-gray-500">Loading...</p>
+          ) : (orders.filter(o => !activeTab || String(o.status).toLowerCase() === activeTab).length === 0) ? (
+            <>
+            {/* Empty State Illustration */}
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -142,6 +186,28 @@ export function RecordPage() {
               Complete orders to see your history here
             </p>
           </motion.div>
+            </>
+          ) : (
+            <div className="w-full px-4 space-y-3">
+              {orders
+                .filter(o => !activeTab || String(o.status).toLowerCase() === activeTab)
+                .map((o) => (
+                <div key={o.id} className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <img src={o.image || ''} alt="product" className="w-12 h-12 rounded-lg object-cover" />
+                    <div>
+                      <p className="text-gray-900 text-sm">{o.productName}</p>
+                      <p className="text-xs text-gray-500">{new Date(o.orderDate).toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-gray-900 text-sm">${o.productPrice.toFixed(2)}</p>
+                    <p className="text-green-600 text-xs">+${o.commissionAmount.toFixed(2)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </motion.div>
       </AnimatePresence>
     </div>

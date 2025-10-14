@@ -142,20 +142,7 @@ export function AdminSettingsPage() {
             <Lock className="w-4 h-4 mr-2" />
             Security
           </TabsTrigger>
-          <TabsTrigger
-            value="notifications"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent"
-          >
-            <Bell className="w-4 h-4 mr-2" />
-            Notifications
-          </TabsTrigger>
-          <TabsTrigger
-            value="system"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent"
-          >
-            <Database className="w-4 h-4 mr-2" />
-            System
-          </TabsTrigger>
+          
         </TabsList>
 
         {/* Profile Tab */}
@@ -328,7 +315,7 @@ export function AdminSettingsPage() {
             <Separator />
 
             {/* Two-Factor Authentication */}
-            <div className="space-y-4">
+            {/* <div className="space-y-4">
               <div>
                 <h4 className="text-gray-900 mb-1">Two-Factor Authentication</h4>
                 <p className="text-sm text-gray-600">Add an extra layer of security to your account</p>
@@ -345,7 +332,7 @@ export function AdminSettingsPage() {
                 </div>
                 <Button variant="outline" size="sm">Disable</Button>
               </div>
-            </div>
+            </div> */}
 
             <Separator />
 
@@ -371,149 +358,7 @@ export function AdminSettingsPage() {
           </div>
         </TabsContent>
 
-        {/* Notifications Tab */}
-        <TabsContent value="notifications" className="mt-6">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
-            <div>
-              <h3 className="text-gray-900 mb-1">Notification Preferences</h3>
-              <p className="text-sm text-gray-600">Manage how you receive notifications</p>
-            </div>
-
-            <Separator />
-
-            {/* Email Notifications */}
-            <div className="space-y-4">
-              <h4 className="text-gray-900">Email Notifications</h4>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-900">Enable email notifications</p>
-                  <p className="text-xs text-gray-500">Receive notifications via email</p>
-                </div>
-                <Switch checked={emailNotifications} onCheckedChange={setEmailNotifications} />
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Push Notifications */}
-            <div className="space-y-4">
-              <h4 className="text-gray-900">Push Notifications</h4>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-900">Enable push notifications</p>
-                  <p className="text-xs text-gray-500">Receive real-time browser notifications</p>
-                </div>
-                <Switch checked={pushNotifications} onCheckedChange={setPushNotifications} />
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Alert Types */}
-            <div className="space-y-4">
-              <h4 className="text-gray-900">Alert Types</h4>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-900">Deposit Requests</p>
-                    <p className="text-xs text-gray-500">Get notified for new deposit requests</p>
-                  </div>
-                  <Switch checked={depositAlerts} onCheckedChange={setDepositAlerts} />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-900">Withdrawal Requests</p>
-                    <p className="text-xs text-gray-500">Get notified for new withdrawal requests</p>
-                  </div>
-                  <Switch checked={withdrawalAlerts} onCheckedChange={setWithdrawalAlerts} />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-900">New Orders</p>
-                    <p className="text-xs text-gray-500">Get notified for new orders</p>
-                  </div>
-                  <Switch checked={orderAlerts} onCheckedChange={setOrderAlerts} />
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            <div className="flex justify-end">
-              <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
-                <Save className="w-4 h-4 mr-2" />
-                Save Preferences
-              </Button>
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* System Tab */}
-        <TabsContent value="system" className="mt-6">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
-            <div>
-              <h3 className="text-gray-900 mb-1">System Configuration</h3>
-              <p className="text-sm text-gray-600">Manage platform-wide settings</p>
-            </div>
-
-            <Separator />
-
-            {/* System Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label>Platform Name</Label>
-                <Input defaultValue="Ashford" />
-              </div>
-              <div>
-                <Label>Support Email</Label>
-                <Input type="email" defaultValue="support@ashford.com" />
-              </div>
-              <div>
-                <Label>Currency</Label>
-                <Input defaultValue="USD ($)" />
-              </div>
-              <div>
-                <Label>Commission Rate (%)</Label>
-                <Input type="number" defaultValue="10" />
-              </div>
-              <div>
-                <Label>Withdrawal Fee (%)</Label>
-                <Input type="number" defaultValue="1" />
-              </div>
-              <div>
-                <Label>Min Withdrawal Amount</Label>
-                <Input type="number" defaultValue="50" />
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Maintenance Mode */}
-            <div className="space-y-4">
-              <div>
-                <h4 className="text-gray-900 mb-1">Maintenance Mode</h4>
-                <p className="text-sm text-gray-600">Enable to temporarily disable the platform</p>
-              </div>
-              <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                <div>
-                  <p className="text-sm text-gray-900">Maintenance Mode</p>
-                  <p className="text-xs text-gray-600">Platform is currently online</p>
-                </div>
-                <Switch />
-              </div>
-            </div>
-
-            <Separator />
-
-            <div className="flex justify-end gap-3">
-              <Button variant="outline">Reset to Defaults</Button>
-              <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
-                <Save className="w-4 h-4 mr-2" />
-                Save Configuration
-              </Button>
-            </div>
-          </div>
-        </TabsContent>
+        
       </Tabs>
     </div>
   );

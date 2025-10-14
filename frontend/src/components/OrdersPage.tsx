@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { TrendingUp, Wallet, CheckCircle, Target, ShoppingBag, Package, X, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+import api from "../services/api";
 
 interface Product {
   id: string;
@@ -21,10 +22,10 @@ export function OrdersPage() {
   // Daily stats with auto-reset at new day
   const [dailyCommission, setDailyCommission] = useState<number>(0);
   const [ordersReceived, setOrdersReceived] = useState<number>(0);
-  const availableBalance = 10039.30;
-  const todaysTask = 100.00;
-  const completedToday = 0;
-  const totalOrdersLimit = 100;
+  const [availableBalance, setAvailableBalance] = useState<number>(0);
+  const [todaysTask, setTodaysTask] = useState<number>(0);
+  const [completedToday, setCompletedToday] = useState<number>(0);
+  const [totalOrdersLimit, setTotalOrdersLimit] = useState<number>(100);
 
   useEffect(() => {
     const today = new Date();
@@ -45,6 +46,19 @@ export function OrdersPage() {
       setDailyCommission(isNaN(savedCommission) ? 0 : savedCommission);
       setOrdersReceived(isNaN(savedOrders) ? 0 : savedOrders);
     }
+    // load current balance from api
+    (async () => {
+      try {
+        const stats = await api.userOrderStats();
+        if (stats.success) {
+          setAvailableBalance(stats.data.balance || 0);
+          setTodaysTask(Number(stats.data.totalDailyTasks || 0));
+          setCompletedToday(Number(stats.data.completedToday || 0));
+          setTotalOrdersLimit(Number(stats.data.totalDailyTasks || 0));
+          setOrdersReceived(Number(stats.data.ordersGrabbed || 0));
+        }
+      } catch {}
+    })();
   }, []);
 
   // Persist when stats change
@@ -124,15 +138,51 @@ export function OrdersPage() {
     }, stepDuration);
   };
 
-  const handleConfirmOrder = () => {
-    alert(`Order confirmed for ${selectedProduct?.name}!`);
-    // Update daily stats for today
-    if (selectedProduct) {
+  const handleConfirmOrder = async () => {
+    if (!selectedProduct) return;
+    try {
+      // Step 1: Take order
+      const takeRes = await api.userOrderTake({
+        id: selectedProduct.id,
+        name: selectedProduct.name,
+        price: selectedProduct.price,
+        brand: selectedProduct.brand,
+        category: 'General',
+        image: selectedProduct.image,
+      });
+
+      // Step 2: Complete order immediately (demo flow)
+      await api.userOrderComplete({
+        productId: selectedProduct.id,
+        productName: selectedProduct.name,
+        productPrice: selectedProduct.price,
+        commissionAmount: selectedProduct.commission,
+        commissionRate: +(selectedProduct.commission / selectedProduct.price) * 100,
+      });
+
+      // Update UI stats
       setOrdersReceived((prev) => prev + 1);
       setDailyCommission((prev) => +(prev + selectedProduct.commission).toFixed(2));
+
+      // Refresh stats from api to sync UI (balance, tasks, completed, received)
+      try {
+        const stats = await api.userOrderStats();
+        if (stats.success) {
+          setAvailableBalance(stats.data.balance || 0);
+          setTodaysTask(Number(stats.data.totalDailyTasks || 0));
+          setCompletedToday(Number(stats.data.completedToday || 0));
+          setTotalOrdersLimit(Number(stats.data.totalDailyTasks || 0));
+          setOrdersReceived(Number(stats.data.ordersGrabbed || 0));
+        }
+      } catch {}
+
+      setShowOrderPopup(false);
+      setSelectedProduct(null);
+      // notify other pages (Record) to refresh
+      try { window.dispatchEvent(new Event('orderUpdated')); } catch {}
+    } catch (e: any) {
+      alert(e?.message || 'Order failed');
     }
-    setShowOrderPopup(false);
-    setSelectedProduct(null);
   };
 
   const handleCancelQueue = () => {

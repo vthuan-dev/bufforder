@@ -33,8 +33,8 @@ router.get('/stats', authenticateToken, async (req, res) => {
       }
     });
 
-    // Calculate commission from completed orders
-    const completedOrders = todayOrders.filter(order => order.status === 'completed');
+    // Calculate metrics based on delivered orders (completed)
+    const completedOrders = todayOrders.filter(order => order.status === 'delivered');
     const totalCommission = completedOrders.reduce((sum, order) => sum + order.commissionAmount, 0);
 
     // Get VIP level info
@@ -47,9 +47,11 @@ router.get('/stats', authenticateToken, async (req, res) => {
       data: {
         commission: user.commission + totalCommission,
         balance: user.balance,
+        freezeBalance: user.freezeBalance,
         totalDailyTasks: numberOfOrders,
         completedToday: completedOrders.length,
-        ordersGrabbed: todayOrders.length,
+        // ordersGrabbed reflects number of completed (delivered) orders today to stay in sync with Completed today
+        ordersGrabbed: completedOrders.length,
         vipLevel: user.vipLevel,
         commissionRate: commissionRate
       }
@@ -208,7 +210,7 @@ router.post('/complete', authenticateToken, async (req, res) => {
       });
     }
 
-    // Create new order with completed status
+    // Create new order with delivered status (align with admin statuses)
     const newOrder = new Order({
       userId: userId,
       productId: productData.productId,
@@ -216,15 +218,17 @@ router.post('/complete', authenticateToken, async (req, res) => {
       productPrice: productData.productPrice,
       commissionRate: productData.commissionRate,
       commissionAmount: productData.commissionAmount,
-      status: 'completed',
+      status: 'delivered',
       completedAt: new Date(),
       orderDate: new Date()
     });
 
     await newOrder.save();
 
-    // Update user balance and commission
-    user.balance += newOrder.commissionAmount;
+    // Update user balances: credit only 80% of commission to spendable balance
+    const creditedCommission = Math.round(newOrder.commissionAmount * 0.8 * 100) / 100;
+    user.balance += creditedCommission;
+    // Track full commission in lifetime/earned commission
     user.commission += newOrder.commissionAmount;
     await user.save();
 
@@ -241,7 +245,7 @@ router.post('/complete', authenticateToken, async (req, res) => {
       }
     });
 
-    const completedOrders = updatedTodayOrders.filter(order => order.status === 'completed');
+    const completedOrders = updatedTodayOrders.filter(order => order.status === 'delivered');
     const totalCommission = completedOrders.reduce((sum, order) => sum + order.commissionAmount, 0);
 
     res.json({
@@ -267,31 +271,48 @@ router.post('/complete', authenticateToken, async (req, res) => {
   }
 });
 
-// GET /api/orders/history - Get order history
+// GET /api/orders/history - Get order history (with status filter and sort)
 router.get('/history', authenticateToken, async (req, res) => {
   try {
     const userId = req.userId;
-    const { page = 1, limit = 10, status } = req.query;
+    const { page = 1, limit = 10, status, sortBy = 'orderDate', sortOrder = 'desc' } = req.query;
 
     const query = { userId: userId };
     if (status) {
       query.status = status;
     }
 
+    // sanitize sort fields to prevent injection
+    const allowedSort = ['orderDate', 'productPrice', 'status'];
+    const sortField = allowedSort.includes(String(sortBy)) ? String(sortBy) : 'orderDate';
+    const sortDir = String(sortOrder).toLowerCase() === 'asc' ? 1 : -1;
+
     const orders = await Order.find(query)
-      .sort({ orderDate: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
+      .sort({ [sortField]: sortDir })
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit));
 
     const total = await Order.countDocuments(query);
+
+    // map to lightweight response for mobile client
+    const items = orders.map(o => ({
+      id: o._id,
+      productName: o.productName,
+      productPrice: o.productPrice,
+      commissionAmount: o.commissionAmount,
+      image: o.image || '',
+      status: o.status,
+      orderDate: o.orderDate,
+      completedAt: o.completedAt || null
+    }));
 
     res.json({
       success: true,
       data: {
-        orders,
+        orders: items,
         pagination: {
-          current: page,
-          pages: Math.ceil(total / limit),
+          current: parseInt(page),
+          pages: Math.ceil(total / parseInt(limit)),
           total
         }
       }

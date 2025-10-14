@@ -104,10 +104,12 @@ router.get('/admin/threads', verifyAdmin, async (req, res) => {
     // attach presence (online) info for each thread user
     try {
       const onlineUsers = req.app.get('onlineUsers');
-      const threadsWithPresence = threads.map((t) => ({
-        ...t.toObject(),
-        userOnline: onlineUsers?.has(String(t.userId?._id)) || false
-      }));
+      const threadsWithPresence = threads.map((t) => {
+        const obj = t.toObject();
+        const online = onlineUsers?.has(String(t.userId?._id)) || false;
+        const lastSeenAt = t.userId?.lastSeenAt || null;
+        return { ...obj, userOnline: online, userLastSeenAt: lastSeenAt };
+      });
       return res.json({ success: true, data: { threads: threadsWithPresence, pagination: { current: parseInt(page), pages: Math.ceil(total / limit), total } } });
     } catch {
       return res.json({ success: true, data: { threads, pagination: { current: parseInt(page), pages: Math.ceil(total / limit), total } } });

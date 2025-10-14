@@ -1,4 +1,5 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:5000';
+const API_BASE_URL = `${API_BASE}/api`;
 
 type RequestOptions = RequestInit & { headers?: Record<string, string> };
 
@@ -109,6 +110,38 @@ export default {
     const headers: Record<string, string> = {};
     if (t) headers.Authorization = `Bearer ${t}`;
     return request('/auth/profile', { headers });
+  },
+
+  // Orders for user
+  userOrderStats(token?: string) {
+    const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
+    const headers: Record<string, string> = {};
+    if (t) headers.Authorization = `Bearer ${t}`;
+    return request('/orders/stats', { headers });
+  },
+  userOrderHistory({ status, page = 1, limit = 20, sortBy = 'orderDate', sortOrder = 'desc' }: { status?: string; page?: number; limit?: number; sortBy?: string; sortOrder?: string } = {}, token?: string) {
+    const params = new URLSearchParams();
+    if (status) params.set('status', status);
+    params.set('page', String(page));
+    params.set('limit', String(limit));
+    params.set('sortBy', sortBy);
+    params.set('sortOrder', sortOrder);
+    const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
+    const headers: Record<string, string> = {};
+    if (t) headers.Authorization = `Bearer ${t}`;
+    return request(`/orders/history?${params.toString()}`, { headers });
+  },
+  userOrderTake(product: { id: number | string; name: string; price: number; brand: string; category: string; image: string }, token?: string) {
+    const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (t) headers.Authorization = `Bearer ${t}`;
+    return request('/orders/take', { method: 'POST', headers, body: JSON.stringify({ product }) });
+  },
+  userOrderComplete(productData: { productId: number | string; productName: string; productPrice: number; commissionAmount: number; commissionRate: number }, token?: string) {
+    const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (t) headers.Authorization = `Bearer ${t}`;
+    return request('/orders/complete', { method: 'POST', headers, body: JSON.stringify({ productData }) });
   },
 
   // ----- VIP (deposit/withdrawal/bank cards) -----
@@ -321,77 +354,8 @@ export default {
     return request('/admin/users/stats', { headers });
   },
 
-  // Admin - Deposits Tab
-  adminListDeposits({ page = 1, limit = 20, q = '', status = 'all', sortBy = 'createdAt', sortOrder = 'desc' }: {
-    page?: number;
-    limit?: number;
-    q?: string;
-    status?: string;
-    sortBy?: string;
-    sortOrder?: string;
-  } = {}) {
-    const params = new URLSearchParams();
-    params.set('page', String(page));
-    params.set('limit', String(limit));
-    if (q) params.set('q', q);
-    if (status !== 'all') params.set('status', status);
-    params.set('sortBy', sortBy);
-    params.set('sortOrder', sortOrder);
-    const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
-    return request(`/admin/deposits?${params.toString()}`, { headers });
-  },
-  adminGetDeposit(id: string) {
-    const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
-    return request(`/admin/deposits/${id}`, { headers });
-  },
-  adminApproveDeposit(id: string) {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json', ...adminTokenHeader() } as Record<string, string>;
-    return request(`/admin/deposits/${id}/approve`, { method: 'PATCH', headers });
-  },
-  adminRejectDeposit(id: string, reason: string) {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json', ...adminTokenHeader() } as Record<string, string>;
-    return request(`/admin/deposits/${id}/reject`, { method: 'PATCH', headers, body: JSON.stringify({ reason }) });
-  },
-  adminGetDepositStats() {
-    const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
-    return request('/admin/deposits/stats', { headers });
-  },
-
-  // Admin - Withdrawals Tab
-  adminListWithdrawals({ page = 1, limit = 20, q = '', status = 'all', sortBy = 'createdAt', sortOrder = 'desc' }: {
-    page?: number;
-    limit?: number;
-    q?: string;
-    status?: string;
-    sortBy?: string;
-    sortOrder?: string;
-  } = {}) {
-    const params = new URLSearchParams();
-    params.set('page', String(page));
-    params.set('limit', String(limit));
-    if (q) params.set('q', q);
-    if (status !== 'all') params.set('status', status);
-    params.set('sortBy', sortBy);
-    params.set('sortOrder', sortOrder);
-    const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
-    return request(`/admin/withdrawals?${params.toString()}`, { headers });
-  },
-  adminGetWithdrawal(id: string) {
-    const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
-    return request(`/admin/withdrawals/${id}`, { headers });
-  },
-  adminApproveWithdrawal(id: string) {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json', ...adminTokenHeader() } as Record<string, string>;
-    return request(`/admin/withdrawals/${id}/approve`, { method: 'PATCH', headers });
-  },
-  adminRejectWithdrawal(id: string, reason: string) {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json', ...adminTokenHeader() } as Record<string, string>;
-    return request(`/admin/withdrawals/${id}/reject`, { method: 'PATCH', headers, body: JSON.stringify({ reason }) });
-  },
-  adminGetWithdrawalStats() {
-    const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
-    return request('/admin/withdrawals/stats', { headers });
-  },
+  // Note: Deposits/Withdrawals admin endpoints are defined earlier as
+  // /admin/deposit-requests and /admin/withdrawal-requests and use POST methods.
 
   // Admin - Orders Tab
   adminListOrders({ page = 1, limit = 20, q = '', status = 'all', sortBy = 'orderDate', sortOrder = 'desc' }: {
