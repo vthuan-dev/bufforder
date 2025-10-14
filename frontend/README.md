@@ -1,7 +1,7 @@
 
-  # Greeting Message
+  # Clone Interface
 
-  This is a code bundle for Greeting Message. The original project is available at https://www.figma.com/design/lb5ZeYzYtGzICq3dZteZXJ/Greeting-Message.
+  This is a code bundle for Clone Interface. The original project is available at https://www.figma.com/design/0fZukVWDT18BHmk7aQiKlr/Clone-Interface.
 
   ## Running the code
 

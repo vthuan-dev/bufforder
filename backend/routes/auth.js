@@ -391,4 +391,28 @@ router.delete('/address/:addressId', async (req, res) => {
   }
 });
 
+// Change password
+router.post('/change-password', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ success: false, message: 'Invalid token' });
+    const decoded = jwt.verify(token, config.JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    if (!user) return res.status(404).json({ success: false, message: 'No user found' });
+
+    const { currentPassword, newPassword } = req.body || {};
+    if (!currentPassword || !newPassword) return res.status(400).json({ success: false, message: 'Missing currentPassword or newPassword' });
+    const ok = await user.comparePassword(currentPassword);
+    if (!ok) return res.status(401).json({ success: false, message: 'Current password is incorrect' });
+    if (String(newPassword).length < 6) return res.status(400).json({ success: false, message: 'New password must be at least 6 characters' });
+
+    user.password = newPassword; // hashed by pre-save hook
+    await user.save();
+    return res.json({ success: true, message: 'Password changed successfully' });
+  } catch (e) {
+    console.error('Change password error:', e);
+    return res.status(500).json({ success: false, message: 'Server error. Please try again later.' });
+  }
+});
+
 module.exports = router;

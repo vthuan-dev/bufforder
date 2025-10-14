@@ -31,8 +31,11 @@ const io = new Server(server, {
     allowedHeaders: ['Content-Type','Authorization']
   }
 });
-// expose io to routes
+// expose io to routes    
 app.set('io', io);
+// Presence store: track online users (by userId) and connection counts
+const onlineUsers = new Map(); // userId -> count
+app.set('onlineUsers', onlineUsers);
 
 // Middleware
 app.use(cors({
@@ -119,6 +122,11 @@ io.on('connection', (socket) => {
   // join personal rooms
   if (socket.data.role === 'user') {
     socket.join(`user:${socket.data.userId}`);
+    // mark user online (increment connection count)
+    const uid = String(socket.data.userId);
+    const current = onlineUsers.get(uid) || 0;
+    onlineUsers.set(uid, current + 1);
+    try { io.to('admins').emit('presence:update', { userId: uid, online: true }); } catch {}
   } else if (socket.data.role === 'admin') {
     socket.join('admins');
   }
@@ -147,6 +155,16 @@ io.on('connection', (socket) => {
         thread = await ChatThread.findById(threadId);
       }
       if (!thread) return;
+      // Attempt to record IP on thread if missing
+      try {
+        if (!thread.userIp) {
+          const rawIp = (socket.handshake.headers['x-forwarded-for'] || socket.handshake.address || '').toString();
+          const ip = rawIp.split(',')[0].trim();
+          if (ip) {
+            thread.userIp = ip;
+          }
+        }
+      } catch {}
 
       const senderType = socket.data.role === 'admin' ? 'admin' : 'user';
       const senderId = socket.data.role === 'admin' ? socket.data.adminId : socket.data.userId;
@@ -179,6 +197,19 @@ io.on('connection', (socket) => {
       console.log('[socket] threadUpdated emitted to admins and user room');
     } catch (e) {
       console.error('socket send error', e);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    if (socket.data.role === 'user' && socket.data.userId) {
+      const uid = String(socket.data.userId);
+      const current = onlineUsers.get(uid) || 0;
+      if (current <= 1) {
+        onlineUsers.delete(uid);
+        try { io.to('admins').emit('presence:update', { userId: uid, online: false }); } catch {}
+      } else {
+        onlineUsers.set(uid, current - 1);
+      }
     }
   });
 });

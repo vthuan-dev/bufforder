@@ -40,7 +40,17 @@ const verifyAdmin = (req, res, next) => {
 router.post('/thread', authenticateToken, async (req, res) => {
   try {
     let thread = await ChatThread.findOne({ userId: req.userId, status: 'open' });
-    if (!thread) thread = await ChatThread.create({ userId: req.userId });
+    if (!thread) {
+      // capture user IP (behind proxies use x-forwarded-for)
+      const rawIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString();
+      const ip = rawIp.split(',')[0].trim();
+      thread = await ChatThread.create({ userId: req.userId, userIp: ip });
+    } else if (!thread.userIp) {
+      const rawIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString();
+      const ip = rawIp.split(',')[0].trim();
+      thread.userIp = ip;
+      await thread.save();
+    }
     res.json({ success: true, data: { threadId: thread._id } });
   } catch (e) {
     console.error('open thread error', e);
@@ -91,7 +101,17 @@ router.get('/admin/threads', verifyAdmin, async (req, res) => {
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit));
     const total = await ChatThread.countDocuments(query);
-    res.json({ success: true, data: { threads, pagination: { current: parseInt(page), pages: Math.ceil(total / limit), total } } });
+    // attach presence (online) info for each thread user
+    try {
+      const onlineUsers = req.app.get('onlineUsers');
+      const threadsWithPresence = threads.map((t) => ({
+        ...t.toObject(),
+        userOnline: onlineUsers?.has(String(t.userId?._id)) || false
+      }));
+      return res.json({ success: true, data: { threads: threadsWithPresence, pagination: { current: parseInt(page), pages: Math.ceil(total / limit), total } } });
+    } catch {
+      return res.json({ success: true, data: { threads, pagination: { current: parseInt(page), pages: Math.ceil(total / limit), total } } });
+    }
   } catch (e) {
     console.error('admin list threads error', e);
     res.status(500).json({ success: false, message: 'Server error' });
@@ -145,6 +165,14 @@ router.post('/admin/threads/:id/images', verifyAdmin, upload.single('image'), as
     thread.lastMessageText = '[image]';
     thread.unreadForUser += 1;
     await thread.save();
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`thread:${thread._id}`).emit('chat:message', { _id: msg._id, threadId: thread._id, senderType: 'admin', imageUrl, text: '', createdAt: msg.createdAt });
+        io.to('admins').emit('chat:threadUpdated', { threadId: thread._id, lastMessageText: '[image]', lastMessageAt: thread.lastMessageAt });
+        io.to(`user:${thread.userId}`).emit('chat:threadUpdated', { threadId: thread._id, lastMessageText: '[image]', lastMessageAt: thread.lastMessageAt });
+      }
+    } catch {}
     res.json({ success: true, data: { message: msg, imageUrl } });
   } catch (e) {
     console.error('admin send image error', e);
@@ -203,6 +231,32 @@ router.get('/admin/users/by-phone/:phone', verifyAdmin, async (req, res) => {
     res.json({ success: true, data: { user } });
   } catch (e) {
     console.error('admin get user by phone error', e);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// User: gửi ảnh
+router.post('/thread/:id/images', authenticateToken, upload.single('image'), async (req, res) => {
+  try {
+    const thread = await ChatThread.findById(req.params.id);
+    if (!thread || String(thread.userId) !== String(req.userId)) return res.status(404).json({ success: false, message: 'Thread not found' });
+    const imageUrl = `/uploads/${req.file.filename}`;
+    const msg = await ChatMessage.create({ threadId: thread._id, senderType: 'user', senderId: req.userId, imageUrl });
+    thread.lastMessageAt = new Date();
+    thread.lastMessageText = '[image]';
+    thread.unreadForAdmin += 1;
+    await thread.save();
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`thread:${thread._id}`).emit('chat:message', { _id: msg._id, threadId: thread._id, senderType: 'user', imageUrl, text: '', createdAt: msg.createdAt });
+        io.to('admins').emit('chat:threadUpdated', { threadId: thread._id, lastMessageText: '[image]', lastMessageAt: thread.lastMessageAt });
+        io.to(`user:${thread.userId}`).emit('chat:threadUpdated', { threadId: thread._id, lastMessageText: '[image]', lastMessageAt: thread.lastMessageAt });
+      }
+    } catch {}
+    res.json({ success: true, data: { message: msg, imageUrl } });
+  } catch (e) {
+    console.error('user send image error', e);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });

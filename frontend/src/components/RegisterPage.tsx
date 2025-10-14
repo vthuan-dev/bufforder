@@ -1,223 +1,245 @@
-import React, { useState } from 'react';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { ArrowLeft, Phone, Lock, User, KeyRound } from 'lucide-react';
+import React, { useState } from "react";
+import { Eye, EyeOff, Phone, Lock, Ticket, ArrowRight } from "lucide-react";
+import { motion } from "motion/react";
+import api from "../services/api";
 
 interface RegisterPageProps {
-  onRegister: (userData: { phoneNumber: string; password: string; fullName: string; inviteCode: string }) => Promise<void>;
+  onRegister: () => void;
   onSwitchToLogin: () => void;
-  onBack: () => void;
 }
 
-export function RegisterPage({ onRegister, onSwitchToLogin, onBack }: RegisterPageProps) {
-  const [formData, setFormData] = useState({
-    fullName: '',
-    phoneNumber: '',
-    inviteCode: '',
-    password: '',
-    confirmPassword: ''
-  });
+export function RegisterPage({ onRegister, onSwitchToLogin }: RegisterPageProps) {
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [error, setError] = useState("");
 
-  const validatePhoneNumber = (phone: string) => {
-    // Vietnamese phone number validation
-    const phoneRegex = /^(0|\+84)[3|5|7|8|9][0-9]{8}$/;
-    return phoneRegex.test(phone);
-  };
+  // Client-side validation to improve UX (backend also validates)
+  const VALID_INVITE_CODES = new Set([
+    '570318',
+    '942615',
+    '803247',
+    '169437',
+    '285074',
+    '637890',
+    '451908',
+    '726349',
+    '394176',
+    '820564',
+  ]);
 
-  // no email validation, we use invite code
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    setError(''); // Clear error when user starts typing
-  };
-
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    // Validation
-    if (!formData.fullName.trim()) {
-      setError('Vui lòng nhập họ và tên');
+  const handleRegister = async () => {
+    if (!fullName.trim()) {
+      setError("Please enter your full name");
       return;
     }
-
-    if (!formData.phoneNumber.trim()) {
-      setError('Vui lòng nhập số điện thoại');
+    if (!agreedToTerms) {
+      setError("Please agree to the Terms and Conditions");
       return;
     }
-
-    if (!validatePhoneNumber(formData.phoneNumber)) {
-      setError('Số điện thoại không hợp lệ');
+    if (!phone || !password || !confirmPassword || !inviteCode) {
+      setError("Please fill in all required fields");
       return;
     }
-
-    if (!formData.inviteCode.trim()) {
-      setError('Vui lòng nhập mã thành viên');
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
       return;
     }
-
-    if (!formData.password.trim()) {
-      setError('Vui lòng nhập mật khẩu');
+    if (!VALID_INVITE_CODES.has(inviteCode.trim())) {
+      setError("Invalid invitation code");
       return;
     }
-
-    if (formData.password.length < 6) {
-      setError('Mật khẩu phải có ít nhất 6 ký tự');
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Mật khẩu xác nhận không khớp');
-      return;
-    }
-
     setIsLoading(true);
-
+    setError("");
     try {
-      await onRegister({
-        phoneNumber: formData.phoneNumber,
-        password: formData.password,
-        fullName: formData.fullName,
-        inviteCode: formData.inviteCode
-      });
-    } catch (err: any) {
-      setError(err.message || 'Đăng ký thất bại. Vui lòng thử lại.');
+      const res = await api.register({ phoneNumber: phone, password, fullName, inviteCode });
+      const token = res?.data?.token;
+      const user = res?.data?.user;
+      if (!token) throw new Error("Registration failed: missing token");
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user || {}));
+      onRegister();
+    } catch (e: any) {
+      setError(e?.message || "Registration failed");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex justify-center">
-      <div className="w-full max-w-sm bg-white min-h-screen shadow-lg relative">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-100">
-          <div className="flex items-center p-4">
-            <Button variant="ghost" size="sm" onClick={onBack} className="mr-4">
-              <ArrowLeft className="w-5 h-5 text-gray-700" />
-            </Button>
-            <h1 className="text-lg font-medium text-gray-900">Register</h1>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-sm">
+        {/* Logo */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-8"
+        >
+          <h1 className="text-3xl text-gray-800 mb-2">
+            <span className="italic">A</span> ashford
+          </h1>
+          <p className="text-gray-500 text-sm">Create Your Account</p>
+        </motion.div>
 
-        {/* Content */}
-        <div className="p-4">
-          {/* Welcome Message */}
-          <div className="text-center mb-8 mt-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Create new account</h2>
-            <p className="text-gray-600">Enter your information to create an account</p>
-          </div>
+        {/* Register Form */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-2xl p-6 shadow-md"
+        >
+          <h2 className="text-lg text-gray-800 mb-5">Register</h2>
 
-          {/* Register Form */}
-          <form onSubmit={handleRegister} className="space-y-6">
-            {/* Full Name Input */}
-            <div className="space-y-2">
-              <Label htmlFor="fullName" className="text-sm font-medium text-gray-700">Full Name</Label>
-              <Input
-                id="fullName"
+          {/* Full Name */}
+          <div className="mb-3">
+            <label className="block text-xs text-gray-600 mb-1.5">Full Name</label>
+            <div className="relative">
+              <input
                 type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
                 placeholder="Enter your full name"
-                value={formData.fullName}
-                onChange={(e) => handleInputChange('fullName', e.target.value)}
-                className="h-12 text-base border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                disabled={isLoading}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
               />
             </div>
+          </div>
 
-            {/* Phone Number Input */}
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="text-sm font-medium text-gray-700">Phone Number</Label>
-              <Input
-                id="phone"
+          {/* Phone Input */}
+          <div className="mb-3">
+            <label className="block text-xs text-gray-600 mb-1.5">Phone Number</label>
+            <div className="relative">
+              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
                 type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
                 placeholder="Enter your phone number"
-                value={formData.phoneNumber}
-                onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                className="h-12 text-base border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                disabled={isLoading}
+                className="w-full pl-10 pr-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
               />
             </div>
+          </div>
 
-            {/* Invite Code Input */}
-            <div className="space-y-2">
-              <Label htmlFor="inviteCode" className="text-sm font-medium text-gray-700">Invite Code</Label>
-              <Input
-                id="inviteCode"
-                type="text"
-                placeholder="Enter your invite code"
-                value={formData.inviteCode}
-                onChange={(e) => handleInputChange('inviteCode', e.target.value)}
-                className="h-12 text-base border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                disabled={isLoading}
+          {/* Password Input */}
+          <div className="mb-3">
+            <label className="block text-xs text-gray-600 mb-1.5">Set Password</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="6-20 characters, include letters and numbers"
+                className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
               />
-            </div>
-
-            {/* Password Input */}
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium text-gray-700">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password (at least 6 characters)"
-                value={formData.password}
-                onChange={(e) => handleInputChange('password', e.target.value)}
-                className="h-12 text-base border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                disabled={isLoading}
-              />
-            </div>
-
-            {/* Confirm Password Input */}
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="Enter your password again"
-                value={formData.confirmPassword}
-                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                className="h-12 text-base border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                disabled={isLoading}
-              />
-            </div>
-
-            {/* Error Message */}
-            {error && (
-              <div className="text-red-600 text-sm text-center bg-red-50 p-4 rounded-lg border border-red-200">
-                {error}
-              </div>
-            )}
-
-            {/* Register Button */}
-            <Button 
-              type="submit" 
-              className="w-full h-12 bg-gray-900 text-white text-base font-medium rounded-lg hover:bg-gray-800 transition-colors" 
-              disabled={isLoading}
-            >
-              {isLoading ? 'Creating account...' : 'Register'}
-            </Button>
-          </form>
-
-          {/* Switch to Login */}
-          <div className="mt-8 text-center">
-            <p className="text-gray-600 text-sm">
-              Already have an account?{' '}
               <button
                 type="button"
-                onClick={onSwitchToLogin}
-                className="text-blue-600 hover:text-blue-800 font-medium underline"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
-                Login now
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
+            </div>
+          </div>
+
+          {/* Confirm Password Input */}
+          <div className="mb-3">
+            <label className="block text-xs text-gray-600 mb-1.5">Confirm Password</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter your password"
+                className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Invite Code Input (Required) */}
+          <div className="mb-4">
+            <label className="block text-xs text-gray-600 mb-1.5">
+              Invitation Code <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                placeholder="Enter invitation code (required)"
+                className="w-full pl-10 pr-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Registration requires a valid invitation code
             </p>
           </div>
-        </div>
+
+          {/* Terms Checkbox */}
+          <div className="mb-5">
+            <label className="flex items-start gap-2 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                className="w-4 h-4 mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              />
+              <span className="text-xs text-gray-600 flex-1">
+                I agree to the{" "}
+                <button className="text-blue-600 hover:text-blue-700 underline">
+                  Terms and Conditions
+                </button>
+              </span>
+            </label>
+          </div>
+
+          {/* Register Button */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleRegister}
+            disabled={isLoading}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl shadow-md transition-all disabled:opacity-70 flex items-center justify-center gap-2 mb-4"
+          >
+            {isLoading ? (
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+              />
+            ) : (
+              <>
+                <span>Register Now</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </motion.button>
+          {error && <div className="text-xs text-red-600 text-center mt-2">{error}</div>}
+
+          {/* Login Link */}
+          <div className="text-center">
+            <span className="text-gray-600 text-xs">Already have an account? </span>
+            <button
+              onClick={onSwitchToLogin}
+              className="text-xs text-blue-600 hover:text-blue-700"
+            >
+              Login
+            </button>
+          </div>
+        </motion.div>
       </div>
     </div>
   );

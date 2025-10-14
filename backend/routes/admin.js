@@ -114,6 +114,8 @@ router.get('/profile', verifyAdminToken, async (req, res) => {
         id: admin._id,
         username: admin.username,
         email: admin.email,
+        fullName: admin.fullName || '',
+        phoneNumber: admin.phoneNumber || '',
         fullName: admin.fullName,
         isActive: admin.isActive
       }
@@ -124,6 +126,45 @@ router.get('/profile', verifyAdminToken, async (req, res) => {
       success: false,
       message: 'Server error. Please try again later.'
     });
+  }
+});
+
+// Update admin profile
+router.patch('/profile', verifyAdminToken, async (req, res) => {
+  try {
+    const { fullName, email, phoneNumber } = req.body;
+
+    const admin = await Admin.findById(req.adminId);
+    if (!admin) {
+      return res.status(404).json({ success: false, message: 'Admin not found' });
+    }
+
+    if (typeof fullName === 'string') admin.fullName = fullName.trim();
+    if (typeof email === 'string') admin.email = email.trim().toLowerCase();
+    if (typeof phoneNumber === 'string') admin.phoneNumber = phoneNumber.trim();
+
+    await admin.save();
+
+    const sanitized = await Admin.findById(admin._id).select('-password');
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: {
+        id: sanitized._id,
+        username: sanitized.username,
+        email: sanitized.email,
+        fullName: sanitized.fullName || '',
+        phoneNumber: sanitized.phoneNumber || '',
+        isActive: sanitized.isActive
+      }
+    });
+  } catch (error) {
+    console.error('Update admin profile error:', error);
+    if (error.code === 11000 && error.keyPattern && error.keyPattern.email) {
+      return res.status(400).json({ success: false, message: 'Email already in use' });
+    }
+    res.status(500).json({ success: false, message: 'Server error. Please try again later.' });
   }
 });
 
@@ -453,30 +494,59 @@ router.post('/withdrawal-requests/:id/reject', verifyAdminToken, async (req, res
   }
 });
 
-// Get admin dashboard stats
-router.get('/dashboard', verifyAdminToken, async (req, res) => {
+// Get comprehensive dashboard statistics
+router.get('/dashboard/stats', verifyAdminToken, async (req, res) => {
   try {
     const today = new Date();
     const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-
-    // Get pending deposit requests count
-    const pendingRequests = await DepositRequest.countDocuments({ status: 'pending' });
     
-    // Get today's approved requests
-    const todayApproved = await DepositRequest.countDocuments({
-      status: 'approved',
-      approvedAt: { $gte: startOfDay, $lt: endOfDay }
-    });
+    // Previous period for trend calculation
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const startOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+    const endOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate() + 1);
 
     // Get total users
     const totalUsers = await User.countDocuments();
+    
+    // Get total users yesterday for trend
+    const totalUsersYesterday = await User.countDocuments({
+      createdAt: { $lt: startOfDay }
+    });
+    const totalUsersTrend = totalUsersYesterday > 0 ? 
+      ((totalUsers - totalUsersYesterday) / totalUsersYesterday * 100).toFixed(1) : 0;
 
     // Get active users (users who have made deposits)
     const activeUsers = await User.countDocuments({ totalDeposited: { $gt: 0 } });
+    
+    // Get active users yesterday for trend
+    const activeUsersYesterday = await User.countDocuments({
+      totalDeposited: { $gt: 0 },
+      createdAt: { $lt: startOfDay }
+    });
+    const activeUsersTrend = activeUsersYesterday > 0 ? 
+      ((activeUsers - activeUsersYesterday) / activeUsersYesterday * 100).toFixed(1) : 0;
+
+    // Get pending deposit requests count
+    const pendingDeposits = await DepositRequest.countDocuments({ status: 'pending' });
+    
+    // Get today's deposit requests count
+    const todayDeposits = await DepositRequest.countDocuments({
+      status: 'approved',
+      approvedAt: { $gte: startOfDay, $lt: endOfDay }
+    });
+    
+    // Get yesterday's deposit requests for trend
+    const yesterdayDeposits = await DepositRequest.countDocuments({
+      status: 'approved',
+      approvedAt: { $gte: startOfYesterday, $lt: endOfYesterday }
+    });
+    const todayDepositsTrend = yesterdayDeposits > 0 ? 
+      ((todayDeposits - yesterdayDeposits) / yesterdayDeposits * 100).toFixed(1) : 0;
 
     // Get total deposit amount today
-    const todayDeposits = await DepositRequest.aggregate([
+    const todayDepositAmount = await DepositRequest.aggregate([
       {
         $match: {
           status: 'approved',
@@ -491,9 +561,30 @@ router.get('/dashboard', verifyAdminToken, async (req, res) => {
       }
     ]);
 
+    // Get yesterday's deposit amount for trend
+    const yesterdayDepositAmount = await DepositRequest.aggregate([
+      {
+        $match: {
+          status: 'approved',
+          approvedAt: { $gte: startOfYesterday, $lt: endOfYesterday }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalAmount: { $sum: '$amount' }
+        }
+      }
+    ]);
+    
+    const todayAmount = todayDepositAmount[0]?.totalAmount || 0;
+    const yesterdayAmount = yesterdayDepositAmount[0]?.totalAmount || 0;
+    const todayAmountTrend = yesterdayAmount > 0 ? 
+      ((todayAmount - yesterdayAmount) / yesterdayAmount * 100).toFixed(1) : 0;
+
     // Get total commission paid today
     const Order = require('../models/Order');
-    const todayOrders = await Order.aggregate([
+    const todayCommission = await Order.aggregate([
       {
         $match: {
           status: 'completed',
@@ -508,33 +599,161 @@ router.get('/dashboard', verifyAdminToken, async (req, res) => {
       }
     ]);
 
-    // Get VIP level distribution
-    const vipDistribution = await User.aggregate([
+    // Get yesterday's commission for trend
+    const yesterdayCommission = await Order.aggregate([
       {
-        $group: {
-          _id: '$vipLevel',
-          count: { $sum: 1 }
+        $match: {
+          status: 'completed',
+          orderDate: { $gte: startOfYesterday, $lt: endOfYesterday }
         }
       },
       {
-        $sort: { _id: 1 }
+        $group: {
+          _id: null,
+          totalCommission: { $sum: '$commissionAmount' }
+        }
       }
     ]);
+    
+    const todayCommissionAmount = todayCommission[0]?.totalCommission || 0;
+    const yesterdayCommissionAmount = yesterdayCommission[0]?.totalCommission || 0;
+    const todayCommissionTrend = yesterdayCommissionAmount > 0 ? 
+      ((todayCommissionAmount - yesterdayCommissionAmount) / yesterdayCommissionAmount * 100).toFixed(1) : 0;
 
     res.json({
       success: true,
       data: {
-        pendingRequests,
-        todayApproved,
         totalUsers,
+        totalUsersTrend: parseFloat(totalUsersTrend),
         activeUsers,
-        todayDepositAmount: todayDeposits[0]?.totalAmount || 0,
-        todayCommissionPaid: todayOrders[0]?.totalCommission || 0,
-        vipDistribution
+        activeUsersTrend: parseFloat(activeUsersTrend),
+        pendingDeposits,
+        todayDeposits,
+        todayDepositsTrend: parseFloat(todayDepositsTrend),
+        todayAmount,
+        todayAmountTrend: parseFloat(todayAmountTrend),
+        todayCommission: todayCommissionAmount,
+        todayCommissionTrend: parseFloat(todayCommissionTrend)
       }
     });
   } catch (error) {
     console.error('Get dashboard stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error. Please try again later.'
+    });
+  }
+});
+
+// Get weekly revenue data for chart
+router.get('/dashboard/weekly-revenue', verifyAdminToken, async (req, res) => {
+  try {
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay()); // Start of current week (Sunday)
+    
+    const revenueData = [];
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    
+    for (let i = 0; i < 7; i++) {
+      const dayStart = new Date(startOfWeek);
+      dayStart.setDate(startOfWeek.getDate() + i);
+      dayStart.setHours(0, 0, 0, 0);
+      
+      const dayEnd = new Date(dayStart);
+      dayEnd.setDate(dayStart.getDate() + 1);
+      
+      const dayRevenue = await DepositRequest.aggregate([
+        {
+          $match: {
+            status: 'approved',
+            approvedAt: { $gte: dayStart, $lt: dayEnd }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalAmount: { $sum: '$amount' }
+          }
+        }
+      ]);
+      
+      revenueData.push({
+        name: days[i],
+        value: dayRevenue[0]?.totalAmount || 0
+      });
+    }
+
+    res.json({
+      success: true,
+      data: revenueData
+    });
+  } catch (error) {
+    console.error('Get weekly revenue error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error. Please try again later.'
+    });
+  }
+});
+
+// Get user growth data for chart (last 6 months)
+router.get('/dashboard/user-growth', verifyAdminToken, async (req, res) => {
+  try {
+    const today = new Date();
+    const userGrowthData = [];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    for (let i = 5; i >= 0; i--) {
+      const monthStart = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const monthEnd = new Date(today.getFullYear(), today.getMonth() - i + 1, 1);
+      
+      const newUsers = await User.countDocuments({
+        createdAt: { $gte: monthStart, $lt: monthEnd }
+      });
+      
+      userGrowthData.push({
+        name: months[monthStart.getMonth()],
+        users: newUsers
+      });
+    }
+
+    res.json({
+      success: true,
+      data: userGrowthData
+    });
+  } catch (error) {
+    console.error('Get user growth error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error. Please try again later.'
+    });
+  }
+});
+
+// Get recent users for dashboard table
+router.get('/dashboard/recent-users', verifyAdminToken, async (req, res) => {
+  try {
+    const recentUsers = await User.find()
+      .select('fullName email vipLevel isActive createdAt')
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    const formattedUsers = recentUsers.map(user => ({
+      id: user._id,
+      name: user.fullName,
+      email: user.email,
+      vip: user.vipLevel.replace('vip-', 'VIP ').replace('royal-vip', 'Royal VIP').replace('svip', 'SVIP'),
+      status: user.isActive ? 'Active' : 'Inactive',
+      joinDate: user.createdAt.toISOString().split('T')[0]
+    }));
+
+    res.json({
+      success: true,
+      data: formattedUsers
+    });
+  } catch (error) {
+    console.error('Get recent users error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error. Please try again later.'
@@ -603,31 +822,264 @@ router.get('/users', verifyAdminToken, async (req, res) => {
 // Orders Management
 // =====================
 
-// Admin: update order status (pending -> completed/cancelled)
+// Admin: Get all orders with pagination, search, and filtering
+router.get('/orders', verifyAdminToken, async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 20,
+      q = '',
+      status = 'all',
+      sortBy = 'orderDate',
+      sortOrder = 'desc'
+    } = req.query;
+
+    // Build query
+    const query = {};
+    
+    // Search by order ID, user name, email, or product name
+    if (q) {
+      const searchRegex = new RegExp(q, 'i');
+      query.$or = [
+        { productName: searchRegex },
+        { brand: searchRegex }
+      ];
+    }
+
+    // Filter by status
+    if (status !== 'all') {
+      query.status = status;
+    }
+
+    // Build sort object
+    const sort = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
+
+    // Get orders with user information
+    const orders = await Order.find(query)
+      .populate('userId', 'fullName email phoneNumber')
+      .sort(sort)
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit));
+
+    const total = await Order.countDocuments(query);
+
+    // Format orders for frontend
+    const formattedOrders = orders.map(order => ({
+      id: order._id,
+      orderId: `ORD-${order.orderDate.toISOString().split('T')[0].replace(/-/g, '')}-${order._id.toString().slice(-3).toUpperCase()}`,
+      user: {
+        name: order.userId?.fullName || 'Unknown User',
+        email: order.userId?.email || 'No email',
+        phoneNumber: order.userId?.phoneNumber || 'No phone'
+      },
+      product: {
+        name: order.productName,
+        image: order.image || '',
+        brand: order.brand || '',
+        category: order.category || ''
+      },
+      amount: order.productPrice,
+      commission: order.commissionAmount,
+      status: order.status.charAt(0).toUpperCase() + order.status.slice(1),
+      orderDate: order.orderDate.toISOString().replace('T', ' ').slice(0, 16),
+      deliveryDate: order.completedAt ? order.completedAt.toISOString().replace('T', ' ').slice(0, 16) : null,
+      commissionRate: order.commissionRate,
+      productId: order.productId
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        orders: formattedOrders,
+        pagination: {
+          current: parseInt(page),
+          pages: Math.ceil(total / parseInt(limit)),
+          total
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get orders error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Admin: Get single order details
+router.get('/orders/:id', verifyAdminToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Guard: if param is not a valid ObjectId, return 400
+    if (!id || !id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ success: false, message: 'Invalid order id' });
+    }
+
+    const order = await Order.findById(id)
+      .populate('userId', 'fullName email phoneNumber balance totalDeposited vipLevel');
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    const formattedOrder = {
+      id: order._id,
+      orderId: `ORD-${order.orderDate.toISOString().split('T')[0].replace(/-/g, '')}-${order._id.toString().slice(-3).toUpperCase()}`,
+      user: {
+        name: order.userId?.fullName || 'Unknown User',
+        email: order.userId?.email || 'No email',
+        phoneNumber: order.userId?.phoneNumber || 'No phone',
+        balance: order.userId?.balance || 0,
+        totalDeposited: order.userId?.totalDeposited || 0,
+        vipLevel: order.userId?.vipLevel || 'vip-0'
+      },
+      product: {
+        name: order.productName,
+        image: order.image || '',
+        brand: order.brand || '',
+        category: order.category || '',
+        id: order.productId
+      },
+      amount: order.productPrice,
+      commission: order.commissionAmount,
+      commissionRate: order.commissionRate,
+      status: order.status.charAt(0).toUpperCase() + order.status.slice(1),
+      orderDate: order.orderDate.toISOString().replace('T', ' ').slice(0, 16),
+      deliveryDate: order.completedAt ? order.completedAt.toISOString().replace('T', ' ').slice(0, 16) : null,
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt
+    };
+
+    res.json({ success: true, data: { order: formattedOrder } });
+  } catch (error) {
+    console.error('Get order details error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Admin: Update order status (pending -> processing -> shipped -> delivered/cancelled)
 router.patch('/orders/:id/status', verifyAdminToken, async (req, res) => {
   try {
     const { status } = req.body || {};
-    if (!['pending','completed','cancelled'].includes(status)) {
-      return res.status(400).json({ success: false, message: 'Invalid status' });
+    const { id } = req.params;
+    if (!id || !id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ success: false, message: 'Invalid order id' });
     }
-    const order = await Order.findById(req.params.id);
-    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+    const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+    
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid status. Must be one of: ' + validStatuses.join(', ') 
+      });
+    }
 
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    const oldStatus = order.status;
     order.status = status;
-    if (status === 'completed') {
+
+    // Handle status-specific logic
+    if (status === 'delivered' && !order.completedAt) {
       order.completedAt = new Date();
-      // credit user commission when completed
-      const user = await require('../models/User').findById(order.userId);
+      // Credit user commission when order is delivered
+      const user = await User.findById(order.userId);
       if (user) {
         user.balance += order.commissionAmount;
         user.commission += order.commissionAmount;
         await user.save();
       }
     }
+
     await order.save();
-    res.json({ success: true, data: { order } });
-  } catch (e) {
-    console.error('Admin update order status error:', e);
+
+    res.json({ 
+      success: true, 
+      message: `Order status updated from ${oldStatus} to ${status}`,
+      data: { 
+        order: {
+          id: order._id,
+          status: order.status,
+          completedAt: order.completedAt
+        }
+      } 
+    });
+  } catch (error) {
+    console.error('Admin update order status error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Admin: Get order statistics
+router.get('/orders/stats', verifyAdminToken, async (req, res) => {
+  try {
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+
+    // Get today's orders
+    const todayOrders = await Order.find({
+      orderDate: { $gte: startOfDay, $lt: endOfDay }
+    });
+
+    // Get total orders
+    const totalOrders = await Order.countDocuments();
+
+    // Get orders by status
+    const ordersByStatus = await Order.aggregate([
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Get total revenue and commission
+    const revenueStats = await Order.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: '$productPrice' },
+          totalCommission: { $sum: '$commissionAmount' }
+        }
+      }
+    ]);
+
+    // Get today's revenue and commission
+    const todayRevenueStats = await Order.aggregate([
+      {
+        $match: {
+          orderDate: { $gte: startOfDay, $lt: endOfDay }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          todayRevenue: { $sum: '$productPrice' },
+          todayCommission: { $sum: '$commissionAmount' }
+        }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        totalOrders,
+        todayOrders: todayOrders.length,
+        ordersByStatus: ordersByStatus.reduce((acc, item) => {
+          acc[item._id] = item.count;
+          return acc;
+        }, {}),
+        totalRevenue: revenueStats[0]?.totalRevenue || 0,
+        totalCommission: revenueStats[0]?.totalCommission || 0,
+        todayRevenue: todayRevenueStats[0]?.todayRevenue || 0,
+        todayCommission: todayRevenueStats[0]?.todayCommission || 0
+      }
+    });
+  } catch (error) {
+    console.error('Get order stats error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });

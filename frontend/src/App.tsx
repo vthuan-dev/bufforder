@@ -1,158 +1,99 @@
-import React, { useState } from 'react';
-import { Toaster } from 'react-hot-toast';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { LoginPage } from './components/LoginPage';
-import { RegisterPage } from './components/RegisterPage';
-import { Header } from './components/Header';
+import { useEffect, useState } from 'react';
+import { BottomNav } from './components/BottomNav';
 import { HomePage } from './components/HomePage';
 import { OrdersPage } from './components/OrdersPage';
 import { RecordPage } from './components/RecordPage';
-import { MyPage } from './components/MyPage';
 import { HelpPage } from './components/HelpPage';
-import { BottomNavigation } from './components/BottomNavigation';
-import { AdminApp } from './components/AdminApp';
-import './styles/global1.css';
+import { MyPage } from './components/MyPage';
+import { LoginPage } from './components/LoginPage';
+import { RegisterPage } from './components/RegisterPage';
+import { AdminApp } from './components/admin/AdminApp';
+import { Toaster } from './components/ui/sonner';
 
-function AppContent() {
-  const { user, isAuthenticated, isLoading, login, register } = useAuth();
+export default function App() {
   const [activeTab, setActiveTab] = useState('home');
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authView, setAuthView] = useState<'login' | 'register'>('login');
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const bannerImage = 'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=800&q=80';
 
-  // Check if we're on admin route
-  const isAdminRoute = window.location.pathname.startsWith('/admin');
+  // Admin mode: auto-enable when visiting /admin
+  useEffect(() => {
+    if (window.location.pathname.startsWith('/admin')) {
+      setIsAdminMode(true);
+    }
+  }, []);
 
-  // Show admin app if on admin route
-  if (isAdminRoute) {
-    return <AdminApp />;
-  }
+  const handleLogin = () => {
+    setIsAuthenticated(true);
+  };
 
-  // Show loading spinner while checking authentication
-  if (isLoading) {
+  const handleRegister = () => {
+    setIsAuthenticated(true);
+  };
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'home':
+        return <HomePage bannerImage={bannerImage} />;
+      case 'orders':
+        return <OrdersPage />;
+      case 'record':
+        return <RecordPage />;
+      case 'help':
+        return <HelpPage />;
+      case 'my':
+        return <MyPage />;
+      default:
+        return <HomePage bannerImage={bannerImage} />;
+    }
+  };
+
+  // Admin Mode
+  if (isAdminMode) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Đang tải...</p>
-        </div>
-      </div>
+      <>
+        <AdminApp />
+        <Toaster position="top-right" />
+      </>
     );
   }
 
-  // Show authentication pages if not logged in and not on home page
-  if (!isAuthenticated && activeTab !== 'home') {
-    if (authMode === 'login') {
+  // Show auth screens if not authenticated
+  if (!isAuthenticated) {
+    if (authView === 'login') {
       return (
         <LoginPage
-          onLogin={async (phoneNumber, password) => {
-            try {
-              await login(phoneNumber, password);
-            } catch (error) {
-              // Error handling is done in LoginPage component
-            }
-          }}
-          onSwitchToRegister={() => setAuthMode('register')}
-          onBack={() => {
-            // Go back to HomePage
-            setActiveTab('home');
-          }}
+          onLogin={handleLogin}
+          onSwitchToRegister={() => setAuthView('register')}
+          onSwitchToAdmin={() => setIsAdminMode(true)}
         />
       );
     } else {
       return (
         <RegisterPage
-          onRegister={async (userData) => {
-            try {
-              await register(userData);
-            } catch (error) {
-              // Error handling is done in RegisterPage component
-            }
-          }}
-          onSwitchToLogin={() => setAuthMode('login')}
-          onBack={() => {
-            // Go back to HomePage
-            setActiveTab('home');
-          }}
+          onRegister={handleRegister}
+          onSwitchToLogin={() => setAuthView('login')}
         />
       );
     }
   }
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'home':
-        return <HomePage onNavigateToMy={() => setActiveTab('my')} />;
-      case 'orders':
-        if (!isAuthenticated) {
-          setAuthMode('login');
-          return null; // Will be handled by the auth check above
-        }
-        return <OrdersPage />;
-      case 'record':
-        if (!isAuthenticated) {
-          setAuthMode('login');
-          return null; // Will be handled by the auth check above
-        }
-        return <RecordPage />;
-      case 'help':
-        return <HelpPage />;
-      case 'my':
-        if (!isAuthenticated) {
-          setAuthMode('login');
-          return null; // Will be handled by the auth check above
-        }
-        return <MyPage />;
-      default:
-        return <HomePage onNavigateToMy={() => setActiveTab('my')} />;
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50 flex justify-center">
-      <div className="w-full max-w-sm bg-white min-h-screen shadow-lg relative">
-        <Header />
-        <main className="pb-16">
-          {renderContent()}
-        </main>
-        <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-md mx-auto bg-white min-h-screen shadow-2xl relative">
+        {renderContent()}
+        <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+        
+        {/* Admin Mode Toggle - Hidden button for demo */}
+        <button
+          onClick={() => setIsAdminMode(true)}
+          className="fixed bottom-24 right-4 w-12 h-12 bg-gray-900 text-white rounded-full shadow-lg hover:bg-gray-800 text-xs opacity-20 hover:opacity-100 transition-opacity z-50"
+          title="Switch to Admin Mode"
+        >
+          Admin
+        </button>
       </div>
     </div>
-  );
-}
-
-export default function App() {
-  return (
-    <AuthProvider>
-      <AppContent />
-      <Toaster
-        position="top-center"
-        toastOptions={{
-          duration: 4000,
-          style: {
-            background: '#363636',
-            color: '#fff',
-            borderRadius: '8px',
-            fontSize: '14px',
-          },
-          success: {
-            style: {
-              background: '#10B981',
-            },
-            iconTheme: {
-              primary: '#fff',
-              secondary: '#10B981',
-            },
-          },
-          error: {
-            style: {
-              background: '#EF4444',
-            },
-            iconTheme: {
-              primary: '#fff',
-              secondary: '#EF4444',
-            },
-          },
-        }}
-      />
-    </AuthProvider>
   );
 }

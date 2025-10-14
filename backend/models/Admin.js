@@ -8,12 +8,22 @@ const adminSchema = new mongoose.Schema({
     unique: true,
     trim: true
   },
+  fullName: {
+    type: String,
+    default: '',
+    trim: true
+  },
   email: {
     type: String,
     required: true,
     unique: true,
     trim: true,
     lowercase: true
+  },
+  phoneNumber: {
+    type: String,
+    default: '',
+    trim: true
   },
   password: {
     type: String,

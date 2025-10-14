@@ -1,211 +1,319 @@
-import React, { useEffect, useState } from 'react';
-import { getUserSocket } from '../lib/socket';
-import api from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, MessageCircle, Send, User } from 'lucide-react';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
+import React, { useState, useRef, useEffect } from "react";
+import { Send, Smile, Paperclip, MoreVertical, Phone, Video, ArrowLeft } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import api from "../services/api";
+import { io, Socket } from "socket.io-client";
+const API_BASE = 'http://localhost:5000';
+
+interface Message {
+  id: string;
+  text: string;
+  imageUrl?: string;
+  isUser: boolean;
+  timestamp: string;
+}
 
 export function HelpPage() {
-  const { user } = useAuth();
-  const [currentScreen, setCurrentScreen] = useState('main');
-  const [chatMessages, setChatMessages] = useState([
-    { id: 1, type: 'agent', message: 'Hello! Welcome to Ashford Customer Service. How can I help you today?', timestamp: '10:30 AM' }
-  ]);
-  const [currentMessage, setCurrentMessage] = useState('');
-  const [socketReady, setSocketReady] = useState(false);
-  const storageKey = user?._id ? `userThreadId:${user._id}` : 'userThreadId';
-  const [threadId, setThreadId] = useState(localStorage.getItem(storageKey) as string | null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [showQuickReplies, setShowQuickReplies] = useState(true);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const threadIdRef = useRef<string | null>(null);
+  const socketRef = useRef<Socket | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  useEffect(() => {
-    const socket = getUserSocket();
-    socket.on('connect', () => setSocketReady(true));
-    return () => {
-      // no-op
-    };
-  }, []);
+  const quickReplies = [
+    "📦 Track my order",
+    "💳 Payment issue",
+    "🔄 Return request",
+    "📞 Talk to agent"
+  ];
 
-  // Lắng nghe realtime theo threadId (giống cơ chế bên admin)
-  useEffect(() => {
-    if (!threadId) return;
-    const s = getUserSocket();
-    s.emit('chat:joinThread', threadId);
-    const onConnect = () => {
-      s.emit('chat:joinThread', threadId);
-    };
-    s.on('connect', onConnect);
-    const onMsg = (msg: any) => {
-      if (msg.threadId !== threadId) return;
-      if (msg.senderType !== 'admin') return; // chỉ hiển thị tin từ admin
-      setChatMessages(prev => [...prev, {
-        id: String(msg._id),
-        type: 'agent',
-        message: msg.text,
-        timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }]);
-    };
-    s.on('chat:message', onMsg);
-    return () => { s.off('chat:message', onMsg); s.off('connect', onConnect); };
-  }, [threadId]);
-
-  // Open/get thread and load history when entering chat screen
-  useEffect(() => {
-    if (currentScreen !== 'chat') return;
-    (async () => {
-      try {
-        let id = threadId;
-        if (!id) {
-          const opened = await api.userOpenThread();
-          id = opened.data?.threadId;
-          if (id) {
-            setThreadId(id);
-            localStorage.setItem(storageKey, id);
-            // join socket room for history updates
-            const s = getUserSocket();
-            s.emit('chat:joinThread', id);
-          }
-        }
-        if (id) {
-          const hist = await api.userThreadMessages(id);
-          const mapped = (hist.data?.messages || []).map((m: any) => ({
-            id: String(m._id),
-            type: m.senderType === 'admin' ? 'agent' : 'user',
-            message: m.text,
-            timestamp: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          }));
-          // Merge lịch sử với tin hiện có để tránh ghi đè tin realtime vừa tới
-          setChatMessages(prev => {
-            const existing = new Set(prev.map((x: any) => String(x.id)));
-            const merged = [...prev, ...mapped.filter((m: any) => !existing.has(String(m.id)))];
-            return merged.length ? merged : mapped;
-          });
-        }
-      } catch (e) {
-        // ignore load errors for now
-      }
-    })();
-  }, [currentScreen]);
-
-  const handleSendMessage = async () => {
-    if (!currentMessage.trim()) return;
-    // Hiển thị ngay tin của user để realtime tại giao diện người gửi
-    setChatMessages(prev => [
-      ...prev,
-      {
-        id: Date.now(),
-        type: 'user',
-        message: currentMessage,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }
-    ]);
-    try {
-      let id = threadId;
-      if (!id) {
-        const opened = await api.userOpenThread();
-        id = opened.data?.threadId;
-        if (id) {
-          setThreadId(id);
-          localStorage.setItem(storageKey, id);
-          const s = getUserSocket();
-          s.emit('chat:joinThread', id);
-        }
-      }
-      if (id) {
-        const socket = getUserSocket();
-        if (socket.connected) {
-          socket.emit('chat:send', { threadId: id, text: currentMessage });
-        } else {
-          await api.userSendMessage(id, currentMessage);
-        }
-      }
-    } catch {}
-    setCurrentMessage('');
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Main Screen
-  if (currentScreen === 'main') {
-    return (
-      <div className="bg-gray-50 min-h-screen">
-        <div className="bg-white border-b border-gray-100">
-          <div className="flex items-center p-4">
-            <ArrowLeft className="w-5 h-5 text-gray-700 mr-4" />
-            <h1 className="text-lg font-medium text-gray-900">Customer Service</h1>
-          </div>
-        </div>
-        
-        <div className="p-4 space-y-6">
-          <div className="bg-white rounded-xl p-6">
-            <p className="text-gray-800 text-center">
-              If you have any questions or need help, please contact online customer service.
-            </p>
-          </div>
-          
-          <Button 
-            onClick={() => setCurrentScreen('chat')}
-            className="w-full bg-gray-900 text-white py-4 rounded-xl flex items-center justify-center gap-2"
-          >
-            <MessageCircle className="w-5 h-5" />
-            Contact Customer Service
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isTyping]);
 
-  // Chat Screen - Fixed layout to prevent jumping
+  // Init: open thread, load messages, connect socket
+  useEffect(() => {
+    (async () => {
+      try {
+        const open = await api.chatOpenThread();
+        const threadId = open?.data?.threadId;
+        if (!threadId) return;
+        threadIdRef.current = threadId;
+        const list = await api.chatListMessages(threadId);
+        const arr: Message[] = (list?.data?.messages || []).map((m: any) => ({ id: m._id, text: m.text || '', imageUrl: m.imageUrl ? (m.imageUrl.startsWith('/') ? `${API_BASE}${m.imageUrl}` : m.imageUrl) : undefined, isUser: m.senderType === 'user', timestamp: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }));
+        setMessages(arr);
+
+        const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
+        if (!token) return;
+        const s = io(API_BASE, { auth: { token } });
+        socketRef.current = s;
+        s.emit('chat:joinThread', threadId);
+        s.on('chat:message', (msg: any) => {
+          if (msg.threadId !== threadIdRef.current) return;
+          const img = msg.imageUrl ? (String(msg.imageUrl).startsWith('/') ? `${API_BASE}${msg.imageUrl}` : msg.imageUrl) : undefined;
+          setMessages(prev => [...prev, { id: msg._id, text: msg.text || '', imageUrl: img, isUser: msg.senderType === 'user', timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+        });
+      } catch {}
+    })();
+    return () => { socketRef.current?.disconnect(); };
+  }, []);
+
+  const handleSendMessage = (text?: string) => {
+    const messageText = text || inputMessage;
+    if (!messageText.trim()) return;
+    setInputMessage('');
+    setShowQuickReplies(false);
+    // emit via socket + REST fallback (UI will update from socket 'chat:message')
+    const threadId = threadIdRef.current!;
+    // Only socket emit to avoid duplicates (server will broadcast back)
+    socketRef.current?.emit('chat:send', { threadId, text: messageText });
+  };
+
+  const handleQuickReply = (reply: string) => {
+    handleSendMessage(reply);
+  };
+
+  const handlePickImage = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const threadId = threadIdRef.current!;
+      await api.chatSendImage(threadId, file);
+      // message will appear via socket 'chat:message'
+    } catch (err: any) {
+      alert(err?.message || 'Upload failed');
+    } finally {
+      e.target.value = '';
+    }
+  };
+
   return (
-    <div className="bg-gray-50 flex flex-col" style={{ height: '80vh' }}>
-      {/* Fixed Header */}
-      <div className="bg-white border-b border-gray-100 flex-shrink-0">
-        <div className="flex items-center p-4">
-          <ArrowLeft className="w-5 h-5 text-gray-700 mr-4" onClick={() => setCurrentScreen('main')} />
-          <div className="flex items-center">
-            <div className="w-8 h-8 bg-gray-900 rounded-full flex items-center justify-center mr-3">
-              <User className="w-4 h-4 text-white" />
+    <div className="pb-20 h-screen flex flex-col bg-gradient-to-b from-purple-50 via-blue-50 to-pink-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 px-4 py-3 shadow-sm">
+        <div className="flex items-center gap-3">
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-700" />
+          </motion.button>
+
+          <div className="relative">
+            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+              <span className="text-blue-600">A</span>
             </div>
-            <div>
-              <h1 className="text-lg font-medium text-gray-900">Live Support</h1>
-              <p className="text-xs text-green-600">● Online</p>
+            {/* Online indicator */}
+            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+          </div>
+
+          <div className="flex-1">
+            <h2 className="text-gray-900">Ashford Support</h2>
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+              <span>Online • Reply in ~1 min</span>
             </div>
+          </div>
+
+          <div className="flex gap-1">
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <Phone className="w-5 h-5 text-gray-600" />
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <Video className="w-5 h-5 text-gray-600" />
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <MoreVertical className="w-5 h-5 text-gray-600" />
+            </motion.button>
           </div>
         </div>
       </div>
 
-      {/* Messages - Scrollable middle section */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {chatMessages.map((message) => (
-          <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-              message.type === 'user'
-                ? 'bg-gray-900 text-white'
-                : 'bg-white text-gray-800 border border-gray-200'
-            }`}>
-              <p className="text-sm">{message.message}</p>
-              <p className={`text-xs mt-1 ${message.type === 'user' ? 'text-gray-300' : 'text-gray-500'}`}>
-                {message.timestamp}
-              </p>
-            </div>
-          </div>
-        ))}
+      {/* Chat Messages */}
+      <div className="flex-1 overflow-y-auto px-4 py-6">
+        <div className="space-y-4 max-w-2xl mx-auto">
+          <AnimatePresence>
+            {messages.map((message, index) => (
+              <motion.div
+                key={message.id}
+                initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                className={`flex ${message.isUser ? 'justify-end' : 'justify-start'} items-end gap-2`}
+              >
+                {/* Bot Avatar */}
+                {!message.isUser && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="w-8 h-8 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center shadow-lg mb-1"
+                  >
+                    <span className="text-white text-xs">A</span>
+                  </motion.div>
+                )}
+
+                <div className={`flex flex-col ${message.isUser ? 'items-end' : 'items-start'} max-w-[75%]`}>
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    className={`${
+                      message.imageUrl
+                        ? 'rounded-xl p-0 shadow-lg bg-transparent'
+                        : `rounded-3xl px-5 py-3 shadow-lg ${
+                            message.isUser
+                              ? 'bg-gradient-to-r from-purple-500 via-blue-500 to-indigo-500 text-white rounded-br-md'
+                              : 'bg-white text-gray-800 rounded-bl-md border border-gray-100'
+                          }`
+                    }`}
+                  >
+                    {message.imageUrl ? (
+                      <a href={message.imageUrl} target="_blank" rel="noreferrer" download>
+                        <img src={message.imageUrl} alt="image" className="max-w-[320px] rounded-xl" />
+                      </a>
+                    ) : (
+                      <p className="text-sm leading-relaxed">{message.text}</p>
+                    )}
+                  </motion.div>
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className={`text-xs mt-1 px-2 ${
+                      message.isUser ? 'text-gray-600' : 'text-gray-500'
+                    }`}
+                  >
+                    {message.timestamp}
+                  </motion.p>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+
+          {/* Typing Indicator */}
+          <AnimatePresence>
+            {isTyping && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="flex items-end gap-2"
+              >
+                <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                  <span className="text-white text-xs">A</span>
+                </div>
+                <div className="bg-white rounded-3xl rounded-bl-md px-5 py-4 shadow-lg border border-gray-100">
+                  <div className="flex gap-1">
+                    {[0, 1, 2].map((i) => (
+                      <motion.div
+                        key={i}
+                        animate={{ y: [0, -8, 0] }}
+                        transition={{
+                          duration: 0.6,
+                          repeat: Infinity,
+                          delay: i * 0.15
+                        }}
+                        className="w-2 h-2 bg-gradient-to-r from-purple-400 to-blue-500 rounded-full"
+                      />
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
-      {/* Fixed Input Area */}
-      <div className="bg-white border-t border-gray-100 p-4 flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <Input
-            value={currentMessage}
-            onChange={(e) => setCurrentMessage(e.target.value)}
-            placeholder="Type your message..."
-            className="flex-1 rounded-full border-gray-200"
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-          />
-          <Button
-            onClick={handleSendMessage}
-            size="sm"
-            className="w-10 h-10 rounded-full bg-gray-900 hover:bg-gray-800 p-0 flex-shrink-0"
+      {/* Quick Replies */}
+      <AnimatePresence>
+        {showQuickReplies && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="px-4 pb-2"
           >
-            <Send className="w-4 h-4" />
-          </Button>
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              {quickReplies.map((reply, index) => (
+                <motion.button
+                  key={reply}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleQuickReply(reply)}
+                  className="bg-white border-2 border-purple-200 hover:border-purple-400 text-gray-700 px-4 py-2 rounded-full text-sm whitespace-nowrap shadow-md hover:shadow-lg transition-all"
+                >
+                  {reply}
+                </motion.button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Input Area */}
+      <div className="bg-white/80 backdrop-blur-lg border-t border-gray-200 px-4 py-4">
+        <div className="flex items-center gap-2 max-w-2xl mx-auto">
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            className="p-3 hover:bg-gray-100 rounded-full transition-colors"
+            onClick={handlePickImage}
+          >
+            <Paperclip className="w-5 h-5 text-gray-600" />
+          </motion.button>
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+              placeholder="Type your message..."
+              className="w-full bg-gray-100 hover:bg-gray-150 focus:bg-white rounded-full px-6 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all border border-transparent focus:border-purple-300"
+            />
+          </div>
+
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            className="p-3 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <Smile className="w-5 h-5 text-gray-600" />
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => handleSendMessage()}
+            disabled={!inputMessage.trim()}
+            className="bg-gradient-to-r from-purple-500 via-blue-500 to-indigo-500 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Send className="w-5 h-5" />
+          </motion.button>
         </div>
       </div>
     </div>
