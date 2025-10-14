@@ -19,13 +19,20 @@ const chatRoutes = require('./routes/chat');
 
 const app = express();
 const server = http.createServer(app);
+// CORS allow-list: localhost and any *.vercel.app frontend
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (origin === 'http://localhost:3000') return true;
+  if (/\.vercel\.app$/i.test(origin)) return true;
+  return false;
+};
+
 const io = new Server(server, {
-  cors: { 
-    origin: [
-      'http://localhost:3000',
-      'https://bufforder-1m9b.vercel.app',
-      'https://bufforder.vercel.app'
-    ], 
+  cors: {
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) return callback(null, true);
+      callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
     methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
     allowedHeaders: ['Content-Type','Authorization']
@@ -39,11 +46,10 @@ app.set('onlineUsers', onlineUsers);
 
 // Middleware
 app.use(cors({
-  origin: [
-    'http://localhost:3000', // Local development
-    'https://bufforder-1m9b.vercel.app', // Vercel frontend
-    'https://bufforder.vercel.app' // Alternative Vercel URL
-  ],
+  origin: (origin, callback) => {
+    if (isAllowedOrigin(origin)) return callback(null, true);
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization']
