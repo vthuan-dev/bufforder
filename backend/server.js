@@ -19,11 +19,24 @@ const chatRoutes = require('./routes/chat');
 
 const app = express();
 const server = http.createServer(app);
-// CORS allow-list: localhost and any *.vercel.app frontend
+// CORS allow-list: localhost, *.vercel.app, custom domains and env-configured origins
+const envAllowed = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const STATIC_ALLOWED = new Set([
+  'http://localhost:3000',
+  'https://localhost:3000',
+  'https://ashford.click',
+  'https://www.ashford.click'
+]);
+
 const isAllowedOrigin = (origin) => {
-  if (!origin) return true;
-  if (origin === 'http://localhost:3000') return true;
-  if (/\.vercel\.app$/i.test(origin)) return true;
+  if (!origin) return true; // allow same-origin/server-to-server
+  if (STATIC_ALLOWED.has(origin)) return true;
+  if (/\.vercel\.app$/i.test(origin)) return true; // any Vercel preview/prod
+  if (envAllowed.includes(origin)) return true; // extra origins via env
   return false;
 };
 
