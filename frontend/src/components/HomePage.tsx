@@ -1,7 +1,8 @@
+import React from 'react';
 import { Crown, Lock, TrendingUp, Users, Award, Star, Zap, Gift } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import logoImage from '../assets/image.png';
+const logoImage = new URL('../assets/image.png', import.meta.url).toString();
 import { vipThemes, VipTheme, VipThemeKey } from '../constants/vipThemes';
 
 interface VIPLevel {
@@ -51,7 +52,7 @@ export function HomePage({ bannerImage }: HomePageProps) {
     <div className="pb-20">
       {/* Logo */}
       <div className="bg-gray-100 py-4 px-6 text-center">
-        <img src={logoImage} alt="Ashford" className="inline-block h-8 object-contain" />
+        <img src={logoImage} alt="Ashford" className="inline-block h-10 object-contain" />
       </div>
 
       {/* Banner */}

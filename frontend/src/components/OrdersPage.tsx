@@ -3,6 +3,7 @@ import { TrendingUp, Wallet, CheckCircle, Target, ShoppingBag, Package, X, Spark
 import { motion, AnimatePresence } from "motion/react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import api from "../services/api";
+import { normalizeVipId, VipThemeKey } from "../constants/vipThemes";
 const imgEarned = new URL("../assets/orders/Earned.png", import.meta.url).toString();
 const imgAvailable = new URL("../assets/orders/Available.png", import.meta.url).toString();
 const imgToday = new URL("../assets/orders/Today.png", import.meta.url).toString();
@@ -22,6 +23,7 @@ export function OrdersPage() {
   const [showOrderPopup, setShowOrderPopup] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [progress, setProgress] = useState(0);
+  const [commissionRate, setCommissionRate] = useState<number>(0.002); // default 0.2%
 
   // Daily stats with auto-reset at new day
   const [dailyCommission, setDailyCommission] = useState<number>(0);
@@ -50,7 +52,7 @@ export function OrdersPage() {
       setDailyCommission(isNaN(savedCommission) ? 0 : savedCommission);
       setOrdersReceived(isNaN(savedOrders) ? 0 : savedOrders);
     }
-    // load current balance from api
+    // load current balance and vip from api
     (async () => {
       try {
         const stats = await api.userOrderStats();
@@ -61,6 +63,27 @@ export function OrdersPage() {
           setTotalOrdersLimit(Number(stats.data.totalDailyTasks || 0));
           setOrdersReceived(Number(stats.data.ordersGrabbed || 0));
         }
+      } catch {}
+
+      // Fetch VIP status to determine commission rate
+      try {
+        const vs = await api.vipStatus();
+        const currentLevel = vs?.data?.currentLevel;
+        const vipKey = normalizeVipId(currentLevel?.id || currentLevel?.name || currentLevel?.label);
+        const vipCommissionRates: Record<VipThemeKey, number> = {
+          royal: 0.025,
+          ssvip: 0.022,
+          svip: 0.02,
+          vip7: 0.018,
+          vip6: 0.015,
+          vip5: 0.012,
+          vip4: 0.009,
+          vip3: 0.007,
+          vip2: 0.005,
+          vip1: 0.003,
+          vip0: 0.002,
+        };
+        setCommissionRate(vipCommissionRates[vipKey] ?? 0.002);
       } catch {}
     })();
   }, []);
@@ -104,13 +127,12 @@ export function OrdersPage() {
     { id: 72, name: "La Mer Moisturizing Cream", brand: "La Mer", category: "Beauty", image: "https://down-vn.img.susercontent.com/file/vn-11134207-7r98o-lvyfnpdrsn2xba.webp", price: 345 },
   ];
 
-  const commissionRate = 0.00152; // ~0.152% như mẫu hiện tại
   const products: Product[] = allProducts.map((p) => ({
     id: String(p.id),
     name: p.name,
     brand: p.brand,
     price: p.price,
-    commission: +(p.price * commissionRate).toFixed(3),
+    commission: +(p.price * commissionRate).toFixed(2),
     image: p.image,
   }));
 

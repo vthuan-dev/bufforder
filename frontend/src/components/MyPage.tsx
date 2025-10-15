@@ -8,11 +8,9 @@ import {
   Shield, 
   LogOut,
   ChevronRight,
-  Settings,
-  Bell,
   Star,
   Sparkles,
-  Lock
+  
 } from "lucide-react";
 import { motion } from "motion/react";
 import { ShippingAddressPage } from "./ShippingAddressPage";
@@ -130,8 +128,8 @@ export function MyPage() {
         </div>
 
         <div className="relative px-6 pt-8 pb-20">
-          {/* Top Bar */}
-          <div className="flex justify-between items-center mb-8">
+          {/* Top Bar (buttons removed) */}
+          <div className="flex items-center mb-8">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -140,28 +138,6 @@ export function MyPage() {
               <Sparkles className="w-5 h-5 text-yellow-300" />
               <h1 className="text-white drop-shadow-lg">My Profile</h1>
             </motion.div>
-            <div className="flex gap-3">
-              <motion.button
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.1 }}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                className="p-2.5 bg-white/20 backdrop-blur-md rounded-2xl hover:bg-white/30 transition-all shadow-lg border border-white/30"
-              >
-                <Bell className="w-5 h-5 text-white" />
-              </motion.button>
-              <motion.button
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 }}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                className="p-2.5 bg-white/20 backdrop-blur-md rounded-2xl hover:bg-white/30 transition-all shadow-lg border border-white/30"
-              >
-                <Settings className="w-5 h-5 text-white" />
-              </motion.button>
-            </div>
           </div>
 
           {/* VIP overview card synced with Home VIP element */}
@@ -172,9 +148,7 @@ export function MyPage() {
             className={`relative overflow-hidden rounded-[2rem] p-6 shadow-2xl border border-white/20 ${vipTheme.gradient}`}
           >
             <div className="absolute inset-0 bg-white/10 mix-blend-overlay" />
-            <div className="absolute top-4 right-4 p-2 bg-white/20 backdrop-blur-sm rounded-full">
-              <Lock className="w-5 h-5" />
-            </div>
+            
             {vipTheme.badgeImage && (
               <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-12 pointer-events-none">
                 <ImageWithFallback 

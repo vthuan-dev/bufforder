@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Smile, Paperclip, MoreVertical, Phone, Video, ArrowLeft } from "lucide-react";
+import { Send, Smile, Paperclip, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import api from "../services/api";
 import { io, Socket } from "socket.io-client";
@@ -126,26 +126,7 @@ export function HelpPage() {
             </div>
           </div>
 
-          <div className="flex gap-1">
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <Phone className="w-5 h-5 text-gray-600" />
-            </motion.button>
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <Video className="w-5 h-5 text-gray-600" />
-            </motion.button>
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <MoreVertical className="w-5 h-5 text-gray-600" />
-            </motion.button>
-          </div>
+          
         </div>
       </div>
 
