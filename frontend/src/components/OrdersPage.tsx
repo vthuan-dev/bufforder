@@ -3,6 +3,10 @@ import { TrendingUp, Wallet, CheckCircle, Target, ShoppingBag, Package, X, Spark
 import { motion, AnimatePresence } from "motion/react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import api from "../services/api";
+const imgEarned = new URL("../assets/orders/Earned.png", import.meta.url).toString();
+const imgAvailable = new URL("../assets/orders/Available.png", import.meta.url).toString();
+const imgToday = new URL("../assets/orders/Today.png", import.meta.url).toString();
+const imgCompleted = new URL("../assets/orders/Completed.png", import.meta.url).toString();
 
 interface Product {
   id: string;
@@ -70,9 +74,12 @@ export function OrdersPage() {
   }, [ordersReceived]);
 
   const carouselImages = [
-    "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800&q=80",
-    "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&q=80",
-    "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800&q=80"
+    // Smartphones
+    "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=1200&q=80&auto=format&fit=crop",
+    // Luxury watch close-up
+    "https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=1200&q=80&auto=format&fit=crop",
+    // Headphones / electronics lifestyle
+    "https://iphonethanhnhan.vn/upload/product/iphone-17-pro-max-6-9245.jpg"
   ];
 
   // Diverse product catalog matching backend (provided list)
@@ -280,29 +287,37 @@ export function OrdersPage() {
         </div>
       </div>
 
-      {/* Stats Grid */}
+      {/* Stats Grid with images */}
       <div className="px-6 py-6 space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-            <p className="text-xs text-gray-600 mb-2">Earned commission</p>
-            <p className="text-xl text-red-500">{dailyCommission.toFixed(2)}$</p>
+          {/* Earned commission */}
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col items-center text-center">
+            <img src={imgEarned} alt="Earned commission" className="w-48 h-48 object-contain mb-2" />
+            <p className="text-xs text-gray-600">Earned commission</p>
+            <p className="text-xl text-red-500 mt-1">{dailyCommission.toFixed(2)}$</p>
           </div>
 
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-            <p className="text-xs text-gray-600 mb-2">Available balance</p>
-            <p className="text-xl text-red-500">{availableBalance.toFixed(2)}$</p>
+          {/* Available balance */}
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col items-center text-center">
+            <img src={imgAvailable} alt="Available balance" className="w-48 h-48 object-contain mb-2" />
+            <p className="text-xs text-gray-600">Available balance</p>
+            <p className="text-xl text-red-500 mt-1">{availableBalance.toFixed(2)}$</p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-            <p className="text-xs text-gray-600 mb-2">Today's task</p>
-            <p className="text-xl text-red-500">{todaysTask.toFixed(2)}</p>
+          {/* Today's task */}
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col items-center text-center">
+            <img src={imgToday} alt="Today's task" className="w-48 h-48 object-contain mb-2" />
+            <p className="text-xs text-gray-600">Today's task</p>
+            <p className="text-xl text-red-500 mt-1">{todaysTask.toFixed(2)}</p>
           </div>
 
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-            <p className="text-xs text-gray-600 mb-2">Completed today</p>
-            <p className="text-xl text-red-500">{completedToday}</p>
+          {/* Completed today */}
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col items-center text-center">
+            <img src={imgCompleted} alt="Completed today" className="w-48 h-48 object-contain mb-2" />
+            <p className="text-xs text-gray-600">Completed today</p>
+            <p className="text-xl text-red-500 mt-1">{completedToday}</p>
           </div>
         </div>
 
