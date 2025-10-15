@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Eye, EyeOff, Phone, Lock, Ticket, ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
 import api from "../services/api";
+const logo = new URL("../assets/image.png", import.meta.url).toString();
 
 interface RegisterPageProps {
   onRegister: () => void;
@@ -81,9 +82,7 @@ export function RegisterPage({ onRegister, onSwitchToLogin }: RegisterPageProps)
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-8"
         >
-          <h1 className="text-3xl text-gray-800 mb-2">
-            <span className="italic">A</span> ashford
-          </h1>
+          <img src={logo} alt="ashford" className="h-10 mx-auto mb-2 object-contain" />
           <p className="text-gray-500 text-sm">Create Your Account</p>
         </motion.div>
 
