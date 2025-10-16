@@ -170,7 +170,7 @@ export function OrdersPage() {
   const handleConfirmOrder = async () => {
     if (!selectedProduct) return;
     try {
-      // Step 1: Take order
+      // Take order -> create a pending order only; admin will update status later
       const takeRes = await api.userOrderTake({
         id: selectedProduct.id,
         name: selectedProduct.name,
@@ -179,19 +179,8 @@ export function OrdersPage() {
         category: 'General',
         image: selectedProduct.image,
       });
-
-      // Step 2: Complete order immediately (demo flow)
-      await api.userOrderComplete({
-        productId: selectedProduct.id,
-        productName: selectedProduct.name,
-        productPrice: selectedProduct.price,
-        commissionAmount: selectedProduct.commission,
-        commissionRate: +(selectedProduct.commission / selectedProduct.price) * 100,
-      });
-
-      // Update UI stats
+      // Update UI: count order grabbed; commission updates when admin delivers
       setOrdersReceived((prev) => prev + 1);
-      setDailyCommission((prev) => +(prev + selectedProduct.commission).toFixed(2));
 
       // Refresh stats from api to sync UI (balance, tasks, completed, received)
       try {

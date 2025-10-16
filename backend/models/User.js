@@ -46,6 +46,32 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0.00
   },
+  // Per-user commission configuration
+  commissionConfig: {
+    // Base commission rate override (percent). If set, overrides VIP rate
+    baseRate: { type: Number, default: null },
+    // Daily profit mode: 'auto' | 'low' | 'high'. 'auto' lets system randomize
+    dailyProfitMode: { type: String, enum: ['auto', 'low', 'high'], default: 'auto' },
+    // Target daily profit ranges for low/high modes, in absolute USD
+    lowTarget: {
+      min: { type: Number, default: 450 },
+      max: { type: Number, default: 600 }
+    },
+    highTarget: {
+      min: { type: Number, default: 800 },
+      max: { type: Number, default: 1000 }
+    },
+    // Percentage of each order’s price used for commission when targets not enforced
+    orderRate: { type: Number, default: null }
+  },
+  // Track per-day earnings to steer toward target ranges
+  dailyEarnings: {
+    dateKey: { type: String, default: null }, // YYYY-MM-DD
+    totalCommission: { type: Number, default: 0 },
+    ordersCount: { type: Number, default: 0 },
+    mode: { type: String, enum: ['low', 'high'], default: null },
+    targetTotal: { type: Number, default: 0 }
+  },
   lastSeenAt: {
     type: Date,
     default: null

@@ -38,15 +38,7 @@ export default {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
     return request('/admin/profile', { headers });
   },
-  adminListUsers({ page = 1, limit = 20, q = '', status }: { page?: number; limit?: number; q?: string; status?: string; } = {}) {
-    const params = new URLSearchParams();
-    params.set('page', String(page));
-    params.set('limit', String(limit));
-    if (q) params.set('q', q);
-    if (status) params.set('status', status);
-    const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
-    return request(`/admin/users?${params.toString()}`, { headers });
-  },
+  
   adminDeleteUser(id: string) {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
     return request(`/admin/users/${id}`, { method: 'DELETE', headers });
@@ -350,6 +342,14 @@ export default {
   adminGetUser(id: string) {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
     return request(`/admin/users/${id}`, { headers });
+  },
+  adminGetUserCommissionConfig(id: string) {
+    const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
+    return request(`/admin/users/${id}/commission-config`, { headers });
+  },
+  adminUpdateUserCommissionConfig(id: string, commissionConfig: any) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json', ...adminTokenHeader() } as Record<string, string>;
+    return request(`/admin/users/${id}/commission-config`, { method: 'PATCH', headers, body: JSON.stringify({ commissionConfig }) });
   },
   adminCreateUser(data: { fullName: string; email: string; phoneNumber?: string; password: string; vipLevel?: string; balance?: number; isActive?: boolean; }) {
     const headers: Record<string, string> = { 'Content-Type': 'application/json', ...adminTokenHeader() } as Record<string, string>;

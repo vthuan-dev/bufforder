@@ -11,6 +11,26 @@ const config = require('../config');
 const router = express.Router();
 const Order = require('../models/Order');
 
+// Helper: format date in Vietnam time as YYYY-MM-DD HH:mm
+function formatDateVN(date) {
+  try {
+    return new Date(date)
+      .toLocaleString('sv-SE', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        hour12: false,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+      .replace('T', ' ')
+      .slice(0, 16);
+  } catch {
+    return new Date(date).toISOString().replace('T', ' ').slice(0, 16);
+  }
+}
+
 // Middleware to verify admin JWT token
 const verifyAdminToken = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
@@ -881,8 +901,8 @@ router.get('/orders', verifyAdminToken, async (req, res) => {
       amount: order.productPrice,
       commission: order.commissionAmount,
       status: order.status.charAt(0).toUpperCase() + order.status.slice(1),
-      orderDate: order.orderDate.toISOString().replace('T', ' ').slice(0, 16),
-      deliveryDate: order.completedAt ? order.completedAt.toISOString().replace('T', ' ').slice(0, 16) : null,
+      orderDate: formatDateVN(order.orderDate),
+      deliveryDate: order.completedAt ? formatDateVN(order.completedAt) : null,
       commissionRate: order.commissionRate,
       productId: order.productId
     }));
@@ -942,8 +962,8 @@ router.get('/orders/:id', verifyAdminToken, async (req, res) => {
       commission: order.commissionAmount,
       commissionRate: order.commissionRate,
       status: order.status.charAt(0).toUpperCase() + order.status.slice(1),
-      orderDate: order.orderDate.toISOString().replace('T', ' ').slice(0, 16),
-      deliveryDate: order.completedAt ? order.completedAt.toISOString().replace('T', ' ').slice(0, 16) : null,
+      orderDate: formatDateVN(order.orderDate),
+      deliveryDate: order.completedAt ? formatDateVN(order.completedAt) : null,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt
     };
@@ -1157,6 +1177,10 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
     if (email !== undefined) updates.email = email;
     if (phoneNumber !== undefined) updates.phoneNumber = phoneNumber;
     if (vipLevel !== undefined) updates.vipLevel = vipLevel;
+    // Allow admin to set commission configuration atomically
+    if (req.body.commissionConfig !== undefined) {
+      updates['commissionConfig'] = req.body.commissionConfig;
+    }
     // Fetch existing user to compare balance
     const currentUser = await User.findById(req.params.id);
     console.log('[ADMIN PUT USER] current', {
@@ -1287,6 +1311,39 @@ router.patch('/users/:id/status', verifyAdminToken, async (req, res) => {
     res.json({ success: true, data: { user } });
   } catch (error) {
     console.error('Toggle status error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Commission config: get
+router.get('/users/:id/commission-config', verifyAdminToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('commissionConfig dailyEarnings');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    res.json({ success: true, data: { commissionConfig: user.commissionConfig, dailyEarnings: user.dailyEarnings } });
+  } catch (e) {
+    console.error('Get commission config error:', e);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Commission config: update
+router.patch('/users/:id/commission-config', verifyAdminToken, async (req, res) => {
+  try {
+    const { commissionConfig } = req.body || {};
+    if (!commissionConfig || typeof commissionConfig !== 'object') {
+      return res.status(400).json({ success: false, message: 'commissionConfig object is required' });
+    }
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    user.commissionConfig = {
+      ...user.commissionConfig?.toObject?.() || user.commissionConfig || {},
+      ...commissionConfig
+    };
+    await user.save();
+    res.json({ success: true, message: 'Commission config updated', data: { commissionConfig: user.commissionConfig } });
+  } catch (e) {
+    console.error('Update commission config error:', e);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });

@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { PackageOpen } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import api from "../services/api";
+import { ImageWithFallback } from "./figma/ImageWithFallback";
 
 export function RecordPage() {
   const [activeTab, setActiveTab] = useState<'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'>('pending');
@@ -194,7 +195,11 @@ export function RecordPage() {
                 .map((o) => (
                 <div key={o.id} className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
                   <div className="flex items-center gap-3">
-                    <img src={o.image || ''} alt="product" className="w-12 h-12 rounded-lg object-cover" />
+                    <ImageWithFallback
+                      src={o.image || ''}
+                      alt="product"
+                      className="w-12 h-12 rounded-lg object-cover"
+                    />
                     <div>
                       <p className="text-gray-900 text-sm">{o.productName}</p>
                       <p className="text-xs text-gray-500">{new Date(o.orderDate).toLocaleString()}</p>

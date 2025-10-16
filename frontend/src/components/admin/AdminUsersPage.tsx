@@ -59,6 +59,17 @@ export function AdminUsersPage() {
   const [createPassword, setCreatePassword] = useState("");
   const [creating, setCreating] = useState(false);
   const [createConfirmPassword, setCreateConfirmPassword] = useState("");
+  // Commission settings state
+  const [commissionBaseRate, setCommissionBaseRate] = useState<string>("");
+  const [commissionMode, setCommissionMode] = useState<'auto' | 'low' | 'high'>('auto');
+  const [lowMin, setLowMin] = useState<string>('450');
+  const [lowMax, setLowMax] = useState<string>('600');
+  const [highMin, setHighMin] = useState<string>('800');
+  const [highMax, setHighMax] = useState<string>('1000');
+  const [dailyMode, setDailyMode] = useState<string>('');
+  const [dailyTarget, setDailyTarget] = useState<string>('');
+  const [dailySoFar, setDailySoFar] = useState<string>('');
+  const [dailyOrders, setDailyOrders] = useState<string>('');
 
   const mapBackendUser = (u: any): UserRow => ({
     id: u._id,
@@ -102,6 +113,23 @@ export function AdminUsersPage() {
     return matchesSearch && matchesStatus;
   }), [users, searchQuery, statusFilter]);
 
+  const loadCommissionConfig = async (userId: string) => {
+    try {
+      const res = await api.adminGetUserCommissionConfig(userId);
+      const cfg = res?.data?.commissionConfig || {};
+      setCommissionBaseRate(cfg.baseRate != null ? String(cfg.baseRate) : "");
+      setCommissionMode((cfg.dailyProfitMode as any) || 'auto');
+      const low = cfg.lowTarget || {}; const high = cfg.highTarget || {};
+      setLowMin(String(low.min ?? 450)); setLowMax(String(low.max ?? 600));
+      setHighMin(String(high.min ?? 800)); setHighMax(String(high.max ?? 1000));
+      const de = res?.data?.dailyEarnings || {};
+      setDailyMode(de.mode || '');
+      setDailyTarget(de.targetTotal != null ? String(de.targetTotal) : '');
+      setDailySoFar(de.totalCommission != null ? String(de.totalCommission) : '');
+      setDailyOrders(de.ordersCount != null ? String(de.ordersCount) : '');
+    } catch {}
+  };
+
   const handleEdit = (user: UserRow) => {
     setSelectedUser(user);
     setFormFullName(user.name || "");
@@ -109,6 +137,7 @@ export function AdminUsersPage() {
     setFormBalance(String(user.balance ?? 0));
     setFormStatus(user.status);
     setEditDialogOpen(true);
+    loadCommissionConfig(user.id);
   };
   const handleSave = async () => {
     if (!selectedUser) return;
@@ -120,6 +149,14 @@ export function AdminUsersPage() {
         isActive: formStatus === "Active",
       };
       await api.adminUpdateUser(selectedUser.id, payload);
+      // Save commission config
+      const commissionConfig: any = {
+        baseRate: commissionBaseRate !== '' ? Number(commissionBaseRate) : null,
+        dailyProfitMode: commissionMode,
+        lowTarget: { min: Number(lowMin), max: Number(lowMax) },
+        highTarget: { min: Number(highMin), max: Number(highMax) },
+      };
+      await api.adminUpdateUserCommissionConfig(selectedUser.id, commissionConfig);
       // refresh list and close dialog
       await loadUsers();
       setEditDialogOpen(false);
@@ -282,12 +319,13 @@ export function AdminUsersPage() {
 
       {/* Edit User Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[85vh]">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
           </DialogHeader>
+          <div className="max-h-[70vh] overflow-y-auto pr-1">
           {selectedUser && (
-            <div className="space-y-4">
+            <div className="space-y-4 pb-2">
               <div>
                 <Label>Full Name</Label>
                 <Input value={formFullName} onChange={(e) => setFormFullName(e.target.value)} />
@@ -312,6 +350,70 @@ export function AdminUsersPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Commission settings */}
+              <div className="pt-2 border-t">
+                <h3 className="text-gray-900 mb-2">Commission settings</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2">
+                    <Label>Base Rate (%) — leave blank to use VIP</Label>
+                    <Input placeholder="e.g. 0.5" value={commissionBaseRate} onChange={(e) => setCommissionBaseRate(e.target.value)} />
+                  </div>
+                  <div className="col-span-2">
+                    <Label>Daily Profit Mode</Label>
+                    <Select value={commissionMode} onValueChange={(v: any) => setCommissionMode(v)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="auto">Auto (random high days)</SelectItem>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Low min</Label>
+                    <Input type="number" value={lowMin} onChange={(e) => setLowMin(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>Low max</Label>
+                    <Input type="number" value={lowMax} onChange={(e) => setLowMax(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>High min</Label>
+                    <Input type="number" value={highMin} onChange={(e) => setHighMin(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>High max</Label>
+                    <Input type="number" value={highMax} onChange={(e) => setHighMax(e.target.value)} />
+                  </div>
+                </div>
+
+                {/* Today read-only */}
+                <div className="mt-3 bg-gray-50 rounded-lg p-3 text-sm">
+                  <p className="text-gray-700">Today</p>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div>
+                      <span className="text-gray-500">Mode: </span>
+                      <span className="text-gray-900">{dailyMode || '-'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Target: </span>
+                      <span className="text-gray-900">{dailyTarget || '-'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Earned: </span>
+                      <span className="text-gray-900">{dailySoFar || '-'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Orders: </span>
+                      <span className="text-gray-900">{dailyOrders || '-'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex gap-2 pt-4">
                 <Button onClick={() => setEditDialogOpen(false)} variant="outline" className="flex-1">
                   Cancel
@@ -322,16 +424,17 @@ export function AdminUsersPage() {
               </div>
             </div>
           )}
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* Create User Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[85vh]">
           <DialogHeader>
             <DialogTitle>Add User</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
             <div>
               <Label>Full Name</Label>
               <Input value={createFullName} onChange={(e) => setCreateFullName(e.target.value)} />
@@ -384,12 +487,13 @@ export function AdminUsersPage() {
 
       {/* View User Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[85vh]">
           <DialogHeader>
             <DialogTitle>User Details</DialogTitle>
           </DialogHeader>
+          <div className="max-h-[70vh] overflow-y-auto pr-1">
           {selectedUser && (
-            <div className="space-y-4">
+            <div className="space-y-4 pb-2">
               <div className="flex items-center gap-4 pb-4 border-b">
                 <Avatar className="w-16 h-16">
                   <AvatarImage src="" />
@@ -439,6 +543,7 @@ export function AdminUsersPage() {
               </div>
             </div>
           )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

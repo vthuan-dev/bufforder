@@ -5,6 +5,34 @@ const Order = require('../models/Order');
 const { getVipLevelByAmount } = require('../config/vipLevels');
 const { authenticateToken } = require('../middleware/auth');
 
+// Helpers
+function getDateKey(d = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function resolveCommissionRate(user, vipLevel) {
+  if (user?.commissionConfig && user.commissionConfig.baseRate != null) {
+    return Number(user.commissionConfig.baseRate);
+  }
+  return vipLevel ? vipLevel.commissionRate : 0;
+}
+
+function pickDailyTarget(user) {
+  const cfg = user.commissionConfig || {};
+  const modeCfg = cfg.dailyProfitMode || 'auto';
+  const isHigh = modeCfg === 'high' ? true : modeCfg === 'low' ? false : Math.random() < 0.35; // 35% high days
+  const high = cfg.highTarget || { min: 800, max: 1000 };
+  const low = cfg.lowTarget || { min: 450, max: 600 };
+  const range = isHigh ? high : low;
+  const min = typeof range.min === 'number' ? range.min : (isHigh ? 800 : 450);
+  const max = typeof range.max === 'number' ? range.max : (isHigh ? 1000 : 600);
+  const target = Math.round((min + Math.random() * (max - min)) * 100) / 100;
+  return { mode: isHigh ? 'high' : 'low', targetTotal: target };
+}
+
 // GET /api/orders/stats - Get user order statistics
 router.get('/stats', authenticateToken, async (req, res) => {
   try {
@@ -39,7 +67,11 @@ router.get('/stats', authenticateToken, async (req, res) => {
 
     // Get VIP level info
     const vipLevel = getVipLevelByAmount(user.totalDeposited);
-    const commissionRate = vipLevel ? vipLevel.commissionRate : 0;
+    // Resolve commission rate using user-specific config override
+    let commissionRate = vipLevel ? vipLevel.commissionRate : 0;
+    if (user.commissionConfig && user.commissionConfig.baseRate != null) {
+      commissionRate = Number(user.commissionConfig.baseRate);
+    }
     const numberOfOrders = vipLevel && vipLevel.numberOfOrders ? vipLevel.numberOfOrders : 100;
 
     res.json({
@@ -53,7 +85,9 @@ router.get('/stats', authenticateToken, async (req, res) => {
         // ordersGrabbed reflects number of completed (delivered) orders today to stay in sync with Completed today
         ordersGrabbed: completedOrders.length,
         vipLevel: user.vipLevel,
-        commissionRate: commissionRate
+        commissionRate: commissionRate,
+        commissionConfig: user.commissionConfig,
+        dailyEarnings: user.dailyEarnings
       }
     });
   } catch (error) {
@@ -102,7 +136,7 @@ router.post('/take', authenticateToken, async (req, res) => {
 
   // Get VIP level and commission rate
     const vipLevel = getVipLevelByAmount(user.totalDeposited);
-    const commissionRate = vipLevel ? vipLevel.commissionRate : 0;
+    const commissionRate = resolveCommissionRate(user, vipLevel);
   // Require client to send product, no server-side catalog
   if (!clientProduct) {
     return res.status(400).json({ success: false, message: 'Product is required' });
@@ -117,8 +151,30 @@ router.post('/take', authenticateToken, async (req, res) => {
   }
   const randomProduct = { id, name, price: Number(price), brand, category, image };
     
-    // Calculate commission
-    const commissionAmount = (randomProduct.price * commissionRate) / 100;
+    // Initialize/reset daily earnings for today (for target steering)
+    const todayKey = getDateKey();
+    if (user.dailyEarnings?.dateKey !== todayKey) {
+      const picked = pickDailyTarget(user);
+      user.dailyEarnings = {
+        dateKey: todayKey,
+        totalCommission: 0,
+        ordersCount: 0,
+        mode: picked.mode,
+        targetTotal: picked.targetTotal
+      };
+    }
+
+    // Calculate commission with randomness and steering to daily target
+    const nominalCommission = (randomProduct.price * commissionRate) / 100;
+    const randomFactor = 0.9 + Math.random() * 0.2; // ±10%
+    let commissionAmount = Math.round(nominalCommission * randomFactor * 100) / 100;
+    const target = Number(user.dailyEarnings?.targetTotal || 0);
+    const already = Number(user.dailyEarnings?.totalCommission || 0);
+    const remaining = Math.max(0, target - already);
+    if (remaining > 0) {
+      const maxThisOrder = Math.max(0, remaining + target * 0.05);
+      if (commissionAmount > maxThisOrder) commissionAmount = Math.round(maxThisOrder * 100) / 100;
+    }
 
   // Create a pending order immediately
   const newOrder = new Order({
@@ -136,6 +192,14 @@ router.post('/take', authenticateToken, async (req, res) => {
   });
   await newOrder.save();
 
+  // Immediately credit user on pending as per new rule
+  const creditedCommission = Math.round(commissionAmount * 0.8 * 100) / 100;
+  user.balance += creditedCommission;
+  user.commission += commissionAmount;
+  user.dailyEarnings.totalCommission = Math.round((user.dailyEarnings.totalCommission + commissionAmount) * 100) / 100;
+  user.dailyEarnings.ordersCount = (user.dailyEarnings.ordersCount || 0) + 1;
+  await user.save();
+
     // Get updated stats
     const updatedTodayOrders = await Order.find({
       userId: userId,
@@ -145,7 +209,7 @@ router.post('/take', authenticateToken, async (req, res) => {
       }
     });
 
-    const completedOrders = updatedTodayOrders.filter(order => order.status === 'completed');
+    const completedOrders = updatedTodayOrders.filter(order => order.status === 'delivered');
 
     res.json({
       success: true,
@@ -168,7 +232,8 @@ router.post('/take', authenticateToken, async (req, res) => {
           id: newOrder._id,
           status: newOrder.status,
           orderDate: newOrder.orderDate
-        }
+        },
+        dailyEarnings: user.dailyEarnings
       }
     });
   } catch (error) {
@@ -210,26 +275,47 @@ router.post('/complete', authenticateToken, async (req, res) => {
       });
     }
 
-    // Create new order with delivered status (align with admin statuses)
-    const newOrder = new Order({
-      userId: userId,
-      productId: productData.productId,
-      productName: productData.productName,
-      productPrice: productData.productPrice,
-      commissionRate: productData.commissionRate,
-      commissionAmount: productData.commissionAmount,
-      status: 'delivered',
-      completedAt: new Date(),
-      orderDate: new Date()
-    });
+    // Initialize/reset daily earnings for today
+    const todayKey = getDateKey();
+    if (user.dailyEarnings?.dateKey !== todayKey) {
+      const picked = pickDailyTarget(user);
+      user.dailyEarnings = {
+        dateKey: todayKey,
+        totalCommission: 0,
+        ordersCount: 0,
+        mode: picked.mode,
+        targetTotal: picked.targetTotal
+      };
+    }
 
-    await newOrder.save();
+    // Determine commission rate (per-user override preferred)
+    const vipLevel = getVipLevelByAmount(user.totalDeposited);
+    const baseRate = resolveCommissionRate(user, vipLevel);
+    // Nominal commission with slight randomness (±10%)
+    const nominal = (Number(productData.productPrice) * baseRate) / 100;
+    const randomFactor = 0.9 + Math.random() * 0.2;
+    let commissionAmount = Math.round(nominal * randomFactor * 100) / 100;
+    // Steer toward today's target
+    const target = Number(user.dailyEarnings?.targetTotal || 0);
+    const already = Number(user.dailyEarnings?.totalCommission || 0);
+    const remaining = Math.max(0, target - already);
+    if (remaining > 0) {
+      const maxThisOrder = Math.max(0, remaining + target * 0.05); // up to 5% overshoot
+      if (commissionAmount > maxThisOrder) commissionAmount = Math.round(maxThisOrder * 100) / 100;
+    }
+
+    // Per new rule: do NOT auto-complete. Just create pending orders via /take.
+    // Keep this endpoint no-op to avoid accidental auto-delivery.
+    return res.status(400).json({ success: false, message: 'Auto-complete disabled. Orders remain pending until admin updates status.' });
 
     // Update user balances: credit only 80% of commission to spendable balance
     const creditedCommission = Math.round(newOrder.commissionAmount * 0.8 * 100) / 100;
     user.balance += creditedCommission;
     // Track full commission in lifetime/earned commission
     user.commission += newOrder.commissionAmount;
+    // Update daily earnings
+    user.dailyEarnings.totalCommission = Math.round((user.dailyEarnings.totalCommission + newOrder.commissionAmount) * 100) / 100;
+    user.dailyEarnings.ordersCount = (user.dailyEarnings.ordersCount || 0) + 1;
     await user.save();
 
     // Get updated stats
@@ -259,7 +345,8 @@ router.post('/complete', authenticateToken, async (req, res) => {
           productName: newOrder.productName,
           productPrice: newOrder.productPrice,
           commissionAmount: newOrder.commissionAmount
-        }
+        },
+        dailyEarnings: user.dailyEarnings
       }
     });
   } catch (error) {
