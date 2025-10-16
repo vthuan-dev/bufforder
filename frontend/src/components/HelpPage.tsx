@@ -30,6 +30,7 @@ export function HelpPage() {
   const lastPlayRef = useRef<number>(0);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const audioBufferRef = useRef<AudioBuffer | null>(null);
+  const isWindowFocusedRef = useRef<boolean>(typeof document !== 'undefined' ? !document.hidden : true);
 
   const playNoti = async () => {
     try {
@@ -98,7 +99,12 @@ export function HelpPage() {
           if (msg.threadId !== threadIdRef.current) return;
           // Play sound on messages not sent by this client
           try {
-            if (msg.senderType !== 'user') { playNoti(); }
+            if (msg.senderType !== 'user') {
+              // Only notify if tab not focused/visible
+              if (!isWindowFocusedRef.current || (typeof document !== 'undefined' && document.hidden)) {
+                playNoti();
+              }
+            }
           } catch {}
           try { console.log('[client chat:message]', msg); } catch {}
           const img = msg.imageUrl ? (String(msg.imageUrl).startsWith('/') ? `${API_BASE}${msg.imageUrl}` : msg.imageUrl) : undefined;
@@ -152,6 +158,14 @@ export function HelpPage() {
 
   // Auto-unlock audio on first user interaction if previously enabled
   useEffect(() => {
+    // Track focus/visibility
+    const onFocus = () => { isWindowFocusedRef.current = true; };
+    const onBlur = () => { isWindowFocusedRef.current = false; };
+    const onVis = () => { isWindowFocusedRef.current = !document.hidden; };
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('blur', onBlur);
+    document.addEventListener('visibilitychange', onVis);
+
     const onFirstInteract = async () => {
       try {
         const prefEnabled = (() => { try { return localStorage.getItem('client:soundEnabled') === '1'; } catch { return false; } })();
@@ -185,6 +199,9 @@ export function HelpPage() {
     window.addEventListener('keydown', onFirstInteract, opts);
     window.addEventListener('touchstart', onFirstInteract, opts);
     return () => {
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('blur', onBlur);
+      document.removeEventListener('visibilitychange', onVis);
       window.removeEventListener('pointerdown', onFirstInteract as any);
       window.removeEventListener('keydown', onFirstInteract as any);
       window.removeEventListener('touchstart', onFirstInteract as any);

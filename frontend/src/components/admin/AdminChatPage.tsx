@@ -45,6 +45,7 @@ export function AdminChatPage() {
   const prevUnreadRef = useRef<number>(0);
   const partnerTypingRef = useRef<boolean>(false);
   const typingTimerRef = useRef<number | null>(null);
+  const isWindowFocusedRef = useRef<boolean>(typeof document !== 'undefined' ? !document.hidden : true);
 
   // Restore sound preference
   useEffect(() => {
@@ -71,10 +72,19 @@ export function AdminChatPage() {
     window.addEventListener('pointerdown', onFirstInteract, opts);
     window.addEventListener('keydown', onFirstInteract, opts);
     window.addEventListener('touchstart', onFirstInteract, opts);
+    const onFocus = () => { isWindowFocusedRef.current = true; };
+    const onBlur = () => { isWindowFocusedRef.current = false; };
+    const onVis = () => { isWindowFocusedRef.current = !document.hidden; };
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('blur', onBlur);
+    document.addEventListener('visibilitychange', onVis);
     return () => {
       window.removeEventListener('pointerdown', onFirstInteract as any);
       window.removeEventListener('keydown', onFirstInteract as any);
       window.removeEventListener('touchstart', onFirstInteract as any);
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('blur', onBlur);
+      document.removeEventListener('visibilitychange', onVis);
     };
   }, [soundEnabled]);
 
@@ -117,8 +127,12 @@ export function AdminChatPage() {
         // Play sound for any incoming user message
         try {
           if (msg.senderType !== 'admin' && soundEnabledRef.current) {
-            const a = audioRef.current;
-            if (a) { a.currentTime = 0; a.volume = 1; a.play().catch(() => {}); }
+            const sameThread = currentId && String(msg.threadId) === String(currentId);
+            const isFocused = isWindowFocusedRef.current && !document.hidden;
+            if (!sameThread || !isFocused) {
+              const a = audioRef.current;
+              if (a) { a.currentTime = 0; a.volume = 1; a.play().catch(() => {}); }
+            }
           }
         } catch {}
         if (!currentId || String(msg.threadId) !== String(currentId)) return;
@@ -136,8 +150,8 @@ export function AdminChatPage() {
           setTypingHeader(v);
         }
       });
-      s.on('chat:threadUpdated', () => {
-        loadThreads();
+      s.on('chat:threadUpdated', (evt: any) => {
+        loadThreads(evt?.threadId);
       });
       // presence updates
       s.on('presence:update', (evt: any) => {
@@ -147,7 +161,7 @@ export function AdminChatPage() {
     } catch {}
   };
 
-  const loadThreads = async () => {
+  const loadThreads = async (updatedThreadId?: string) => {
     const res = await api.adminChatListThreads({ page: 1, limit: 50 });
     const list = (res?.data?.threads || []).map((t: any) => ({
       id: t._id,
@@ -161,11 +175,16 @@ export function AdminChatPage() {
       lastSeenAt: t.userLastSeenAt || null
     }));
     setThreads(list);
-    // Play sound if unread increased
+    // Play sound if unread increased, but only when not focused on the same thread
     try {
       const newUnread = list.reduce((s: number, th: any) => s + Number(th.unread || 0), 0);
       if (soundEnabled && newUnread > (prevUnreadRef.current || 0)) {
-        const a = audioRef.current; if (a) { a.currentTime = 0; a.play().catch(() => {}); }
+        const currentId = selectedThreadIdRef.current;
+        const sameThread = updatedThreadId && currentId && String(updatedThreadId) === String(currentId);
+        const isFocused = isWindowFocusedRef.current && !document.hidden;
+        if (!sameThread || !isFocused) {
+          const a = audioRef.current; if (a) { a.currentTime = 0; a.play().catch(() => {}); }
+        }
       }
       prevUnreadRef.current = newUnread;
     } catch {}
