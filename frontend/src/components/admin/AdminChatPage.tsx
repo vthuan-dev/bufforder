@@ -40,6 +40,7 @@ export function AdminChatPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
+  const soundEnabledRef = useRef<boolean>(false);
   const prevUnreadRef = useRef<number>(0);
 
   // Restore sound preference
@@ -50,16 +51,43 @@ export function AdminChatPage() {
     } catch {}
   }, []);
 
+  // Auto-unlock audio on first interaction if previously enabled
+  useEffect(() => {
+    const onFirstInteract = async () => {
+      try {
+        const prefEnabled = (() => { try { return localStorage.getItem('admin:soundEnabled') === '1'; } catch { return false; } })();
+        if (!prefEnabled && !soundEnabled) return;
+        if (!soundEnabled) setSoundEnabled(true);
+        const a = audioRef.current;
+        if (a) {
+          try { a.currentTime = 0; a.volume = 1; await a.play(); } catch {}
+        }
+      } catch {}
+    };
+    const opts: any = { once: true };
+    window.addEventListener('pointerdown', onFirstInteract, opts);
+    window.addEventListener('keydown', onFirstInteract, opts);
+    window.addEventListener('touchstart', onFirstInteract, opts);
+    return () => {
+      window.removeEventListener('pointerdown', onFirstInteract as any);
+      window.removeEventListener('keydown', onFirstInteract as any);
+      window.removeEventListener('touchstart', onFirstInteract as any);
+    };
+  }, [soundEnabled]);
+
+  // Keep ref in sync to avoid stale closures
+  useEffect(() => { soundEnabledRef.current = soundEnabled; }, [soundEnabled]);
+
   const enableSound = async () => {
     try {
-      const a = audioRef.current;
-      if (!a) return;
-      // Play a short audible ping as confirmation and to unlock autoplay
-      a.currentTime = 0;
-      a.volume = 1;
-      await a.play();
+      // Set the flag first so subsequent events can play even if play() rejects
       setSoundEnabled(true);
       try { localStorage.setItem('admin:soundEnabled', '1'); } catch {}
+      const a = audioRef.current;
+      if (!a) return;
+      a.currentTime = 0;
+      a.volume = 1;
+      await a.play().catch(() => {});
     } catch {}
   };
 
@@ -85,7 +113,7 @@ export function AdminChatPage() {
         const currentId = selectedThreadIdRef.current;
         // Play sound for any incoming user message
         try {
-          if (msg.senderType !== 'admin' && soundEnabled) {
+          if (msg.senderType !== 'admin' && soundEnabledRef.current) {
             const a = audioRef.current;
             if (a) { a.currentTime = 0; a.volume = 1; a.play().catch(() => {}); }
           }

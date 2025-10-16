@@ -24,17 +24,23 @@ export function HelpPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
+  const soundEnabledRef = useRef<boolean>(false);
   const lastPlayRef = useRef<number>(0);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const audioBufferRef = useRef<AudioBuffer | null>(null);
 
   const playNoti = async () => {
     try {
-      if (!soundEnabled) return;
+      // Try to play regardless; browsers will simply reject if not unlocked yet
       const now = Date.now();
       if (now - (lastPlayRef.current || 0) < 300) return; // throttle
       lastPlayRef.current = now;
-      // Prefer WebAudio for reliability (works when element state stalls)
+      // Try element path first for reliability
+      try {
+        const a = audioRef.current;
+        if (a) { a.currentTime = 0; a.volume = 1; await a.play().catch(() => {}); }
+      } catch {}
+      // WebAudio path (works when element state stalls)
       if (audioCtxRef.current && audioBufferRef.current) {
         const ctx = audioCtxRef.current;
         if (ctx.state === 'suspended') {
@@ -88,8 +94,10 @@ export function HelpPage() {
         s.emit('chat:joinThread', threadId);
         s.on('chat:message', (msg: any) => {
           if (msg.threadId !== threadIdRef.current) return;
-          // TEMP: Play sound on any incoming message to verify audio works
-          try { playNoti(); } catch {}
+          // Play sound on messages not sent by this client
+          try {
+            if (msg.senderType !== 'user') { playNoti(); }
+          } catch {}
           try { console.log('[client chat:message]', msg); } catch {}
           const img = msg.imageUrl ? (String(msg.imageUrl).startsWith('/') ? `${API_BASE}${msg.imageUrl}` : msg.imageUrl) : undefined;
           setMessages(prev => [...prev, { id: msg._id, text: msg.text || '', imageUrl: img, isUser: msg.senderType === 'user', timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
@@ -128,6 +136,50 @@ export function HelpPage() {
       if (v === '1') setSoundEnabled(true);
     } catch {}
   }, []);
+
+  // Keep ref in sync to avoid stale closures in socket handlers
+  useEffect(() => { soundEnabledRef.current = soundEnabled; }, [soundEnabled]);
+
+  // Auto-unlock audio on first user interaction if previously enabled
+  useEffect(() => {
+    const onFirstInteract = async () => {
+      try {
+        const prefEnabled = (() => { try { return localStorage.getItem('client:soundEnabled') === '1'; } catch { return false; } })();
+        if (!prefEnabled && !soundEnabled) return;
+        // Ensure flag is true so playNoti will run
+        if (!soundEnabled) setSoundEnabled(true);
+        // Initialize WebAudio buffer if not ready yet
+        try {
+          if (!audioCtxRef.current) {
+            const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
+            if (Ctx) {
+              const ctx: AudioContext = new Ctx();
+              audioCtxRef.current = ctx;
+              const url = new URL('../assets/sound/noti.mp3', import.meta.url).toString();
+              const res = await fetch(url);
+              const arr = await res.arrayBuffer();
+              audioBufferRef.current = await ctx.decodeAudioData(arr);
+              await ctx.resume().catch(() => {});
+            }
+          } else if (audioCtxRef.current?.state === 'suspended') {
+            await audioCtxRef.current.resume().catch(() => {});
+          }
+        } catch {}
+        // Try a ping to unlock element path too
+        await playNoti();
+      } catch {}
+    };
+    // Attach once listeners
+    const opts: any = { once: true };
+    window.addEventListener('pointerdown', onFirstInteract, opts);
+    window.addEventListener('keydown', onFirstInteract, opts);
+    window.addEventListener('touchstart', onFirstInteract, opts);
+    return () => {
+      window.removeEventListener('pointerdown', onFirstInteract as any);
+      window.removeEventListener('keydown', onFirstInteract as any);
+      window.removeEventListener('touchstart', onFirstInteract as any);
+    };
+  }, [soundEnabled]);
 
   const handleSendMessage = (text?: string) => {
     const messageText = text || inputMessage;
