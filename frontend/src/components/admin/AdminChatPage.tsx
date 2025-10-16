@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import { Search, Send, Paperclip, MoreVertical, User, Clock } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
@@ -36,7 +35,6 @@ export function AdminChatPage() {
   const [messageInput, setMessageInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [typingHeader, setTypingHeader] = useState<boolean>(false);
-  const [isTypingUser, setIsTypingUser] = useState<boolean>(false);
   const socketRef = useRef<Socket | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const selectedThreadIdRef = useRef<string | null>(null);
@@ -136,7 +134,6 @@ export function AdminChatPage() {
           // But we'll show typing in header by toggling timestamp text via state below
           const v = !!evt.typing;
           setTypingHeader(v);
-          setIsTypingUser(v);
         }
       });
       s.on('chat:threadUpdated', () => {
@@ -412,28 +409,6 @@ export function AdminChatPage() {
                     })()}
                   </div>
                 ))}
-                {/* Typing indicator from user */}
-                <AnimatePresence>
-                  {isTypingUser && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="flex justify-start"
-                    >
-                      <div className="bg-gray-100 text-gray-900 rounded-2xl rounded-bl-sm px-4 py-2 inline-flex items-center gap-1">
-                        {[0,1,2].map((i) => (
-                          <motion.span
-                            key={i}
-                            animate={{ y: [0, -6, 0] }}
-                            transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
-                            className="w-2 h-2 bg-gray-400 rounded-full"
-                          />
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </div>
             </div>
 
