@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Crown, Lock, TrendingUp, Users, Award, Star, Zap, Gift } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 const logoImage = new URL('../assets/image.png', import.meta.url).toString();
-import { vipThemes, VipTheme, VipThemeKey } from '../constants/vipThemes';
+import { vipThemes, VipTheme, VipThemeKey, normalizeVipId } from '../constants/vipThemes';
+import api from '../services/api';
 
 interface VIPLevel {
   id: VipThemeKey;
@@ -20,33 +21,45 @@ interface HomePageProps {
 }
 
 export function HomePage({ bannerImage }: HomePageProps) {
-  const vipLevelsConfig: Array<{
-    id: VipThemeKey;
-    amountRequired: string;
-    commission: string;
-    orders: number;
-  }> = [
-    { id: 'royal', amountRequired: '$320,000', commission: '2.5%', orders: 330 },
-    { id: 'ssvip', amountRequired: '$280,000', commission: '2.2%', orders: 300 },
-    { id: 'svip', amountRequired: '$260,000', commission: '2%', orders: 280 },
-    { id: 'vip7', amountRequired: '$200,000', commission: '1.8%', orders: 250 },
-    { id: 'vip6', amountRequired: '$120,000', commission: '1.5%', orders: 220 },
-    { id: 'vip5', amountRequired: '$80,000', commission: '1.2%', orders: 180 },
-    { id: 'vip4', amountRequired: '$60,000', commission: '0.9%', orders: 150 },
-    { id: 'vip3', amountRequired: '$30,000', commission: '0.7%', orders: 120 },
-    { id: 'vip2', amountRequired: '$10,000', commission: '0.5%', orders: 80 },
-    { id: 'vip1', amountRequired: '$3,000', commission: '0.3%', orders: 40 },
-  ];
+  const [vipLevels, setVipLevels] = useState<VIPLevel[]>([]);
 
-  const vipLevels: VIPLevel[] = vipLevelsConfig.map((entry) => {
-    const theme = vipThemes[entry.id];
-    return {
-      ...entry,
-      name: theme.label,
-      subtitle: theme.subtitle,
-      theme,
-    };
-  });
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await api.vipLevels();
+        const levels = (res?.data?.levels || [])
+          .filter((lvl: any) => String(lvl.id || lvl.name).toLowerCase() !== 'vip-0' && String(lvl.id || lvl.name).toLowerCase() !== 'vip0')
+          .map((lvl: any) => {
+          const key = normalizeVipId(lvl.id || lvl.name);
+          const theme = vipThemes[key];
+          return {
+            id: key,
+            name: theme.label,
+            subtitle: theme.subtitle,
+            amountRequired: `$${Number(lvl.amountRequired || 0).toLocaleString()}`,
+            commission: `${Number(lvl.commissionRate || 0)}%`,
+            orders: Number(lvl.numberOfOrders || 0),
+            theme,
+          } as VIPLevel;
+        });
+        // Keep display order high -> low
+        levels.sort((a: any, b: any) => b.orders - a.orders);
+        setVipLevels(levels);
+      } catch {
+        // Fallback minimal when API fails (avoid blank screen)
+        const fallbackKeys: VipThemeKey[] = ['royal','svip','vip7','vip6','vip5','vip4','vip3','vip2','vip1'];
+        setVipLevels(fallbackKeys.map((id) => ({
+          id,
+          name: vipThemes[id].label,
+          subtitle: vipThemes[id].subtitle,
+          amountRequired: '-',
+          commission: '-',
+          orders: 0,
+          theme: vipThemes[id],
+        })));
+      }
+    })();
+  }, []);
 
   return (
     <div className="pb-20">

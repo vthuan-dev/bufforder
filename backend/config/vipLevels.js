@@ -84,7 +84,7 @@ const VIP_LEVELS = [
     name: 'VIP 1',
     amountRequired: 5000,
     commissionRate: 0.5,
-    numberOfOrders: 80,
+    numberOfOrders: 60,
     gradient: 'from-gray-600 to-orange-600',
     crown: '👑',
     description: 'Silver member'
