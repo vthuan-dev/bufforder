@@ -22,6 +22,37 @@ export function HelpPage() {
   const threadIdRef = useRef<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
+  const lastPlayRef = useRef<number>(0);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const audioBufferRef = useRef<AudioBuffer | null>(null);
+
+  const playNoti = async () => {
+    try {
+      if (!soundEnabled) return;
+      const now = Date.now();
+      if (now - (lastPlayRef.current || 0) < 300) return; // throttle
+      lastPlayRef.current = now;
+      // Prefer WebAudio for reliability (works when element state stalls)
+      if (audioCtxRef.current && audioBufferRef.current) {
+        const ctx = audioCtxRef.current;
+        if (ctx.state === 'suspended') {
+          await ctx.resume().catch(() => {});
+        }
+        const src = ctx.createBufferSource();
+        src.buffer = audioBufferRef.current;
+        src.connect(ctx.destination);
+        src.start(0);
+        return;
+      }
+      // Fallback: create a new Audio element each time
+      const url = new URL('../assets/sound/noti.mp3', import.meta.url).toString();
+      const el = new Audio(url);
+      el.volume = 1;
+      el.play().catch(() => {});
+    } catch {}
+  };
 
   const quickReplies = [
     "📦 Track my order",
@@ -57,12 +88,45 @@ export function HelpPage() {
         s.emit('chat:joinThread', threadId);
         s.on('chat:message', (msg: any) => {
           if (msg.threadId !== threadIdRef.current) return;
+          // TEMP: Play sound on any incoming message to verify audio works
+          try { playNoti(); } catch {}
+          try { console.log('[client chat:message]', msg); } catch {}
           const img = msg.imageUrl ? (String(msg.imageUrl).startsWith('/') ? `${API_BASE}${msg.imageUrl}` : msg.imageUrl) : undefined;
           setMessages(prev => [...prev, { id: msg._id, text: msg.text || '', imageUrl: img, isUser: msg.senderType === 'user', timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
         });
       } catch {}
     })();
     return () => { socketRef.current?.disconnect(); };
+  }, []);
+
+  const enableSound = async () => {
+    try {
+      // WebAudio init & decode buffer once
+      try {
+        const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
+        if (Ctx) {
+          const ctx: AudioContext = new Ctx();
+          audioCtxRef.current = ctx;
+          const url = new URL('../assets/sound/noti.mp3', import.meta.url).toString();
+          const res = await fetch(url);
+          const arr = await res.arrayBuffer();
+          audioBufferRef.current = await ctx.decodeAudioData(arr);
+          await ctx.resume().catch(() => {});
+        }
+      } catch {}
+      // Unlock by playing once (using whichever path available)
+      await playNoti();
+      setSoundEnabled(true);
+      try { localStorage.setItem('client:soundEnabled', '1'); } catch {}
+    } catch {}
+  };
+
+  // Restore preference on mount
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem('client:soundEnabled');
+      if (v === '1') setSoundEnabled(true);
+    } catch {}
   }, []);
 
   const handleSendMessage = (text?: string) => {
@@ -100,6 +164,7 @@ export function HelpPage() {
 
   return (
     <div className="pb-20 h-screen flex flex-col bg-gradient-to-b from-purple-50 via-blue-50 to-pink-50">
+      <audio ref={audioRef} src={new URL('../assets/sound/noti.mp3', import.meta.url).toString()} preload="auto" />
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 shadow-sm">
         <div className="flex items-center gap-3">
@@ -125,8 +190,7 @@ export function HelpPage() {
               <span>Online • Reply in ~1 min</span>
             </div>
           </div>
-
-          
+          <button onClick={enableSound} className="ml-auto px-3 py-1.5 text-xs rounded-full bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200">Enable/Test sound</button>
         </div>
       </div>
 

@@ -14,6 +14,7 @@ interface ChatThread {
   unread: number;
   status: "online" | "offline";
   userIp?: string;
+  lastSeenAt?: string | null;
 }
 
 interface Message {
@@ -37,6 +38,30 @@ export function AdminChatPage() {
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const selectedThreadIdRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
+  const prevUnreadRef = useRef<number>(0);
+
+  // Restore sound preference
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem('admin:soundEnabled');
+      setSoundEnabled(v === '1');
+    } catch {}
+  }, []);
+
+  const enableSound = async () => {
+    try {
+      const a = audioRef.current;
+      if (!a) return;
+      // Play a short audible ping as confirmation and to unlock autoplay
+      a.currentTime = 0;
+      a.volume = 1;
+      await a.play();
+      setSoundEnabled(true);
+      try { localStorage.setItem('admin:soundEnabled', '1'); } catch {}
+    } catch {}
+  };
 
   const scrollToBottom = (smooth = false) => {
     const container = messagesContainerRef.current;
@@ -58,6 +83,13 @@ export function AdminChatPage() {
       s.on('connect', () => {});
       s.on('chat:message', (msg: any) => {
         const currentId = selectedThreadIdRef.current;
+        // Play sound for any incoming user message
+        try {
+          if (msg.senderType !== 'admin' && soundEnabled) {
+            const a = audioRef.current;
+            if (a) { a.currentTime = 0; a.volume = 1; a.play().catch(() => {}); }
+          }
+        } catch {}
         if (!currentId || String(msg.threadId) !== String(currentId)) return;
         const img = msg.imageUrl ? (String(msg.imageUrl).startsWith('/') ? `${API_BASE}${msg.imageUrl}` : msg.imageUrl) : undefined;
         setMessages(prev => [...prev, { id: Date.now(), sender: msg.senderType === 'admin' ? 'admin' : 'user', text: msg.text || '', imageUrl: img, timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), isRead: true }]);
@@ -87,6 +119,14 @@ export function AdminChatPage() {
       lastSeenAt: t.userLastSeenAt || null
     }));
     setThreads(list);
+    // Play sound if unread increased
+    try {
+      const newUnread = list.reduce((s: number, th: any) => s + Number(th.unread || 0), 0);
+      if (soundEnabled && newUnread > (prevUnreadRef.current || 0)) {
+        const a = audioRef.current; if (a) { a.currentTime = 0; a.play().catch(() => {}); }
+      }
+      prevUnreadRef.current = newUnread;
+    } catch {}
     if (!selectedThread && list.length) setSelectedThread(list[0]);
   };
 
@@ -173,15 +213,22 @@ export function AdminChatPage() {
 
   return (
     <div className="flex flex-col flex-1 min-h-0 h-full overflow-hidden">
+      {/* Hidden audio for notifications */}
+      <audio ref={audioRef} src={new URL('../../assets/sound/noti.mp3', import.meta.url).toString()} preload="auto" />
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl text-gray-900 mb-1">Chat Support</h1>
           <p className="text-gray-600">Manage customer support conversations</p>
         </div>
-        <Badge variant="secondary" className="bg-red-100 text-red-700 px-4 py-2">
-          {totalUnread} Unread
-        </Badge>
+        <div className="flex items-center gap-3">
+          <button onClick={enableSound} className="px-3 py-2 text-sm rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200">
+            {soundEnabled ? 'Test sound' : 'Enable & test sound'}
+          </button>
+          <Badge variant="secondary" className="bg-red-100 text-red-700 px-4 py-2">
+            {totalUnread} Unread
+          </Badge>
+        </div>
       </div>
 
       {/* Chat Interface */}
