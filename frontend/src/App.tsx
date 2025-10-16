@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BottomNav } from './components/BottomNav';
 import { HomePage } from './components/HomePage';
 import { OrdersPage } from './components/OrdersPage';
@@ -85,14 +85,6 @@ export default function App() {
         {renderContent()}
         <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
         
-        {/* Admin Mode Toggle - Hidden button for demo */}
-        <button
-          onClick={() => setIsAdminMode(true)}
-          className="fixed bottom-24 right-4 w-12 h-12 bg-gray-900 text-white rounded-full shadow-lg hover:bg-gray-800 text-xs opacity-20 hover:opacity-100 transition-opacity z-50"
-          title="Switch to Admin Mode"
-        >
-          Admin
-        </button>
       </div>
     </div>
   );

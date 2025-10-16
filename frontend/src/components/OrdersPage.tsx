@@ -102,7 +102,25 @@ export function OrdersPage() {
     // Luxury watch close-up
     "https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=1200&q=80&auto=format&fit=crop",
     // Headphones / electronics lifestyle
-    "https://iphonethanhnhan.vn/upload/product/iphone-17-pro-max-6-9245.jpg"
+    "https://iphonethanhnhan.vn/upload/product/iphone-17-pro-max-6-9245.jpg",
+    // Bags
+    "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&q=80&auto=format&fit=crop",
+    // Sneakers
+    "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1200&q=80&auto=format&fit=crop",
+    // Jewelry
+    "https://www.explorerealm.com/cdn/shop/files/Luxurious_Jewelry_for_surprisingly_less_from_REALM_081122-193_RT_banner.jpg?v=1660685265&width=5760",
+    // Handbag red
+    "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=1200&q=80&auto=format&fit=crop",
+    // Camera
+    "https://kyma.vn/cdn-cgi/imagedelivery/ZeGtsGSjuQe1P3UP_zk3fQ/75bef658-3b0d-466f-7df0-b9227c548d00/storedata",
+    // Laptop
+    "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=1200&q=80&auto=format&fit=crop",
+    // Gaming console
+    "https://cellphones.com.vn/sforum/wp-content/uploads/2023/03/game-console-2.jpg",
+    // Fashion watch
+    "https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=1200&q=80&auto=format&fit=crop",
+    // Headphones alt
+    "https://hoanghamobile.com/tin-tuc/wp-content/uploads/2023/09/hinh-nen-may-tinh-4k-cong-nghe-4.jpg"
   ];
 
   // Diverse product catalog matching backend (provided list)
@@ -630,7 +648,7 @@ export function OrdersPage() {
 
                     {/* Price - Large Red */}
                     <div className="flex justify-between items-center mb-4">
-                      <span className="text-3xl text-red-600">${selectedProduct.price}</span>
+                      <span className="text-xl sm:text-2xl text-red-600">${selectedProduct.price}</span>
                       <span className="text-sm text-gray-500">x1</span>
                     </div>
 
