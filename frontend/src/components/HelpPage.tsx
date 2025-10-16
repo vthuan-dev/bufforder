@@ -17,6 +17,8 @@ export function HelpPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const partnerTypingRef = useRef<boolean>(false);
+  const typingTimerRef = useRef<number | null>(null);
   const [showQuickReplies, setShowQuickReplies] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const threadIdRef = useRef<string | null>(null);
@@ -101,6 +103,14 @@ export function HelpPage() {
           try { console.log('[client chat:message]', msg); } catch {}
           const img = msg.imageUrl ? (String(msg.imageUrl).startsWith('/') ? `${API_BASE}${msg.imageUrl}` : msg.imageUrl) : undefined;
           setMessages(prev => [...prev, { id: msg._id, text: msg.text || '', imageUrl: img, isUser: msg.senderType === 'user', timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+        });
+        s.on('chat:typing', (evt: any) => {
+          if (evt?.threadId !== threadIdRef.current) return;
+          // Only show when admin is typing (not user)
+          if (evt?.senderType === 'admin') {
+            partnerTypingRef.current = !!evt.typing;
+            setIsTyping(!!evt.typing);
+          }
         });
       } catch {}
     })();
@@ -190,6 +200,20 @@ export function HelpPage() {
     const threadId = threadIdRef.current!;
     // Only socket emit to avoid duplicates (server will broadcast back)
     socketRef.current?.emit('chat:send', { threadId, text: messageText });
+  };
+
+  // Emit typing events while user is composing
+  const handleInputChange = (val: string) => {
+    setInputMessage(val);
+    const threadId = threadIdRef.current;
+    if (!threadId) return;
+    try {
+      socketRef.current?.emit('chat:typing', { threadId, typing: true });
+      if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = window.setTimeout(() => {
+        socketRef.current?.emit('chat:typing', { threadId, typing: false });
+      }, 1200);
+    } catch {}
   };
 
   const handleQuickReply = (reply: string) => {
@@ -388,7 +412,7 @@ export function HelpPage() {
             <input
               type="text"
               value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
+              onChange={(e) => handleInputChange(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
               placeholder="Type your message..."
               className="w-full bg-gray-100 hover:bg-gray-150 focus:bg-white rounded-full px-6 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all border border-transparent focus:border-purple-300"

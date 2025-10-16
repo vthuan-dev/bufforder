@@ -225,6 +225,15 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Typing indicator: broadcast to thread room without persisting
+  socket.on('chat:typing', ({ threadId, typing }) => {
+    try {
+      if (!threadId) return;
+      const senderType = socket.data.role === 'admin' ? 'admin' : 'user';
+      io.to(`thread:${threadId}`).emit('chat:typing', { threadId, typing: !!typing, senderType });
+    } catch {}
+  });
+
   socket.on('disconnect', () => {
     if (socket.data.role === 'user' && socket.data.userId) {
       const uid = String(socket.data.userId);

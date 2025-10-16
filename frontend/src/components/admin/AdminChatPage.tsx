@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { Search, Send, Paperclip, MoreVertical, User, Clock } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
@@ -34,6 +35,8 @@ export function AdminChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageInput, setMessageInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [typingHeader, setTypingHeader] = useState<boolean>(false);
+  const [isTypingUser, setIsTypingUser] = useState<boolean>(false);
   const socketRef = useRef<Socket | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const selectedThreadIdRef = useRef<string | null>(null);
@@ -42,6 +45,8 @@ export function AdminChatPage() {
   const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
   const soundEnabledRef = useRef<boolean>(false);
   const prevUnreadRef = useRef<number>(0);
+  const partnerTypingRef = useRef<boolean>(false);
+  const typingTimerRef = useRef<number | null>(null);
 
   // Restore sound preference
   useEffect(() => {
@@ -121,6 +126,18 @@ export function AdminChatPage() {
         if (!currentId || String(msg.threadId) !== String(currentId)) return;
         const img = msg.imageUrl ? (String(msg.imageUrl).startsWith('/') ? `${API_BASE}${msg.imageUrl}` : msg.imageUrl) : undefined;
         setMessages(prev => [...prev, { id: Date.now(), sender: msg.senderType === 'admin' ? 'admin' : 'user', text: msg.text || '', imageUrl: img, timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), isRead: true }]);
+      });
+      s.on('chat:typing', (evt: any) => {
+        if (!selectedThreadIdRef.current || String(evt?.threadId) !== String(selectedThreadIdRef.current)) return;
+        // Show typing when user is typing
+        if (evt?.senderType === 'user') {
+          partnerTypingRef.current = !!evt.typing;
+          // We don't have a separate UI state here; re-render via setMessages noop trick if needed
+          // But we'll show typing in header by toggling timestamp text via state below
+          const v = !!evt.typing;
+          setTypingHeader(v);
+          setIsTypingUser(v);
+        }
       });
       s.on('chat:threadUpdated', () => {
         loadThreads();
@@ -208,6 +225,7 @@ export function AdminChatPage() {
     // IMPORTANT: avoid REST call here to prevent duplicate messages
     socketRef.current?.emit('chat:send', { threadId, text: messageInput });
     setMessageInput("");
+    try { socketRef.current?.emit('chat:typing', { threadId, typing: false }); } catch {}
   };
 
   const handlePickImage = () => {
@@ -346,7 +364,7 @@ export function AdminChatPage() {
                 </div>
                 <div>
                   <p className="text-gray-900">{selectedThread.user.name}</p>
-                  <p className="text-sm text-gray-500">{selectedThread.user.email}</p>
+                  <p className="text-sm text-gray-500">{typingHeader ? 'Typing…' : selectedThread.user.email}</p>
                   {selectedThread.userIp && (
                     <p className="text-xs text-gray-400">IP: {selectedThread.userIp}</p>
                   )}
@@ -394,6 +412,28 @@ export function AdminChatPage() {
                     })()}
                   </div>
                 ))}
+                {/* Typing indicator from user */}
+                <AnimatePresence>
+                  {isTypingUser && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="flex justify-start"
+                    >
+                      <div className="bg-gray-100 text-gray-900 rounded-2xl rounded-bl-sm px-4 py-2 inline-flex items-center gap-1">
+                        {[0,1,2].map((i) => (
+                          <motion.span
+                            key={i}
+                            animate={{ y: [0, -6, 0] }}
+                            transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
+                            className="w-2 h-2 bg-gray-400 rounded-full"
+                          />
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
 
@@ -407,7 +447,18 @@ export function AdminChatPage() {
                 <div className="flex-1">
                   <textarea
                     value={messageInput}
-                    onChange={(e) => setMessageInput(e.target.value)}
+                    onChange={(e) => {
+                      setMessageInput(e.target.value);
+                      const tid = selectedThreadIdRef.current || selectedThread?.id;
+                      if (!tid) return;
+                      try {
+                        socketRef.current?.emit('chat:typing', { threadId: tid, typing: true });
+                        if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
+                        typingTimerRef.current = window.setTimeout(() => {
+                          socketRef.current?.emit('chat:typing', { threadId: tid, typing: false });
+                        }, 1200);
+                      } catch {}
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
