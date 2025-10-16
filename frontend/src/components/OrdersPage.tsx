@@ -318,35 +318,35 @@ export function OrdersPage() {
 
       {/* Stats Grid with images */}
       <div className="px-6 py-6 space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           {/* Earned commission */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col items-center text-center">
-            <img src={imgEarned} alt="Earned commission" className="w-48 h-48 object-contain mb-2" />
+          <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex flex-col items-center text-center">
+            <img src={imgEarned} alt="Earned commission" className="w-24 h-24 object-contain mb-1" />
             <p className="text-xs text-gray-600">Earned commission</p>
-            <p className="text-xl text-red-500 mt-1">{dailyCommission.toFixed(2)}$</p>
+            <p className="text-lg text-red-500 mt-1">{dailyCommission.toFixed(2)}$</p>
           </div>
 
           {/* Available balance */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col items-center text-center">
-            <img src={imgAvailable} alt="Available balance" className="w-48 h-48 object-contain mb-2" />
+          <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex flex-col items-center text-center">
+            <img src={imgAvailable} alt="Available balance" className="w-24 h-24 object-contain mb-1" />
             <p className="text-xs text-gray-600">Available balance</p>
-            <p className="text-xl text-red-500 mt-1">{availableBalance.toFixed(2)}$</p>
+            <p className="text-lg text-red-500 mt-1">{availableBalance.toFixed(2)}$</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           {/* Today's task */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col items-center text-center">
-            <img src={imgToday} alt="Today's task" className="w-48 h-48 object-contain mb-2" />
+          <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex flex-col items-center text-center">
+            <img src={imgToday} alt="Today's task" className="w-24 h-24 object-contain mb-1" />
             <p className="text-xs text-gray-600">Today's task</p>
-            <p className="text-xl text-red-500 mt-1">{todaysTask.toFixed(2)}</p>
+            <p className="text-lg text-red-500 mt-1">{todaysTask.toFixed(2)}</p>
           </div>
 
           {/* Completed today */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col items-center text-center">
-            <img src={imgCompleted} alt="Completed today" className="w-48 h-48 object-contain mb-2" />
+          <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex flex-col items-center text-center">
+            <img src={imgCompleted} alt="Completed today" className="w-24 h-24 object-contain mb-1" />
             <p className="text-xs text-gray-600">Completed today</p>
-            <p className="text-xl text-red-500 mt-1">{completedToday}</p>
+            <p className="text-lg text-red-500 mt-1">{completedToday}</p>
           </div>
         </div>
 
@@ -497,7 +497,13 @@ export function OrdersPage() {
   );
 
   return (
-    <div className="pb-20 bg-gray-50 min-h-screen">
+    <div id="orders-root" className="pb-20 bg-gray-50 min-h-screen">
+      <style>{`
+        #orders-root > div:nth-child(1) > div:nth-child(2) { 
+          transform: scale(0.5);
+          transform-origin: top left;
+        }
+      `}</style>
       <OrdersView />
 
       {/* Order Popup Modal */}
