@@ -200,6 +200,18 @@ useEffect(() => {
           isUser: msg.senderType === 'user', 
           timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
         }]);
+
+        // If message is from admin and user is not on Help tab or tab not focused, bump unread badge
+        try {
+          const activeTab = (typeof localStorage !== 'undefined') ? localStorage.getItem('client:activeBottomTab') : 'home';
+          const isFocused = (typeof document !== 'undefined') ? !document.hidden : true;
+          if (msg.senderType !== 'user' && (activeTab !== 'help' || !isFocused)) {
+            const current = Number(localStorage.getItem('client:helpUnread') || '0') || 0;
+            const next = current + 1;
+            try { localStorage.setItem('client:helpUnread', String(next)); } catch {}
+            try { window.dispatchEvent(new CustomEvent('client:chatUnreadUpdated', { detail: next })); } catch {}
+          }
+        } catch {}
       });
       
       s.on('chat:typing', (evt: any) => {
@@ -271,6 +283,8 @@ useEffect(() => {
     // DON'T remove the threadId from localStorage - keep it for next time
     // Only clear the active marker and disconnect socket
     try { localStorage.removeItem('client:activeThreadId'); } catch {}
+    // Clear unread when leaving Help page
+    try { localStorage.setItem('client:helpUnread', '0'); window.dispatchEvent(new CustomEvent('client:chatUnreadUpdated', { detail: 0 })); } catch {}
     socketRef.current?.disconnect();
   };
 }, []);
@@ -435,7 +449,7 @@ useEffect(() => {
               <span>Online • Reply in ~1 min</span>
             </div>
           </div>
-          <button onClick={enableSound} className="ml-auto px-3 py-1.5 text-xs rounded-full bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200">Enable/Test sound</button>
+          {/* <button onClick={enableSound} className="ml-auto px-3 py-1.5 text-xs rounded-full bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200">Enable/Test sound</button> */}
         </div>
       </div>
 

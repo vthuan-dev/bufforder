@@ -42,6 +42,10 @@ export default function App() {
   // Memoized tab change handler
   const handleTabChange = useCallback((tab: string) => {
     setActiveTab(tab);
+    try { localStorage.setItem('client:activeBottomTab', tab); } catch {}
+    if (tab === 'help') {
+      try { localStorage.setItem('client:helpUnread', '0'); window.dispatchEvent(new CustomEvent('client:chatUnreadUpdated', { detail: 0 })); } catch {}
+    }
   }, []);
 
   // Memoized content renderer for better performance

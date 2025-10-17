@@ -1,5 +1,6 @@
 import { Home, FileText, ShoppingBag, HelpCircle, User } from "lucide-react";
 import { motion } from "motion/react";
+import React, { useEffect, useState } from "react";
 
 interface BottomNavProps {
   activeTab: string;
@@ -7,6 +8,16 @@ interface BottomNavProps {
 }
 
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
+  const [helpUnread, setHelpUnread] = useState<number>(0);
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      const n = Number(e?.detail || 0);
+      if (!isNaN(n)) setHelpUnread(n);
+    };
+    window.addEventListener('client:chatUnreadUpdated', handler as any);
+    return () => window.removeEventListener('client:chatUnreadUpdated', handler as any);
+  }, []);
   const tabs = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'record', label: 'Record', icon: FileText },
@@ -74,6 +85,12 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
                       }`}
                       strokeWidth={isActive ? 2.5 : 2}
                     />
+                    {/* Help tab unread badge */}
+                    {tab.id === 'help' && helpUnread > 0 && (
+                      <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center">
+                        {helpUnread > 99 ? '99+' : helpUnread}
+                      </span>
+                    )}
                   </div>
                   
                   {/* Label */}
