@@ -63,6 +63,11 @@ export function OrdersPage() {
           setCompletedToday(Number(stats.data.completedToday || 0));
           setTotalOrdersLimit(Number(stats.data.totalDailyTasks || 0));
           setOrdersReceived(Number(stats.data.ordersGrabbed || 0));
+          // Sync today's earned commission from backend
+          // Backend commissionAmount is full amount, but balance only credits 80%.
+          // UI shows Earned commission = lifetime earnings today (full amount).
+          const earnedToday = Number(stats.data?.dailyEarnings?.totalCommission || 0);
+          setDailyCommission(isNaN(earnedToday) ? 0 : earnedToday);
         }
       } catch {}
 
@@ -206,7 +211,7 @@ export function OrdersPage() {
       // Update UI: count order grabbed; commission updates when admin delivers
       setOrdersReceived((prev) => prev + 1);
 
-      // Refresh stats from api to sync UI (balance, tasks, completed, received)
+      // Refresh stats from api to sync UI (balance, tasks, completed)
       try {
         const stats = await api.userOrderStats();
         if (stats.success) {
@@ -214,7 +219,12 @@ export function OrdersPage() {
           setTodaysTask(Number(stats.data.totalDailyTasks || 0));
           setCompletedToday(Number(stats.data.completedToday || 0));
           setTotalOrdersLimit(Number(stats.data.totalDailyTasks || 0));
-          setOrdersReceived(Number(stats.data.ordersGrabbed || 0));
+          // Do not overwrite optimistic increment; keep the larger value
+          const grabbed = Number(stats.data.ordersGrabbed || 0);
+          setOrdersReceived((prev) => Math.max(prev, grabbed));
+          // Sync today's earned commission after take
+          const earnedToday = Number(stats.data?.dailyEarnings?.totalCommission || 0);
+          setDailyCommission(isNaN(earnedToday) ? 0 : earnedToday);
         }
       } catch {}
 
@@ -271,9 +281,9 @@ export function OrdersPage() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
               {/* Ashford overlay */}
-              <div className="absolute top-4 left-4 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
+              {/* <div className="absolute top-4 left-4 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
                 <span className="text-white text-sm font-medium">Ashford Collection</span>
-              </div>
+              </div> */}
             </motion.div>
           </AnimatePresence>
 
@@ -529,8 +539,8 @@ export function OrdersPage() {
     <div id="orders-root" className="pb-20 bg-gray-50 min-h-screen">
       <style>{`
         #orders-root > div:nth-child(1) > div:nth-child(2) { 
-          transform: scale(0.5);
-          transform-origin: top left;
+          transform: scale(0.2) !important;
+          transform-origin: top left;     
         }
       `}</style>
       <OrdersView />

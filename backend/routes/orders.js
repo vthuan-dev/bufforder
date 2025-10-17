@@ -74,6 +74,20 @@ router.get('/stats', authenticateToken, async (req, res) => {
     }
     const numberOfOrders = vipLevel && vipLevel.numberOfOrders ? vipLevel.numberOfOrders : 100;
 
+    // Today's earned commission and order count from user's dailyEarnings
+    const todayKey = getDateKey();
+    const isToday = user.dailyEarnings && user.dailyEarnings.dateKey === todayKey;
+    const dailyEarningsToday = {
+      totalCommission: isToday ? Number(user.dailyEarnings.totalCommission || 0) : 0,
+      ordersCount: isToday ? Number(user.dailyEarnings.ordersCount || 0) : 0,
+      targetTotal: isToday ? Number(user.dailyEarnings.targetTotal || 0) : 0,
+      mode: isToday ? (user.dailyEarnings.mode || 'auto') : 'auto',
+      dateKey: todayKey
+    };
+
+    // Count of all orders taken today (any status)
+    const ordersGrabbedCount = todayOrders.length;
+
     res.json({
       success: true,
       data: {
@@ -81,13 +95,14 @@ router.get('/stats', authenticateToken, async (req, res) => {
         balance: user.balance,
         freezeBalance: user.freezeBalance,
         totalDailyTasks: numberOfOrders,
-        completedToday: completedOrders.length,
-        // ordersGrabbed reflects number of completed (delivered) orders today to stay in sync with Completed today
-        ordersGrabbed: completedOrders.length,
+        // Align UI: treat "Completed today" as count of orders taken today
+        completedToday: ordersGrabbedCount,
+        // ordersGrabbed reflects number of orders taken today (any status)
+        ordersGrabbed: ordersGrabbedCount,
         vipLevel: user.vipLevel,
         commissionRate: commissionRate,
         commissionConfig: user.commissionConfig,
-        dailyEarnings: user.dailyEarnings
+        dailyEarnings: dailyEarningsToday
       }
     });
   } catch (error) {
@@ -216,7 +231,8 @@ router.post('/take', authenticateToken, async (req, res) => {
       data: {
         newCommission: user.commission,
         newBalance: user.balance,
-        newCompletedToday: completedOrders.length,
+        // Treat "completed today" on the client as orders taken today (any status)
+        newCompletedToday: updatedTodayOrders.length,
         newOrdersGrabbed: updatedTodayOrders.length,
         selectedProduct: {
           productName: randomProduct.name,
