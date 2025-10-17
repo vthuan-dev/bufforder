@@ -22,6 +22,7 @@ export function OrdersPage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showOrderPopup, setShowOrderPopup] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [orderNumber, setOrderNumber] = useState<string>('');
   const [progress, setProgress] = useState(0);
   const [commissionRate, setCommissionRate] = useState<number>(0.002); // default 0.2%
 
@@ -181,6 +182,11 @@ export function OrdersPage() {
         // Random select a product after loading completes
         const randomProduct = products[Math.floor(Math.random() * products.length)];
         setSelectedProduct(randomProduct);
+        // Generate a stable order number for this popup session
+        const ts = Date.now().toString();
+        const suffix = ts.slice(-8);
+        const rand = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        setOrderNumber(`ASH${suffix}${rand}`);
       }
     }, stepDuration);
   };
@@ -225,6 +231,7 @@ export function OrdersPage() {
     setShowOrderPopup(false);
     setSelectedProduct(null);
     setProgress(0);
+    setOrderNumber('');
   };
 
   // Orders View (Full view with products below)
@@ -684,7 +691,7 @@ export function OrdersPage() {
                     <div className="space-y-3 mb-5 text-sm">
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Order Number:</span>
-                        <span className="text-gray-800 font-mono">ASH{Date.now().toString().slice(-8)}{Math.floor(Math.random() * 1000).toString().padStart(3, '0')}</span>
+                        <span className="text-gray-800 font-mono">{orderNumber}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Commission Rate:</span>

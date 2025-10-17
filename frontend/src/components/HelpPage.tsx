@@ -170,26 +170,26 @@ useEffect(() => {
         // 1. Message is from admin (not user)
         // 2. Sound is enabled
         // 3. User is not actively in this conversation (tab not focused/visible)
-        try {
-          const isFocused = (isWindowFocusedRef.current !== false && !document.hidden);
+        // try {
+        //   const isFocused = (isWindowFocusedRef.current !== false && !document.hidden);
 
-          if (msg.senderType !== 'user' && soundEnabledRef.current) {
-            console.log('[client sound debug]', {
-              senderType: msg.senderType,
-              soundEnabled: soundEnabledRef.current,
-              isFocused,
-              windowFocused: isWindowFocusedRef.current,
-              documentHidden: document.hidden
-            });
-            // Only play sound if tab is not focused/visible (user is not actively in conversation)
-            if (!isFocused) {
-              console.log('[client] Playing notification sound - not actively in conversation');
-              playNoti();
-            } else {
-              console.log('[client] Not playing sound - actively in conversation');
-            }
-          }
-        } catch {}
+        //   if (msg.senderType !== 'user' && soundEnabledRef.current) {
+        //     console.log('[client sound debug]', {
+        //       senderType: msg.senderType,
+        //       soundEnabled: soundEnabledRef.current,
+        //       isFocused,
+        //       windowFocused: isWindowFocusedRef.current,
+        //       documentHidden: document.hidden
+        //     });
+        //     // Only play sound if tab is not focused/visible (user is not actively in conversation)
+        //     if (!isFocused) {
+        //       console.log('[client] Playing notification sound - not actively in conversation');
+        //     } else {
+        //       playNoti();
+        //       console.log('[client] Not playing sound - actively in conversation');
+        //     }
+        //   }
+        // } catch {}
         
         try { console.log('[client chat:message]', msg); } catch {}
         const img = msg.imageUrl ? (String(msg.imageUrl).startsWith('/') ? `${API_BASE}${msg.imageUrl}` : msg.imageUrl) : undefined;

@@ -143,7 +143,8 @@ export default function App() {
         }
       } catch {}
       // Play unless user is actively viewing the same thread in Help and focused
-      const shouldPlay = !(isHelpActive && isFocused && isSameActiveThread);
+      const shouldPlay = !(isHelpActive && !isFocused && isSameActiveThread);
+      console.log('shouldPlay', shouldPlay);
       if (shouldPlay) play();
     });
     return () => {
