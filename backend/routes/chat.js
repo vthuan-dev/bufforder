@@ -2,6 +2,7 @@ const express = require('express');
 const ChatThread = require('../models/ChatThread');
 const ChatMessage = require('../models/ChatMessage');
 const { authenticateToken } = require('../middleware/auth');
+const MessageCleanupService = require('../services/messageCleanup');
 const jwt = require('jsonwebtoken');
 const config = require('../config');
 let upload; // cấu hình upload có thể tắt nếu thiếu dependency
@@ -39,7 +40,11 @@ const verifyAdmin = (req, res, next) => {
 // User: open or get existing thread
 router.post('/thread', authenticateToken, async (req, res) => {
   try {
-    let thread = await ChatThread.findOne({ userId: req.userId, status: 'open' });
+    // Always try to reuse the latest thread for this user, regardless of status
+    // This prevents creating a new thread unintentionally which would make history appear missing on client
+    let thread = await ChatThread.findOne({ userId: req.userId })
+      .sort({ updatedAt: -1, lastMessageAt: -1 });
+
     if (!thread) {
       // capture user IP (behind proxies use x-forwarded-for)
       const rawIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString();
@@ -51,6 +56,7 @@ router.post('/thread', authenticateToken, async (req, res) => {
       thread.userIp = ip;
       await thread.save();
     }
+
     res.json({ success: true, data: { threadId: thread._id } });
   } catch (e) {
     console.error('open thread error', e);
@@ -58,12 +64,14 @@ router.post('/thread', authenticateToken, async (req, res) => {
   }
 });
 
-// User: list my messages
+// User: list my messages (excluding deleted ones)
 router.get('/thread/:id/messages', authenticateToken, async (req, res) => {
   try {
     const thread = await ChatThread.findById(req.params.id);
     if (!thread || String(thread.userId) !== String(req.userId)) return res.status(404).json({ success: false, message: 'Thread not found' });
-    const messages = await ChatMessage.find({ threadId: thread._id }).sort({ createdAt: 1 });
+    
+    // Use MessageCleanupService to get messages for user (excluding deleted ones)
+    const messages = await MessageCleanupService.getMessagesForUser(thread._id);
     res.json({ success: true, data: { messages } });
   } catch (e) {
     console.error('list messages error', e);
@@ -120,10 +128,11 @@ router.get('/admin/threads', verifyAdmin, async (req, res) => {
   }
 });
 
-// Admin: list messages in thread
+// Admin: list messages in thread (including all messages)
 router.get('/admin/threads/:id/messages', verifyAdmin, async (req, res) => {
   try {
-    const messages = await ChatMessage.find({ threadId: req.params.id }).sort({ createdAt: 1 });
+    // Use MessageCleanupService to get messages for admin (including all messages)
+    const messages = await MessageCleanupService.getMessagesForAdmin(req.params.id);
     res.json({ success: true, data: { messages } });
   } catch (e) {
     console.error('admin list messages error', e);
@@ -233,6 +242,18 @@ router.get('/admin/users/by-phone/:phone', verifyAdmin, async (req, res) => {
     res.json({ success: true, data: { user } });
   } catch (e) {
     console.error('admin get user by phone error', e);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Admin: manually delete messages for a user
+router.post('/admin/users/:userId/delete-messages', verifyAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const result = await MessageCleanupService.deleteMessagesForUser(userId);
+    res.json({ success: true, data: { deletedCount: result.modifiedCount } });
+  } catch (e) {
+    console.error('admin delete user messages error', e);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });

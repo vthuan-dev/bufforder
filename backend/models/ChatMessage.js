@@ -8,7 +8,12 @@ const chatMessageSchema = new mongoose.Schema(
     text: { type: String, default: '' },
     imageUrl: { type: String, default: '' },
     readByAdmin: { type: Boolean, default: false },
-    readByUser: { type: Boolean, default: false }
+    readByUser: { type: Boolean, default: false },
+    // Message retention fields
+    isDeletedForUser: { type: Boolean, default: false },
+    deletedForUserAt: { type: Date, default: null },
+    isDeletedForAdmin: { type: Boolean, default: false },
+    deletedForAdminAt: { type: Date, default: null }
   },
   { timestamps: true }
 );

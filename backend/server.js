@@ -4,6 +4,7 @@ const cors = require('cors');
 const config = require('./config');
 const http = require('http');
 const { Server } = require('socket.io');
+const MessageCleanupService = require('./services/messageCleanup');
 
 const { verifyToken } = require('./middleware/auth');
 const Admin = require('./models/Admin');
@@ -285,4 +286,15 @@ server.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
   console.log(`📱 Frontend URL: http://localhost:3000`);
   console.log(`🔗 API URL: http://localhost:${PORT}/api`);
+  
+  // Start message cleanup service
+  const cleanupService = new MessageCleanupService();
+  cleanupService.start();
+  
+  // Graceful shutdown
+  process.on('SIGINT', () => {
+    console.log('\n🛑 Shutting down server...');
+    cleanupService.stop();
+    process.exit(0);
+  });
 });

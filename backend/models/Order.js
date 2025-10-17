@@ -6,6 +6,17 @@ const orderSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  orderNumber: {
+    type: String,
+    required: true,
+    unique: true,
+    default: function() {
+      // Generate order number: ASH + timestamp + random 3 digits
+      const timestamp = Date.now().toString();
+      const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+      return `ASH${timestamp.slice(-8)}${random}`;
+    }
+  },
   productId: {
     type: Number,
     required: true

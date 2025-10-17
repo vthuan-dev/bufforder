@@ -124,14 +124,31 @@ export function AdminChatPage() {
       s.on('connect', () => {});
       s.on('chat:message', (msg: any) => {
         const currentId = selectedThreadIdRef.current;
-        // Play sound for any incoming user message
+        // Play sound for any incoming user message only when:
+        // 1. Not from admin
+        // 2. Sound is enabled
+        // 3. NOT viewing the same thread (user is not in the conversation)
         try {
           if (msg.senderType !== 'admin' && soundEnabledRef.current) {
             const sameThread = currentId && String(msg.threadId) === String(currentId);
             const isFocused = isWindowFocusedRef.current && !document.hidden;
-            if (!sameThread || !isFocused) {
+            console.log('[admin sound debug]', {
+              senderType: msg.senderType,
+              soundEnabled: soundEnabledRef.current,
+              sameThread,
+              isFocused,
+              windowFocused: isWindowFocusedRef.current,
+              documentHidden: document.hidden,
+              currentThreadId: currentId,
+              messageThreadId: msg.threadId
+            });
+            // Only play sound if: NOT the same thread (user is not in this conversation)
+            if (!sameThread) {
+              console.log('[admin] Playing notification sound - not in this conversation');
               const a = audioRef.current;
               if (a) { a.currentTime = 0; a.volume = 1; a.play().catch(() => {}); }
+            } else {
+              console.log('[admin] Not playing sound - currently in this conversation');
             }
           }
         } catch {}
@@ -182,6 +199,7 @@ export function AdminChatPage() {
         const currentId = selectedThreadIdRef.current;
         const sameThread = updatedThreadId && currentId && String(updatedThreadId) === String(currentId);
         const isFocused = isWindowFocusedRef.current && !document.hidden;
+        // Only play sound if: not same thread OR tab not focused
         if (!sameThread || !isFocused) {
           const a = audioRef.current; if (a) { a.currentTime = 0; a.play().catch(() => {}); }
         }

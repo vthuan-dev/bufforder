@@ -154,11 +154,11 @@ export function OrdersPage() {
     image: p.image,
   }));
 
-  // Auto-rotate carousel
+  // Auto-rotate carousel with performance optimization
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % carouselImages.length);
-    }, 5000);
+    }, 4000); // Reduced from 5000ms to 4000ms for faster rotation
     return () => clearInterval(interval);
   }, [carouselImages.length]);
 
@@ -166,15 +166,15 @@ export function OrdersPage() {
     setShowOrderPopup(true);
     setProgress(0);
     
-    // Animate progress from 0 to 100%
-    const duration = 3000; // 3 seconds
-    const steps = 100;
+    // Optimized progress animation - faster and smoother
+    const duration = 2000; // Reduced from 3000ms to 2000ms
+    const steps = 50; // Reduced steps for better performance
     const stepDuration = duration / steps;
     
     let currentStep = 0;
     const interval = setInterval(() => {
-      currentStep++;
-      setProgress(currentStep);
+      currentStep += 2; // Increment by 2 for faster progress
+      setProgress(Math.min(currentStep, 100));
       
       if (currentStep >= 100) {
         clearInterval(interval);
@@ -230,16 +230,31 @@ export function OrdersPage() {
   // Orders View (Full view with products below)
   const OrdersView = () => (
     <>
+      {/* Header */}
+      <div className="bg-white px-6 pt-4 pb-4 border-b border-gray-100">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-center"
+        >
+          <img 
+            src={new URL("../assets/image.png", import.meta.url).toString()}
+            alt="Ashford Logo" 
+            className="h-8 w-auto"
+          />
+        </motion.div>
+      </div>
+
       {/* Carousel */}
       <div className="px-6 pt-6">
         <div className="relative rounded-3xl overflow-hidden shadow-2xl">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentSlide}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
+              initial={{ opacity: 0, scale: 1.05 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
               className="relative h-56"
             >
               <ImageWithFallback
@@ -248,6 +263,10 @@ export function OrdersPage() {
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+              {/* Ashford overlay */}
+              <div className="absolute top-4 left-4 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
+                <span className="text-white text-sm font-medium">Ashford Collection</span>
+              </div>
             </motion.div>
           </AnimatePresence>
 
@@ -379,11 +398,14 @@ export function OrdersPage() {
       {/* Products Grid at bottom */}
       <div className="px-6 pb-6">
         <div className="grid grid-cols-2 gap-4">
-          {products.map((product) => (
+          {products.map((product, index) => (
             <motion.div
               key={product.id}
-              whileHover={{ y: -4 }}
-              className="bg-white rounded-2xl overflow-hidden shadow-md border border-gray-100"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1, duration: 0.3 }}
+              whileHover={{ y: -6, scale: 1.02 }}
+              className="bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300"
             >
               {/* Product Image */}
               <div className="relative aspect-square bg-gray-100">
@@ -423,17 +445,17 @@ export function OrdersPage() {
   const ProductsView = () => (
     <>
       {/* Header */}
-      <div className="bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 text-white px-6 pt-8 pb-8 rounded-b-[2rem]">
+      <div className="bg-white px-6 pt-4 pb-4 border-b border-gray-100">
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center"
+          className="flex items-center justify-center"
         >
-          <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full mb-2">
-            <ShoppingBag className="w-5 h-5" />
-            <h1 className="text-lg">Available Products</h1>
-          </div>
-          <p className="text-sm text-white/90">Choose products to complete orders</p>
+          <img 
+            src={new URL("../assets/image.png", import.meta.url).toString()}
+            alt="Ashford Logo" 
+            className="h-8 w-auto"
+          />
         </motion.div>
       </div>
 
@@ -523,26 +545,26 @@ export function OrdersPage() {
               <motion.div
                 initial={{ 
                   opacity: 0, 
-                  scale: 0.5,
-                  rotateY: -180
+                  scale: 0.8,
+                  y: 50
                 }}
                 animate={{ 
                   opacity: 1, 
                   scale: 1,
-                  rotateY: 0
+                  y: 0
                 }}
                 exit={{ 
                   opacity: 0, 
-                  scale: 0.5,
-                  rotateY: 180
+                  scale: 0.8,
+                  y: 50
                 }}
                 transition={{ 
                   type: "spring",
-                  stiffness: 200,
-                  damping: 20
+                  stiffness: 300,
+                  damping: 25,
+                  duration: 0.3
                 }}
                 className="bg-white rounded-3xl shadow-2xl max-w-[340px] w-full overflow-hidden relative"
-                style={{ perspective: "1000px" }}
               >
                 {!selectedProduct ? (
                   // Loading State
@@ -662,7 +684,7 @@ export function OrdersPage() {
                     <div className="space-y-3 mb-5 text-sm">
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Order Number:</span>
-                        <span className="text-gray-800">OR{Date.now().toString().slice(-12)}</span>
+                        <span className="text-gray-800 font-mono">ASH{Date.now().toString().slice(-8)}{Math.floor(Math.random() * 1000).toString().padStart(3, '0')}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Commission Rate:</span>

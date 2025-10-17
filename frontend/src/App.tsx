@@ -1,15 +1,24 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, lazy, Suspense, useCallback, useMemo } from 'react';
 import { BottomNav } from './components/BottomNav';
-import { HomePage } from './components/HomePage';
-import { OrdersPage } from './components/OrdersPage';
-import { RecordPage } from './components/RecordPage';
-import { HelpPage } from './components/HelpPage';
-import { MyPage } from './components/MyPage';
-import { LoginPage } from './components/LoginPage';
-import { RegisterPage } from './components/RegisterPage';
-import { AdminApp } from './components/admin/AdminApp';
 import { Toaster } from './components/ui/sonner';
 import { io, Socket } from 'socket.io-client';
+
+// Lazy load components for better performance
+const HomePage = lazy(() => import('./components/HomePage').then(module => ({ default: module.HomePage })));
+const OrdersPage = lazy(() => import('./components/OrdersPage').then(module => ({ default: module.OrdersPage })));
+const RecordPage = lazy(() => import('./components/RecordPage').then(module => ({ default: module.RecordPage })));
+const HelpPage = lazy(() => import('./components/HelpPage').then(module => ({ default: module.HelpPage })));
+const MyPage = lazy(() => import('./components/MyPage').then(module => ({ default: module.MyPage })));
+const LoginPage = lazy(() => import('./components/LoginPage').then(module => ({ default: module.LoginPage })));
+const RegisterPage = lazy(() => import('./components/RegisterPage').then(module => ({ default: module.RegisterPage })));
+const AdminApp = lazy(() => import('./components/admin/AdminApp').then(module => ({ default: module.AdminApp })));
+
+// Loading component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-[400px]">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+  </div>
+);
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
@@ -20,6 +29,77 @@ export default function App() {
   const clientSocketRef = useRef<Socket | null>(null);
   const clientAudioRef = useRef<HTMLAudioElement | null>(null);
   const focusRef = useRef<boolean>(typeof document !== 'undefined' ? !document.hidden : true);
+
+  // All hooks must be called before any conditional returns
+  const handleLogin = useCallback(() => {
+    setIsAuthenticated(true);
+  }, []);
+
+  const handleRegister = useCallback(() => {
+    setIsAuthenticated(true);
+  }, []);
+
+  // Memoized tab change handler
+  const handleTabChange = useCallback((tab: string) => {
+    setActiveTab(tab);
+  }, []);
+
+  // Memoized content renderer for better performance
+  const renderContent = useCallback(() => {
+    const content = (() => {
+      switch (activeTab) {
+        case 'home':
+          return <HomePage bannerImage={bannerImage} />;
+        case 'orders':
+          return <OrdersPage />;
+        case 'record':
+          return <RecordPage />;
+        case 'help':
+          return <HelpPage />;
+        case 'my':
+          return <MyPage />;
+        default:
+          return <HomePage bannerImage={bannerImage} />;
+      }
+    })();
+
+    return (
+      <Suspense fallback={<PageLoader />}>
+        {content}
+      </Suspense>
+    );
+  }, [activeTab, bannerImage]);
+
+  // Memoized admin mode
+  const adminModeContent = useMemo(() => (
+    <Suspense fallback={<PageLoader />}>
+      <AdminApp />
+    </Suspense>
+  ), []);
+
+  // Memoized auth screens
+  const authContent = useMemo(() => {
+    if (authView === 'login') {
+      return (
+        <Suspense fallback={<PageLoader />}>
+          <LoginPage
+            onLogin={handleLogin}
+            onSwitchToRegister={() => setAuthView('register')}
+            onSwitchToAdmin={() => setIsAdminMode(true)}
+          />
+        </Suspense>
+      );
+    } else {
+      return (
+        <Suspense fallback={<PageLoader />}>
+          <RegisterPage
+            onRegister={handleRegister}
+            onSwitchToLogin={() => setAuthView('login')}
+          />
+        </Suspense>
+      );
+    }
+  }, [authView, handleLogin, handleRegister]);
 
   // Admin mode: auto-enable when visiting /admin
   useEffect(() => {
@@ -51,10 +131,20 @@ export default function App() {
       if (a) { a.currentTime = 0; a.volume = 1; a.play().catch(() => {}); }
     };
     s.on('chat:threadUpdated', (evt: any) => {
-      // If user is not on Help tab or tab hidden, play
+      // Suppress sound only when: user is on Help tab, tab focused, and
+      // currently viewing the same thread as the event threadId
       const isHelpActive = activeTab === 'help';
       const isFocused = focusRef.current && !document.hidden;
-      if (!isHelpActive || !isFocused) play();
+      let isSameActiveThread = false;
+      try {
+        const activeThreadId = localStorage.getItem('client:activeThreadId');
+        if (activeThreadId && evt?.threadId) {
+          isSameActiveThread = String(activeThreadId) === String(evt.threadId);
+        }
+      } catch {}
+      // Play unless user is actively viewing the same thread in Help and focused
+      const shouldPlay = !(isHelpActive && isFocused && isSameActiveThread);
+      if (shouldPlay) play();
     });
     return () => {
       s.disconnect();
@@ -64,36 +154,11 @@ export default function App() {
     };
   }, [isAdminMode, isAuthenticated, activeTab]);
 
-  const handleLogin = () => {
-    setIsAuthenticated(true);
-  };
-
-  const handleRegister = () => {
-    setIsAuthenticated(true);
-  };
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'home':
-        return <HomePage bannerImage={bannerImage} />;
-      case 'orders':
-        return <OrdersPage />;
-      case 'record':
-        return <RecordPage />;
-      case 'help':
-        return <HelpPage />;
-      case 'my':
-        return <MyPage />;
-      default:
-        return <HomePage bannerImage={bannerImage} />;
-    }
-  };
-
   // Admin Mode
   if (isAdminMode) {
     return (
       <>
-        <AdminApp />
+        {adminModeContent}
         <Toaster position="top-right" />
       </>
     );
@@ -101,22 +166,7 @@ export default function App() {
 
   // Show auth screens if not authenticated
   if (!isAuthenticated) {
-    if (authView === 'login') {
-      return (
-        <LoginPage
-          onLogin={handleLogin}
-          onSwitchToRegister={() => setAuthView('register')}
-          onSwitchToAdmin={() => setIsAdminMode(true)}
-        />
-      );
-    } else {
-      return (
-        <RegisterPage
-          onRegister={handleRegister}
-          onSwitchToLogin={() => setAuthView('login')}
-        />
-      );
-    }
+    return authContent;
   }
 
   return (
@@ -124,8 +174,7 @@ export default function App() {
       <div className="max-w-md mx-auto bg-white min-h-screen shadow-2xl relative">
         <audio ref={clientAudioRef} src={new URL('./assets/sound/noti.mp3', import.meta.url).toString()} preload="auto" />
         {renderContent()}
-        <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
-        
+        <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
       </div>
     </div>
   );
