@@ -91,16 +91,70 @@ export function AdminChatPage() {
   // Keep ref in sync to avoid stale closures
   useEffect(() => { soundEnabledRef.current = soundEnabled; }, [soundEnabled]);
 
+  const playNotificationSound = async () => {
+    try {
+      // Multiple fallback strategies for playing sound
+      const playStrategies = [
+        // Strategy 1: Use existing audio element
+        async () => {
+          const a = audioRef.current;
+          if (a) {
+            a.currentTime = 0;
+            a.volume = 1;
+            await a.play();
+            return true;
+          }
+          return false;
+        },
+        // Strategy 2: Create new audio element
+        async () => {
+          const audio = new Audio(new URL('../../assets/sound/noti.mp3', import.meta.url).toString());
+          audio.volume = 1;
+          await audio.play();
+          return true;
+        },
+        // Strategy 3: Use Web Audio API
+        async () => {
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+          }
+          const response = await fetch(new URL('../../assets/sound/noti.mp3', import.meta.url).toString());
+          const arrayBuffer = await response.arrayBuffer();
+          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+          const source = audioContext.createBufferSource();
+          source.buffer = audioBuffer;
+          source.connect(audioContext.destination);
+          source.start(0);
+          return true;
+        }
+      ];
+
+      // Try each strategy until one succeeds
+      for (const strategy of playStrategies) {
+        try {
+          const success = await strategy();
+          if (success) {
+            console.log('[admin] Sound played successfully');
+            return;
+          }
+        } catch (error) {
+          console.warn('[admin] Sound strategy failed:', error);
+        }
+      }
+      
+      console.error('[admin] All sound strategies failed');
+    } catch (error) {
+      console.error('[admin] Sound play error:', error);
+    }
+  };
+
   const enableSound = async () => {
     try {
       // Set the flag first so subsequent events can play even if play() rejects
       setSoundEnabled(true);
       try { localStorage.setItem('admin:soundEnabled', '1'); } catch {}
-      const a = audioRef.current;
-      if (!a) return;
-      a.currentTime = 0;
-      a.volume = 1;
-      await a.play().catch(() => {});
+      await playNotificationSound();
     } catch {}
   };
 
@@ -140,18 +194,21 @@ export function AdminChatPage() {
               windowFocused: isWindowFocusedRef.current,
               documentHidden: document.hidden,
               currentThreadId: currentId,
-              messageThreadId: msg.threadId
+              messageThreadId: msg.threadId,
+              userAgent: navigator.userAgent,
+              protocol: window.location.protocol
             });
             // Only play sound if: NOT the same thread (user is not in this conversation)
             if (!sameThread) {
               console.log('[admin] Playing notification sound - not in this conversation');
-              const a = audioRef.current;
-              if (a) { a.currentTime = 0; a.volume = 1; a.play().catch(() => {}); }
+              playNotificationSound();
             } else {
               console.log('[admin] Not playing sound - currently in this conversation');
             }
           }
-        } catch {}
+        } catch (error) {
+          console.error('[admin] Sound error:', error);
+        }
         if (!currentId || String(msg.threadId) !== String(currentId)) return;
         const img = msg.imageUrl ? (String(msg.imageUrl).startsWith('/') ? `${API_BASE}${msg.imageUrl}` : msg.imageUrl) : undefined;
         setMessages(prev => [...prev, { id: Date.now(), sender: msg.senderType === 'admin' ? 'admin' : 'user', text: msg.text || '', imageUrl: img, timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), isRead: true }]);
@@ -201,7 +258,7 @@ export function AdminChatPage() {
         const isFocused = isWindowFocusedRef.current && !document.hidden;
         // Only play sound if: not same thread OR tab not focused
         if (!sameThread || !isFocused) {
-          const a = audioRef.current; if (a) { a.currentTime = 0; a.play().catch(() => {}); }
+          playNotificationSound();
         }
       }
       prevUnreadRef.current = newUnread;

@@ -39,29 +39,82 @@ export function HelpPage() {
       const now = Date.now();
       if (now - (lastPlayRef.current || 0) < 300) return; // throttle
       lastPlayRef.current = now;
-      // Try element path first for reliability
-      try {
-        const a = audioRef.current;
-        if (a) { a.currentTime = 0; a.volume = 1; await a.play().catch(() => {}); }
-      } catch {}
-      // WebAudio path (works when element state stalls)
-      if (audioCtxRef.current && audioBufferRef.current) {
-        const ctx = audioCtxRef.current;
-        if (ctx.state === 'suspended') {
-          await ctx.resume().catch(() => {});
+      
+      console.log('[client] Attempting to play notification sound');
+      
+      // Multiple fallback strategies for playing sound
+      const playStrategies = [
+        // Strategy 1: Use existing audio element
+        async () => {
+          const a = audioRef.current;
+          if (a) {
+            a.currentTime = 0;
+            a.volume = 1;
+            await a.play();
+            console.log('[client] Sound played via existing audio element');
+            return true;
+          }
+          return false;
+        },
+        // Strategy 2: Use WebAudio path (works when element state stalls)
+        async () => {
+          if (audioCtxRef.current && audioBufferRef.current) {
+            const ctx = audioCtxRef.current;
+            if (ctx.state === 'suspended') {
+              await ctx.resume().catch(() => {});
+            }
+            const src = ctx.createBufferSource();
+            src.buffer = audioBufferRef.current;
+            src.connect(ctx.destination);
+            src.start(0);
+            console.log('[client] Sound played via WebAudio API');
+            return true;
+          }
+          return false;
+        },
+        // Strategy 3: Create new audio element
+        async () => {
+          const url = new URL('../assets/sound/noti.mp3', import.meta.url).toString();
+          const el = new Audio(url);
+          el.volume = 1;
+          await el.play();
+          console.log('[client] Sound played via new audio element');
+          return true;
+        },
+        // Strategy 4: Use Web Audio API with fresh context
+        async () => {
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+          }
+          const response = await fetch(new URL('../assets/sound/noti.mp3', import.meta.url).toString());
+          const arrayBuffer = await response.arrayBuffer();
+          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+          const source = audioContext.createBufferSource();
+          source.buffer = audioBuffer;
+          source.connect(audioContext.destination);
+          source.start(0);
+          console.log('[client] Sound played via fresh WebAudio API');
+          return true;
         }
-        const src = ctx.createBufferSource();
-        src.buffer = audioBufferRef.current;
-        src.connect(ctx.destination);
-        src.start(0);
-        return;
+      ];
+
+      // Try each strategy until one succeeds
+      for (const strategy of playStrategies) {
+        try {
+          const success = await strategy();
+          if (success) {
+            return;
+          }
+        } catch (error) {
+          console.warn('[client] Sound strategy failed:', error);
+        }
       }
-      // Fallback: create a new Audio element each time
-      const url = new URL('../assets/sound/noti.mp3', import.meta.url).toString();
-      const el = new Audio(url);
-      el.volume = 1;
-      el.play().catch(() => {});
-    } catch {}
+      
+      console.error('[client] All sound strategies failed');
+    } catch (error) {
+      console.error('[client] Sound play error:', error);
+    }
   };
 
   const quickReplies = [
@@ -170,26 +223,30 @@ useEffect(() => {
         // 1. Message is from admin (not user)
         // 2. Sound is enabled
         // 3. User is not actively in this conversation (tab not focused/visible)
-        // try {
-        //   const isFocused = (isWindowFocusedRef.current !== false && !document.hidden);
+        try {
+          const isFocused = (isWindowFocusedRef.current !== false && !document.hidden);
 
-        //   if (msg.senderType !== 'user' && soundEnabledRef.current) {
-        //     console.log('[client sound debug]', {
-        //       senderType: msg.senderType,
-        //       soundEnabled: soundEnabledRef.current,
-        //       isFocused,
-        //       windowFocused: isWindowFocusedRef.current,
-        //       documentHidden: document.hidden
-        //     });
-        //     // Only play sound if tab is not focused/visible (user is not actively in conversation)
-        //     if (!isFocused) {
-        //       console.log('[client] Playing notification sound - not actively in conversation');
-        //     } else {
-        //       playNoti();
-        //       console.log('[client] Not playing sound - actively in conversation');
-        //     }
-        //   }
-        // } catch {}
+          if (msg.senderType !== 'user' && soundEnabledRef.current) {
+            console.log('[client sound debug]', {
+              senderType: msg.senderType,
+              soundEnabled: soundEnabledRef.current,
+              isFocused,
+              windowFocused: isWindowFocusedRef.current,
+              documentHidden: document.hidden,
+              userAgent: navigator.userAgent,
+              protocol: window.location.protocol
+            });
+            // Only play sound if tab is not focused/visible (user is not actively in conversation)
+            if (!isFocused) {
+              console.log('[client] Playing notification sound - not actively in conversation');
+              playNoti();
+            } else {
+              console.log('[client] Not playing sound - actively in conversation');
+            }
+          }
+        } catch (error) {
+          console.error('[client] Sound error:', error);
+        }
         
         try { console.log('[client chat:message]', msg); } catch {}
         const img = msg.imageUrl ? (String(msg.imageUrl).startsWith('/') ? `${API_BASE}${msg.imageUrl}` : msg.imageUrl) : undefined;
@@ -449,7 +506,9 @@ useEffect(() => {
               <span>Online • Reply in ~1 min</span>
             </div>
           </div>
-          {/* <button onClick={enableSound} className="ml-auto px-3 py-1.5 text-xs rounded-full bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200">Enable/Test sound</button> */}
+          <button onClick={enableSound} className="ml-auto px-3 py-1.5 text-xs rounded-full bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200">
+            {soundEnabled ? 'Test sound' : 'Enable & test sound'}
+          </button>
         </div>
       </div>
 
