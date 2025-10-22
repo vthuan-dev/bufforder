@@ -21,6 +21,9 @@ const PageLoader = () => (
 );
 
 export default function App() {
+  // Debug: Unique identifier to ensure new code is running
+  console.log('🚀 App.tsx loaded - Version 2.0 - Sound fix applied');
+  
   const [activeTab, setActiveTab] = useState('home');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authView, setAuthView] = useState<'login' | 'register'>('login');
@@ -112,6 +115,46 @@ export default function App() {
     }
   }, []);
 
+  // Global audio play listener to debug
+  useEffect(() => {
+    console.log('🔧 Setting up global audio play listener');
+    
+    const handleAudioPlay = (event: any) => {
+      console.log('🔊 AUDIO PLAY DETECTED:', {
+        target: event.target,
+        src: event.target?.src,
+        currentTime: event.target?.currentTime,
+        volume: event.target?.volume,
+        stack: new Error().stack
+      });
+      
+      // Check if this is our expected audio element
+      const isOurAudio = event.target === clientAudioRef.current;
+      console.log('🔊 Is this our audio element?', isOurAudio);
+      
+      if (!isOurAudio) {
+        console.log('⚠️ UNEXPECTED AUDIO PLAY - NOT OUR AUDIO ELEMENT!');
+        console.log('🔊 Unexpected audio src:', event.target?.src);
+        console.log('🔊 Our audio src:', clientAudioRef.current?.src);
+        
+        // Try to stop the unexpected audio
+        try {
+          event.target.pause();
+          console.log('🛑 Attempted to pause unexpected audio');
+        } catch (err) {
+          console.log('❌ Failed to pause unexpected audio:', err);
+        }
+      }
+    };
+
+    // Listen for all audio play events
+    document.addEventListener('play', handleAudioPlay, true);
+    
+    return () => {
+      document.removeEventListener('play', handleAudioPlay, true);
+    };
+  }, []);
+
   // Global client chat notifications (works when not on Help tab)
   useEffect(() => {
     if (isAdminMode || !isAuthenticated) return;
@@ -127,18 +170,31 @@ export default function App() {
     window.addEventListener('focus', onFocus);
     window.addEventListener('blur', onBlur);
     const play = () => {
+      console.log('[App] 🎵 play() function called - Version 2.0');
       try {
         const pref = localStorage.getItem('client:soundEnabled') === '1';
-        if (!pref) return;
+        if (!pref) {
+          console.log('[App] Sound disabled by preference');
+          return;
+        }
       } catch {}
       const a = clientAudioRef.current;
-      if (a) { a.currentTime = 0; a.volume = 1; a.play().catch(() => {}); }
+      if (a) { 
+        console.log('[App] 🎵 PLAYING SOUND via clientAudioRef - THIS IS THE ONLY PLACE THAT SHOULD PLAY SOUND - Version 2.0');
+        a.currentTime = 0; 
+        a.volume = 1; 
+        a.play().catch((err) => {
+          console.error('[App] Audio play failed:', err);
+        }); 
+      } else {
+        console.log('[App] No audio element found');
+      }
     };
     s.on('chat:threadUpdated', (evt: any) => {
       // Suppress sound only when: user is on Help tab, tab focused, and
       // currently viewing the same thread as the event threadId
       const isHelpActive = activeTab === 'help';
-      const isFocused = focusRef.current && !document.hidden;
+      const isFocused = !(focusRef.current && !document.hidden);
       let isSameActiveThread = false;
       try {
         const activeThreadId = localStorage.getItem('client:activeThreadId');
@@ -146,16 +202,155 @@ export default function App() {
           isSameActiveThread = String(activeThreadId) === String(evt.threadId);
         }
       } catch {}
-      // Play unless user is actively viewing the same thread in Help and focused
-      const shouldPlay = !(isHelpActive || isFocused && isSameActiveThread);
+      // Play when shouldPlay is false (user not actively viewing same thread in Help and focused)
+      const shouldPlay = (!isHelpActive && (!isFocused && isSameActiveThread));
       console.log('shouldPlay', shouldPlay);
-      if (shouldPlay) play();
+      if (shouldPlay == true) {
+        console.log('🎵 Playing sound - shouldPlay is false');
+        play();
+      } else {
+        console.log('🔇 Not playing sound - shouldPlay is true');
+        // Debug: check if there are other audio elements
+        const allAudio = document.querySelectorAll('audio');
+        console.log('[App] Found audio elements:', allAudio.length);
+        allAudio.forEach((audio, index) => {
+          console.log(`[App] Audio ${index}:`, {
+            src: audio.src,
+            currentTime: audio.currentTime,
+            paused: audio.paused,
+            volume: audio.volume
+          });
+        });
+        
+        // Check if any audio is currently playing
+        const playingAudio = Array.from(allAudio).filter(audio => !audio.paused);
+        if (playingAudio.length > 0) {
+          console.log('⚠️ WARNING: Found playing audio elements:', playingAudio.length);
+          playingAudio.forEach((audio, index) => {
+            console.log(`[App] Playing Audio ${index}:`, {
+              src: audio.src,
+              currentTime: audio.currentTime,
+              volume: audio.volume
+            });
+          });
+        }
+        
+        // Force pause all audio elements when shouldPlay is true
+        allAudio.forEach((audio, index) => {
+          if (!audio.paused) {
+            console.log(`🛑 Force pausing audio ${index} because shouldPlay is true`);
+            audio.pause();
+          }
+        });
+        
+        // Additional check: if we still hear sound, there might be another source
+        setTimeout(() => {
+          const stillPlaying = Array.from(document.querySelectorAll('audio')).filter(audio => !audio.paused);
+          if (stillPlaying.length > 0) {
+            console.log('🚨 CRITICAL: Audio still playing after force pause!', stillPlaying.length);
+            stillPlaying.forEach((audio, index) => {
+              console.log(`[App] Still playing Audio ${index}:`, {
+                src: audio.src,
+                currentTime: audio.currentTime,
+                volume: audio.volume
+              });
+              // Force stop
+              audio.pause();
+              audio.currentTime = 0;
+            });
+          }
+        }, 100);
+      }
     });
+
+    // Handle chat messages and forward to HelpPage
+    s.on('chat:message', (msg: any) => {
+      console.log('[App] Received chat:message:', msg);
+      // Forward to HelpPage via custom event
+      try {
+        window.dispatchEvent(new CustomEvent('client:chatMessage', { detail: msg }));
+      } catch {}
+      
+      // Debug: check if this message should trigger sound
+      const isHelpActive = activeTab === 'help';
+      const isFocused = focusRef.current && !document.hidden;
+      let isSameActiveThread = false;
+      try {
+        const activeThreadId = localStorage.getItem('client:activeThreadId');
+        if (activeThreadId && msg?.threadId) {
+          isSameActiveThread = String(activeThreadId) === String(msg.threadId);
+        }
+      } catch {}
+      const shouldPlayForMessage = (!isHelpActive || !isFocused && isSameActiveThread);
+      console.log('[App] chat:message shouldPlay:', shouldPlayForMessage, {
+        isHelpActive,
+        isFocused,
+        isSameActiveThread,
+        msgThreadId: msg.threadId,
+        activeThreadId: localStorage.getItem('client:activeThreadId')
+      });
+      
+      // Force pause all audio elements when shouldPlay is true for chat:message
+      if (!shouldPlayForMessage) {
+        const allAudio = document.querySelectorAll('audio');
+        allAudio.forEach((audio, index) => {
+          if (!audio.paused) {
+            console.log(`🛑 Force pausing audio ${index} because chat:message shouldPlay is true`);
+            audio.pause();
+          }
+        });
+        
+        // Additional check: if we still hear sound, there might be another source
+        setTimeout(() => {
+          const stillPlaying = Array.from(document.querySelectorAll('audio')).filter(audio => !audio.paused);
+          if (stillPlaying.length > 0) {
+            console.log('🚨 CRITICAL: Audio still playing after chat:message force pause!', stillPlaying.length);
+            stillPlaying.forEach((audio, index) => {
+              console.log(`[App] Still playing Audio ${index}:`, {
+                src: audio.src,
+                currentTime: audio.currentTime,
+                volume: audio.volume
+              });
+              // Force stop
+              audio.pause();
+              audio.currentTime = 0;
+            });
+          }
+        }, 100);
+      }
+    });
+
+    // Handle typing events and forward to HelpPage
+    s.on('chat:typing', (evt: any) => {
+      console.log('[App] Received chat:typing:', evt);
+      // Forward to HelpPage via custom event
+      try {
+        window.dispatchEvent(new CustomEvent('client:chatTyping', { detail: evt }));
+      } catch {}
+    });
+
+    // Listen for events from HelpPage and emit to server
+    const handleEmitMessage = (event: any) => {
+      const { threadId, text } = event.detail;
+      console.log('[App] Emitting chat:send:', { threadId, text });
+      s.emit('chat:send', { threadId, text });
+    };
+
+    const handleEmitTyping = (event: any) => {
+      const { threadId, typing } = event.detail;
+      console.log('[App] Emitting chat:typing:', { threadId, typing });
+      s.emit('chat:typing', { threadId, typing });
+    };
+
+    window.addEventListener('client:emitMessage', handleEmitMessage);
+    window.addEventListener('client:emitTyping', handleEmitTyping);
     return () => {
       s.disconnect();
       document.removeEventListener('visibilitychange', onVis);
       window.removeEventListener('focus', onFocus);
       window.removeEventListener('blur', onBlur);
+      window.removeEventListener('client:emitMessage', handleEmitMessage);
+      window.removeEventListener('client:emitTyping', handleEmitTyping);
     };
   }, [isAdminMode, isAuthenticated, activeTab]);
 

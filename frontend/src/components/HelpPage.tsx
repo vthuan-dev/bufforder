@@ -24,98 +24,37 @@ export function HelpPage() {
   const threadIdRef = useRef<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
   const soundEnabledRef = useRef<boolean>(false);
-  const lastPlayRef = useRef<number>(0);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const audioBufferRef = useRef<AudioBuffer | null>(null);
   const isWindowFocusedRef = useRef<boolean>(typeof document !== 'undefined' ? !document.hidden : true);
   const hasLoadedRef = useRef<boolean>(false);
 
-  const playNoti = async () => {
-    try {
-      // Try to play regardless; browsers will simply reject if not unlocked yet
-      const now = Date.now();
-      if (now - (lastPlayRef.current || 0) < 300) return; // throttle
-      lastPlayRef.current = now;
-      
-      console.log('[client] Attempting to play notification sound');
-      
-      // Multiple fallback strategies for playing sound
-      const playStrategies = [
-        // Strategy 1: Use existing audio element
-        async () => {
-          const a = audioRef.current;
-          if (a) {
-            a.currentTime = 0;
-            a.volume = 1;
-            await a.play();
-            console.log('[client] Sound played via existing audio element');
-            return true;
-          }
-          return false;
-        },
-        // Strategy 2: Use WebAudio path (works when element state stalls)
-        async () => {
-          if (audioCtxRef.current && audioBufferRef.current) {
-            const ctx = audioCtxRef.current;
-            if (ctx.state === 'suspended') {
-              await ctx.resume().catch(() => {});
-            }
-            const src = ctx.createBufferSource();
-            src.buffer = audioBufferRef.current;
-            src.connect(ctx.destination);
-            src.start(0);
-            console.log('[client] Sound played via WebAudio API');
-            return true;
-          }
-          return false;
-        },
-        // Strategy 3: Create new audio element
-        async () => {
-          const url = new URL('../assets/sound/noti.mp3', import.meta.url).toString();
-          const el = new Audio(url);
-          el.volume = 1;
-          await el.play();
-          console.log('[client] Sound played via new audio element');
-          return true;
-        },
-        // Strategy 4: Use Web Audio API with fresh context
-        async () => {
-          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-          if (audioContext.state === 'suspended') {
-            await audioContext.resume();
-          }
-          const response = await fetch(new URL('../assets/sound/noti.mp3', import.meta.url).toString());
-          const arrayBuffer = await response.arrayBuffer();
-          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-          const source = audioContext.createBufferSource();
-          source.buffer = audioBuffer;
-          source.connect(audioContext.destination);
-          source.start(0);
-          console.log('[client] Sound played via fresh WebAudio API');
-          return true;
-        }
-      ];
-
-      // Try each strategy until one succeeds
-      for (const strategy of playStrategies) {
-        try {
-          const success = await strategy();
-          if (success) {
-            return;
-          }
-        } catch (error) {
-          console.warn('[client] Sound strategy failed:', error);
-        }
-      }
-      
-      console.error('[client] All sound strategies failed');
-    } catch (error) {
-      console.error('[client] Sound play error:', error);
+  // Global message handlers
+  const handleGlobalMessage = (event: any) => {
+    const msg = event.detail;
+    if (msg.threadId !== threadIdRef.current) return;
+    
+    console.log('[client] Received message from global socket:', msg);
+    const img = msg.imageUrl ? (String(msg.imageUrl).startsWith('/') ? `${API_BASE}${msg.imageUrl}` : msg.imageUrl) : undefined;
+    setMessages(prev => [...prev, { 
+      id: msg._id, 
+      text: msg.text || '', 
+      imageUrl: img, 
+      isUser: msg.senderType === 'user', 
+      timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+    }]);
+  };
+  
+  const handleGlobalTyping = (event: any) => {
+    const evt = event.detail;
+    if (evt?.threadId !== threadIdRef.current) return;
+    if (evt?.senderType === 'admin') {
+      partnerTypingRef.current = !!evt.typing;
+      setIsTyping(!!evt.typing);
     }
   };
+
+  // Sound is now handled globally in App.tsx
 
   const quickReplies = [
     "📦 Track my order",
@@ -187,98 +126,16 @@ useEffect(() => {
         console.log('[client] Created new thread:', threadId, 'with', arr.length, 'messages');
       }
 
-      // 3) Connect socket and join thread
-      const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
-      if (!token) {
-        console.error('[client] No auth token found');
-        return;
-      }
+      // 3) Socket is now handled globally in App.tsx to avoid duplicates
+      // No need to create separate socket connection here
+      console.log('[client] Using global socket from App.tsx');
       
-      const s = io(API_BASE, { auth: { token } });
-      socketRef.current = s;
-      
-      // Handle reconnection when socket reconnects
-      s.on('connect', () => {
-        console.log('[socket] connected, joining thread:', threadIdRef.current);
-        if (threadIdRef.current) {
-          s.emit('chat:joinThread', threadIdRef.current);
-          // Mark this thread as active for notification suppression
-          try { localStorage.setItem('client:activeThreadId', String(threadIdRef.current)); } catch {}
-        }
-      });
-
-      // Handle disconnect
-      s.on('disconnect', (reason) => {
-        console.log('[socket] disconnected:', reason);
-      });
-
-      // Join thread immediately on first connection
-      s.emit('chat:joinThread', threadIdRef.current);
+      // Mark this thread as active for notification suppression
       try { localStorage.setItem('client:activeThreadId', String(threadIdRef.current)); } catch {}
       
-      s.on('chat:message', (msg: any) => {
-        if (msg.threadId !== threadIdRef.current) return;
-        
-        // Play sound on messages from admin only when:
-        // 1. Message is from admin (not user)
-        // 2. Sound is enabled
-        // 3. User is not actively in this conversation (tab not focused/visible)
-        try {
-          const isFocused = (isWindowFocusedRef.current !== false && !document.hidden);
-
-          if (msg.senderType !== 'user' && soundEnabledRef.current) {
-            console.log('[client sound debug]', {
-              senderType: msg.senderType,
-              soundEnabled: soundEnabledRef.current,
-              isFocused,
-              windowFocused: isWindowFocusedRef.current,
-              documentHidden: document.hidden,
-              userAgent: navigator.userAgent,
-              protocol: window.location.protocol
-            });
-            // Only play sound if tab is not focused/visible (user is not actively in conversation)
-            if (!isFocused) {
-              console.log('[client] Playing notification sound - not actively in conversation');
-              playNoti();
-            } else {
-              console.log('[client] Not playing sound - actively in conversation');
-            }
-          }
-        } catch (error) {
-          console.error('[client] Sound error:', error);
-        }
-        
-        try { console.log('[client chat:message]', msg); } catch {}
-        const img = msg.imageUrl ? (String(msg.imageUrl).startsWith('/') ? `${API_BASE}${msg.imageUrl}` : msg.imageUrl) : undefined;
-        setMessages(prev => [...prev, { 
-          id: msg._id, 
-          text: msg.text || '', 
-          imageUrl: img, 
-          isUser: msg.senderType === 'user', 
-          timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-        }]);
-
-        // If message is from admin and user is not on Help tab or tab not focused, bump unread badge
-        try {
-          const activeTab = (typeof localStorage !== 'undefined') ? localStorage.getItem('client:activeBottomTab') : 'home';
-          const isFocused = (typeof document !== 'undefined') ? !document.hidden : true;
-          if (msg.senderType !== 'user' && (activeTab !== 'help' || !isFocused)) {
-            const current = Number(localStorage.getItem('client:helpUnread') || '0') || 0;
-            const next = current + 1;
-            try { localStorage.setItem('client:helpUnread', String(next)); } catch {}
-            try { window.dispatchEvent(new CustomEvent('client:chatUnreadUpdated', { detail: next })); } catch {}
-          }
-        } catch {}
-      });
-      
-      s.on('chat:typing', (evt: any) => {
-        if (evt?.threadId !== threadIdRef.current) return;
-        // Only show when admin is typing (not user)
-        if (evt?.senderType === 'admin') {
-          partnerTypingRef.current = !!evt.typing;
-          setIsTyping(!!evt.typing);
-        }
-      });
+      // Listen for messages from global socket via custom events
+      window.addEventListener('client:chatMessage', handleGlobalMessage);
+      window.addEventListener('client:chatTyping', handleGlobalTyping);
     } catch (err) {
       console.error('[client] Chat initialization error:', err);
     }
@@ -301,11 +158,8 @@ useEffect(() => {
         setMessages(arr);
         console.log('[client] Reloaded', arr.length, 'messages after tab became visible');
         
-        // Rejoin thread to ensure we're still subscribed
-        if (socketRef.current?.connected) {
-          socketRef.current.emit('chat:joinThread', threadIdRef.current);
-          try { localStorage.setItem('client:activeThreadId', String(threadIdRef.current)); } catch {}
-        }
+        // Mark thread as active (socket handled globally in App.tsx)
+        try { localStorage.setItem('client:activeThreadId', String(threadIdRef.current)); } catch {}
       } catch (err) {
         console.error('[client] Failed to reload messages on visibility change:', err);
       }
@@ -338,33 +192,21 @@ useEffect(() => {
     document.removeEventListener('visibilitychange', handleVisibilityChange);
     
     // DON'T remove the threadId from localStorage - keep it for next time
-    // Only clear the active marker and disconnect socket
+    // Only clear the active marker
     try { localStorage.removeItem('client:activeThreadId'); } catch {}
     // Clear unread when leaving Help page
     try { localStorage.setItem('client:helpUnread', '0'); window.dispatchEvent(new CustomEvent('client:chatUnreadUpdated', { detail: 0 })); } catch {}
-    socketRef.current?.disconnect();
+    // Clean up event listeners
+    window.removeEventListener('client:chatMessage', handleGlobalMessage);
+    window.removeEventListener('client:chatTyping', handleGlobalTyping);
   };
 }, []);
 
   const enableSound = async () => {
     try {
-      // WebAudio init & decode buffer once
-      try {
-        const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
-        if (Ctx) {
-          const ctx: AudioContext = new Ctx();
-          audioCtxRef.current = ctx;
-          const url = new URL('../assets/sound/noti.mp3', import.meta.url).toString();
-          const res = await fetch(url);
-          const arr = await res.arrayBuffer();
-          audioBufferRef.current = await ctx.decodeAudioData(arr);
-          await ctx.resume().catch(() => {});
-        }
-      } catch {}
-      // Unlock by playing once (using whichever path available)
-      // await playNoti();
       setSoundEnabled(true);
       try { localStorage.setItem('client:soundEnabled', '1'); } catch {}
+      console.log('[client] Sound enabled - handled by App.tsx');
     } catch {}
   };
 
@@ -436,10 +278,13 @@ useEffect(() => {
     if (!messageText.trim()) return;
     setInputMessage('');
     setShowQuickReplies(false);
-    // emit via socket + REST fallback (UI will update from socket 'chat:message')
+    // emit via global socket in App.tsx
     const threadId = threadIdRef.current!;
-    // Only socket emit to avoid duplicates (server will broadcast back)
-    socketRef.current?.emit('chat:send', { threadId, text: messageText });
+    try {
+      window.dispatchEvent(new CustomEvent('client:emitMessage', { 
+        detail: { threadId, text: messageText } 
+      }));
+    } catch {}
   };
 
   // Emit typing events while user is composing
@@ -448,10 +293,15 @@ useEffect(() => {
     const threadId = threadIdRef.current;
     if (!threadId) return;
     try {
-      socketRef.current?.emit('chat:typing', { threadId, typing: true });
+      // Emit typing via global socket in App.tsx
+      window.dispatchEvent(new CustomEvent('client:emitTyping', { 
+        detail: { threadId, typing: true } 
+      }));
       if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
       typingTimerRef.current = window.setTimeout(() => {
-        socketRef.current?.emit('chat:typing', { threadId, typing: false });
+        window.dispatchEvent(new CustomEvent('client:emitTyping', { 
+          detail: { threadId, typing: false } 
+        }));
       }, 1200);
     } catch {}
   };
@@ -470,7 +320,7 @@ useEffect(() => {
     try {
       const threadId = threadIdRef.current!;
       await api.chatSendImage(threadId, file);
-      // message will appear via socket 'chat:message'
+      // message will appear via global socket 'chat:message'
     } catch (err: any) {
       alert(err?.message || 'Upload failed');
     } finally {
@@ -480,7 +330,7 @@ useEffect(() => {
 
   return (
     <div className="pb-20 h-screen flex flex-col bg-gradient-to-b from-purple-50 via-blue-50 to-pink-50">
-      <audio ref={audioRef} src={new URL('../assets/sound/noti.mp3', import.meta.url).toString()} preload="auto" />
+      {/* Audio is handled globally in App.tsx */}
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 shadow-sm">
         <div className="flex items-center gap-3">
