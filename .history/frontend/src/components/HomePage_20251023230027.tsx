@@ -79,11 +79,28 @@ export function HomePage({ bannerImage }: HomePageProps) {
         </div>
       </div>
 
+      {/* Advertisement Section */}
+      <div className="px-4 pt-4">
+        <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-4 shadow-lg text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h3 className="text-lg font-bold mb-1">🎉 Special Promotion!</h3>
+              <p className="text-xs opacity-90 leading-relaxed">
+                Join now and get exclusive VIP benefits. Higher commission rates and more orders!
+              </p>
+            </div>
+            <div className="ml-3">
+              <Zap className="w-12 h-12 opacity-80" />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Membership Levels */}
       <div className="px-4 pt-5">
         <h2 className="text-gray-800 mb-3 text-center text-sm font-semibold">MEMBERSHIP LEVEL</h2>
         
-        <div className="space-y-3">
+        <div className="space-y-4">
           {vipLevels.map((level, index) => {
             const theme = level.theme;
             const hasBadge = Boolean(theme.badgeImage);
@@ -94,29 +111,29 @@ export function HomePage({ bannerImage }: HomePageProps) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className={`relative overflow-hidden rounded-2xl ${theme.gradient} p-4 text-white shadow-lg`}
+                className={`relative overflow-hidden rounded-3xl ${theme.gradient} p-6 text-white shadow-xl`}
               >
                 {/* VIP Background Image - Watermark */}
                 {hasBadge && (
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-10 pointer-events-none">
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-12 pointer-events-none">
                     <ImageWithFallback 
                       src={theme.badgeImage!} 
                       alt={`${level.name} Background`} 
-                      className="w-28 h-28 object-contain"
+                      className="w-36 h-36 object-contain"
                     />
                   </div>
                 )}
 
                 {/* Lock Icon */}
-                <div className="absolute top-3 right-3 p-1.5 bg-white/20 backdrop-blur-sm rounded-full">
-                  <Lock className="w-4 h-4" />
+                <div className="absolute top-4 right-4 p-2 bg-white/20 backdrop-blur-sm rounded-full">
+                  <Lock className="w-5 h-5" />
                 </div>
 
                 {/* VIP Icon or Badge */}
-                <div className="relative z-10 mb-2">
+                <div className="relative z-10 mb-3">
                   {hasBadge ? (
                     <div className="inline-flex items-center">
-                      <div className="w-12 h-14 flex items-center justify-center">
+                      <div className="w-16 h-20 flex items-center justify-center">
                         <ImageWithFallback 
                           src={theme.badgeImage!} 
                           alt={`${level.name} Badge`} 
@@ -125,24 +142,24 @@ export function HomePage({ bannerImage }: HomePageProps) {
                       </div>
                     </div>
                   ) : (
-                    <div className="inline-flex p-2 bg-white/20 backdrop-blur-sm rounded-xl">
-                      <Crown className="w-5 h-5" />
+                    <div className="inline-flex p-3 bg-white/20 backdrop-blur-sm rounded-2xl">
+                      <Crown className="w-7 h-7" />
                     </div>
                   )}
                 </div>
 
                 {/* VIP Title */}
                 <div className="relative z-10">
-                  <h3 className={`text-lg mb-0.5 ${theme.titleClass}`}>
+                  <h3 className={`text-xl mb-1 ${theme.titleClass}`}>
                     {level.name}
                   </h3>
-                  <p className={`text-xs mb-3 ${theme.subtitleClass}`}>
+                  <p className={`text-sm mb-4 ${theme.subtitleClass}`}>
                     {level.subtitle}
                   </p>
                 </div>
 
                 {/* Details */}
-                <div className={`relative z-10 space-y-1.5 text-xs ${theme.detailContainerClass}`}>
+                <div className={`relative z-10 space-y-2 text-sm ${theme.detailContainerClass}`}>
                   <div className="flex justify-between">
                     <span className={theme.detailLabelClass}>Amount Required:</span>
                     <span className={theme.detailValueClass}>{level.amountRequired}</span>

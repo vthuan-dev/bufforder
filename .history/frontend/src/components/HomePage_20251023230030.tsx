@@ -79,6 +79,23 @@ export function HomePage({ bannerImage }: HomePageProps) {
         </div>
       </div>
 
+      {/* Advertisement Section */}
+      <div className="px-4 pt-4">
+        <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-4 shadow-lg text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h3 className="text-lg font-bold mb-1">🎉 Special Promotion!</h3>
+              <p className="text-xs opacity-90 leading-relaxed">
+                Join now and get exclusive VIP benefits. Higher commission rates and more orders!
+              </p>
+            </div>
+            <div className="ml-3">
+              <Zap className="w-12 h-12 opacity-80" />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Membership Levels */}
       <div className="px-4 pt-5">
         <h2 className="text-gray-800 mb-3 text-center text-sm font-semibold">MEMBERSHIP LEVEL</h2>

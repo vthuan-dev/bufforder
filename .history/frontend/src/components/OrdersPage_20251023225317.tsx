@@ -402,7 +402,7 @@ export function OrdersPage() {
 
       {/* Stats Grid with images - Optimized for mobile */}
       <div className="px-4 py-4 space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3.5">
           {/* Earned commission */}
           <div className="bg-white rounded-xl p-2.5 shadow-sm border border-gray-100 flex flex-col items-center text-center">
             <img src={imgEarned} alt="Earned commission" className="w-16 h-16 object-contain mb-1" />
@@ -418,7 +418,7 @@ export function OrdersPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3.5">
           {/* Today's task */}
           <div className="bg-white rounded-xl p-2.5 shadow-sm border border-gray-100 flex flex-col items-center text-center">
             <img src={imgToday} alt="Today's task" className="w-16 h-16 object-contain mb-1" />

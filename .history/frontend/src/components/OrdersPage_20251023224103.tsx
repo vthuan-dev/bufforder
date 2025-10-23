@@ -384,9 +384,7 @@ export function OrdersPage() {
             {/* Button content */}
             <div className="relative z-10 flex items-center justify-center gap-3">
               <Package className="w-6 h-6" strokeWidth={2.5} />
-              <span className="text-lg">
-                {showOrderPopup || submitting ? 'Processing...' : 'Take an order now'}
-              </span>
+              <span className="text-lg">Take an order now</span>
             </div>
 
             {/* Bottom glow */}
@@ -400,60 +398,60 @@ export function OrdersPage() {
         </div>
       </div>
 
-      {/* Stats Grid with images - Optimized for mobile */}
-      <div className="px-4 py-4 space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+      {/* Stats Grid with images */}
+      <div className="px-6 py-6 space-y-4">
+        <div className="grid grid-cols-2 gap-3">
           {/* Earned commission */}
-          <div className="bg-white rounded-xl p-2.5 shadow-sm border border-gray-100 flex flex-col items-center text-center">
-            <img src={imgEarned} alt="Earned commission" className="w-16 h-16 object-contain mb-1" />
-            <p className="text-[10px] text-gray-600 leading-tight">Earned commission</p>
-            <p className="text-sm font-semibold text-red-500 mt-0.5">{dailyCommission.toFixed(2)}$</p>
+          <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex flex-col items-center text-center">
+            <img src={imgEarned} alt="Earned commission" className="w-24 h-24 object-contain mb-1" />
+            <p className="text-xs text-gray-600">Earned commission</p>
+            <p className="text-lg text-red-500 mt-1">{dailyCommission.toFixed(2)}$</p>
           </div>
 
           {/* Available balance */}
-          <div className="bg-white rounded-xl p-2.5 shadow-sm border border-gray-100 flex flex-col items-center text-center">
-            <img src={imgAvailable} alt="Available balance" className="w-16 h-16 object-contain mb-1" />
-            <p className="text-[10px] text-gray-600 leading-tight">Available balance</p>
-            <p className="text-sm font-semibold text-red-500 mt-0.5">{availableBalance.toFixed(2)}$</p>
+          <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex flex-col items-center text-center">
+            <img src={imgAvailable} alt="Available balance" className="w-24 h-24 object-contain mb-1" />
+            <p className="text-xs text-gray-600">Available balance</p>
+            <p className="text-lg text-red-500 mt-1">{availableBalance.toFixed(2)}$</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           {/* Today's task */}
-          <div className="bg-white rounded-xl p-2.5 shadow-sm border border-gray-100 flex flex-col items-center text-center">
-            <img src={imgToday} alt="Today's task" className="w-16 h-16 object-contain mb-1" />
-            <p className="text-[10px] text-gray-600 leading-tight">Today's task</p>
-            <p className="text-sm font-semibold text-red-500 mt-0.5">{todaysTask.toFixed(2)}</p>
+          <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex flex-col items-center text-center">
+            <img src={imgToday} alt="Today's task" className="w-24 h-24 object-contain mb-1" />
+            <p className="text-xs text-gray-600">Today's task</p>
+            <p className="text-lg text-red-500 mt-1">{todaysTask.toFixed(2)}</p>
           </div>
 
           {/* Completed today */}
-          <div className="bg-white rounded-xl p-2.5 shadow-sm border border-gray-100 flex flex-col items-center text-center">
-            <img src={imgCompleted} alt="Completed today" className="w-16 h-16 object-contain mb-1" />
-            <p className="text-[10px] text-gray-600 leading-tight">Completed today</p>
-            <p className="text-sm font-semibold text-red-500 mt-0.5">{completedToday}</p>
+          <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex flex-col items-center text-center">
+            <img src={imgCompleted} alt="Completed today" className="w-24 h-24 object-contain mb-1" />
+            <p className="text-xs text-gray-600">Completed today</p>
+            <p className="text-lg text-red-500 mt-1">{completedToday}</p>
           </div>
         </div>
 
-        {/* Progress Bar - Compact */}
-        <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
-          <div className="flex justify-between items-center mb-1.5">
-            <p className="text-xs text-gray-700">Orders received</p>
-            <p className="text-xs font-semibold text-red-500">{ordersReceived}/{totalOrdersLimit}</p>
+        {/* Progress Bar */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <div className="flex justify-between items-center mb-2">
+            <p className="text-sm text-gray-700">Orders received</p>
+            <p className="text-red-500">{ordersReceived}/{totalOrdersLimit}</p>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-1.5">
+          <div className="w-full bg-gray-200 rounded-full h-2">
             <div 
-              className="bg-gradient-to-r from-blue-500 to-purple-500 h-1.5 rounded-full transition-all duration-500"
+              className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500"
               style={{ width: `${(ordersReceived / totalOrdersLimit) * 100}%` }}
             />
           </div>
         </div>
       </div>
 
-      {/* Instructions - Compact */}
-      <div className="px-4 pb-3">
-        <div className="bg-gray-50 rounded-xl p-3 border border-gray-200">
-          <p className="text-xs font-medium text-gray-800 mb-2">Procedure:</p>
-          <ol className="text-[10px] text-gray-700 space-y-1.5 leading-relaxed">
+      {/* Instructions */}
+      <div className="px-6 pb-4">
+        <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200">
+          <p className="text-gray-800 mb-3">Procedure:</p>
+          <ol className="text-xs text-gray-700 space-y-2">
             <li>1 Click the "Start Task" button and follow the instructions to complete the task.</li>
             <li>2 After finishing, you can settle the commission to your balance.</li>
           </ol>
