@@ -49,7 +49,7 @@ const io = new Server(server, {
     },
     credentials: true,
     methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-    allowedHeaders: ['Content-Type','Authorization']
+    allowedHeaders: ['Content-Type','Authorization','X-Idempotency-Key']
   }
 });
 // expose io to routes    
@@ -66,7 +66,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization']
+  allowedHeaders: ['Content-Type','Authorization','X-Idempotency-Key']
 }));
 // Handle preflight
 app.options('*', cors());

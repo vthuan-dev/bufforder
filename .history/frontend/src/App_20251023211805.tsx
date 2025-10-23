@@ -58,18 +58,16 @@ export default function App() {
 
   // Memoized tab change handler with instant transition
   const handleTabChange = useCallback((tab: string) => {
-    console.log('[App] Tab change requested:', tab, '→ from:', activeTab);
     // Instant tab switch without waiting for component load
     setActiveTab(tab);
     try { localStorage.setItem('client:activeBottomTab', tab); } catch {}
     if (tab === 'help') {
       try { localStorage.setItem('client:helpUnread', '0'); window.dispatchEvent(new CustomEvent('client:chatUnreadUpdated', { detail: 0 })); } catch {}
     }
-  }, [activeTab]);
+  }, []);
 
   // Memoized content renderer for better performance
   const renderContent = useCallback(() => {
-    console.log('[App] Rendering content for tab:', activeTab);
     const content = (() => {
       switch (activeTab) {
         case 'home':

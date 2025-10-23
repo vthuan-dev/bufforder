@@ -123,11 +123,12 @@ export default {
     if (t) headers.Authorization = `Bearer ${t}`;
     return request(`/orders/history?${params.toString()}`, { headers });
   },
-  userOrderTake(product: { id: number | string; name: string; price: number; brand: string; category: string; image: string }, token?: string) {
+  userOrderTake(product: { id: number | string; name: string; price: number; brand: string; category: string; image: string }, idempotencyKey?: string, token?: string) {
     const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (t) headers.Authorization = `Bearer ${t}`;
-    return request('/orders/take', { method: 'POST', headers, body: JSON.stringify({ product }) });
+    if (idempotencyKey) headers['X-Idempotency-Key'] = idempotencyKey;
+    return request('/orders/take', { method: 'POST', headers, body: JSON.stringify({ product, idempotencyKey }) });
   },
   userOrderComplete(productData: { productId: number | string; productName: string; productPrice: number; commissionAmount: number; commissionRate: number }, token?: string) {
     const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);

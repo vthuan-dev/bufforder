@@ -319,42 +319,34 @@ useEffect(() => {
   const handleSendMessage = (text?: string) => {
     const messageText = text || inputMessage;
     if (!messageText.trim()) return;
-    
-    const threadId = threadIdRef.current;
-    if (!threadId) return;
-    
     setInputMessage('');
     setShowQuickReplies(false);
-    
-    // Optimistic UI - show immediately
-    const tempId = `temp-${Date.now()}`;
-    const optimisticMessage: Message = {
-      id: tempId,
-      text: messageText,
-      isUser: true,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-    
-    setMessages(prev => [...prev, optimisticMessage]);
-    
-    // Emit DIRECTLY via socket
-    socketRef.current?.emit('chat:send', { threadId, text: messageText });
-    console.log('[client] 📤 Message sent DIRECTLY');
+    // emit via global socket in App.tsx
+    const threadId = threadIdRef.current!;
+    try {
+      window.dispatchEvent(new CustomEvent('client:emitMessage', { 
+        detail: { threadId, text: messageText } 
+      }));
+    } catch {}
   };
 
-  // Emit typing DIRECTLY
+  // Emit typing events while user is composing
   const handleInputChange = (val: string) => {
     setInputMessage(val);
     const threadId = threadIdRef.current;
     if (!threadId) return;
-    
-    // Emit DIRECTLY
-    socketRef.current?.emit('chat:typing', { threadId, typing: true });
-    
-    if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
-    typingTimerRef.current = window.setTimeout(() => {
-      socketRef.current?.emit('chat:typing', { threadId, typing: false });
-    }, 1200);
+    try {
+      // Emit typing via global socket in App.tsx
+      window.dispatchEvent(new CustomEvent('client:emitTyping', { 
+        detail: { threadId, typing: true } 
+      }));
+      if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = window.setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('client:emitTyping', { 
+          detail: { threadId, typing: false } 
+        }));
+      }, 1200);
+    } catch {}
   };
 
   const handleQuickReply = (reply: string) => {
@@ -380,10 +372,8 @@ useEffect(() => {
   };
 
   return (
-    <div className="pb-16 h-screen flex flex-col bg-gradient-to-b from-purple-50 via-blue-50 to-pink-50">
-      {/* Hidden audio for notifications */}
-      <audio ref={audioRef} src={new URL('../assets/sound/noti.mp3', import.meta.url).toString()} preload="auto" />
-      
+    <div className="pb-20 h-screen flex flex-col bg-gradient-to-b from-purple-50 via-blue-50 to-pink-50">
+      {/* Audio is handled globally in App.tsx */}
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 shadow-sm">
         <div className="flex items-center gap-3">

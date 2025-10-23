@@ -13,13 +13,10 @@ const LoginPage = lazy(() => import('./components/LoginPage').then(module => ({ 
 const RegisterPage = lazy(() => import('./components/RegisterPage').then(module => ({ default: module.RegisterPage })));
 const AdminApp = lazy(() => import('./components/admin/AdminApp').then(module => ({ default: module.AdminApp })));
 
-// Optimized loading component - minimal, fast render
+// Loading component
 const PageLoader = () => (
-  <div className="flex items-center justify-center min-h-[400px] bg-gray-50">
-    <div className="flex flex-col items-center gap-3">
-      <div className="animate-spin rounded-full h-10 w-10 border-3 border-blue-500 border-t-transparent"></div>
-      <p className="text-sm text-gray-500 animate-pulse">Loading...</p>
-    </div>
+  <div className="flex items-center justify-center min-h-[400px]">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
   </div>
 );
 
@@ -58,18 +55,16 @@ export default function App() {
 
   // Memoized tab change handler with instant transition
   const handleTabChange = useCallback((tab: string) => {
-    console.log('[App] Tab change requested:', tab, '→ from:', activeTab);
     // Instant tab switch without waiting for component load
     setActiveTab(tab);
     try { localStorage.setItem('client:activeBottomTab', tab); } catch {}
     if (tab === 'help') {
       try { localStorage.setItem('client:helpUnread', '0'); window.dispatchEvent(new CustomEvent('client:chatUnreadUpdated', { detail: 0 })); } catch {}
     }
-  }, [activeTab]);
+  }, []);
 
   // Memoized content renderer for better performance
   const renderContent = useCallback(() => {
-    console.log('[App] Rendering content for tab:', activeTab);
     const content = (() => {
       switch (activeTab) {
         case 'home':

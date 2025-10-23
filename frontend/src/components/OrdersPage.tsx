@@ -25,6 +25,8 @@ export function OrdersPage() {
   const [orderNumber, setOrderNumber] = useState<string>('');
   const [progress, setProgress] = useState(0);
   const [commissionRate, setCommissionRate] = useState<number>(0.002); // default 0.2%
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  const [lastClientRequestId, setLastClientRequestId] = useState<string | null>(null);
 
   // Daily stats with auto-reset at new day
   const [dailyCommission, setDailyCommission] = useState<number>(0);
@@ -198,7 +200,12 @@ export function OrdersPage() {
 
   const handleConfirmOrder = async () => {
     if (!selectedProduct) return;
+    if (submitting) return; // guard double click
     try {
+      setSubmitting(true);
+      // Generate idempotency key per submit click and keep for potential retries
+      const clientRequestId = lastClientRequestId || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      setLastClientRequestId(clientRequestId);
       // Take order -> create a pending order only; admin will update status later
       const takeRes = await api.userOrderTake({
         id: selectedProduct.id,
@@ -207,7 +214,7 @@ export function OrdersPage() {
         brand: selectedProduct.brand,
         category: 'General',
         image: selectedProduct.image,
-      });
+      }, clientRequestId);
       // Update UI: count order grabbed; commission updates when admin delivers
       setOrdersReceived((prev) => prev + 1);
 
@@ -230,10 +237,13 @@ export function OrdersPage() {
 
       setShowOrderPopup(false);
       setSelectedProduct(null);
+      setLastClientRequestId(null);
       // notify other pages (Record) to refresh
       try { window.dispatchEvent(new Event('orderUpdated')); } catch {}
     } catch (e: any) {
       alert(e?.message || 'Order failed');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -727,9 +737,10 @@ export function OrdersPage() {
                         whileHover={{ scale: 1.02, y: -1 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={handleConfirmOrder}
-                        className="flex-1 py-3.5 rounded-2xl bg-gradient-to-br from-gray-900 to-black text-white shadow-lg shadow-gray-900/30 hover:shadow-xl hover:shadow-gray-900/40 transition-all"
+                        disabled={submitting}
+                        className={`flex-1 py-3.5 rounded-2xl text-white shadow-lg transition-all ${submitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-br from-gray-900 to-black hover:shadow-xl hover:shadow-gray-900/40 shadow-gray-900/30'}`}
                       >
-                        Submit Order
+                        {submitting ? 'Submitting...' : 'Submit Order'}
                       </motion.button>
                     </div>
                   </div>

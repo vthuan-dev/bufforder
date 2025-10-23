@@ -21,17 +21,12 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
 
   // Preload components on hover for instant navigation
   const handlePreload = (tabId: string) => {
-    // Preload via dynamic import to match lazy loading pattern in App.tsx
     if (tabId === 'help') {
-      import('./HelpPage').then(module => module.HelpPage).catch(() => {});
+      import('./HelpPage').catch(() => {});
     } else if (tabId === 'my') {
-      import('./MyPage').then(module => module.MyPage).catch(() => {});
+      import('./MyPage').catch(() => {});
     } else if (tabId === 'orders') {
-      import('./OrdersPage').then(module => module.OrdersPage).catch(() => {});
-    } else if (tabId === 'home') {
-      import('./HomePage').then(module => module.HomePage).catch(() => {});
-    } else if (tabId === 'record') {
-      import('./RecordPage').then(module => module.RecordPage).catch(() => {});
+      import('./OrdersPage').catch(() => {});
     }
   };
 
@@ -57,10 +52,8 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
               <motion.button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
-                onMouseEnter={() => handlePreload(tab.id)}
-                onTouchStart={() => handlePreload(tab.id)}
                 whileTap={{ scale: 0.92 }}
-                className="flex flex-col items-center justify-center flex-1 py-1.5 relative touch-manipulation"
+                className="flex flex-col items-center justify-center flex-1 py-1.5 relative"
               >
                 {/* Active indicator - top bar */}
                 {isActive && (

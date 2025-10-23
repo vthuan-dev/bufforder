@@ -179,8 +179,16 @@ useEffect(() => {
         console.log('[client] Created new thread:', threadId, 'with', arr.length, 'messages');
       }
 
-      // 3) Connect socket DIRECTLY - NO GLOBAL EVENTS!
-      connectSocket();
+      // 3) Socket is now handled globally in App.tsx to avoid duplicates
+      // No need to create separate socket connection here
+      console.log('[client] Using global socket from App.tsx');
+      
+      // Mark this thread as active for notification suppression
+      try { localStorage.setItem('client:activeThreadId', String(threadIdRef.current)); } catch {}
+      
+      // Listen for messages from global socket via custom events
+      window.addEventListener('client:chatMessage', handleGlobalMessage);
+      window.addEventListener('client:chatTyping', handleGlobalTyping);
     } catch (err) {
       console.error('[client] Chat initialization error:', err);
     }
@@ -236,12 +244,14 @@ useEffect(() => {
     window.removeEventListener('blur', onBlur);
     document.removeEventListener('visibilitychange', handleVisibilityChange);
     
-    // Disconnect socket
-    socketRef.current?.disconnect();
-    console.log('[client] Socket disconnected');
-    
+    // DON'T remove the threadId from localStorage - keep it for next time
+    // Only clear the active marker
+    try { localStorage.removeItem('client:activeThreadId'); } catch {}
     // Clear unread when leaving Help page
     try { localStorage.setItem('client:helpUnread', '0'); window.dispatchEvent(new CustomEvent('client:chatUnreadUpdated', { detail: 0 })); } catch {}
+    // Clean up event listeners
+    window.removeEventListener('client:chatMessage', handleGlobalMessage);
+    window.removeEventListener('client:chatTyping', handleGlobalTyping);
   };
 }, []);
 
@@ -319,42 +329,34 @@ useEffect(() => {
   const handleSendMessage = (text?: string) => {
     const messageText = text || inputMessage;
     if (!messageText.trim()) return;
-    
-    const threadId = threadIdRef.current;
-    if (!threadId) return;
-    
     setInputMessage('');
     setShowQuickReplies(false);
-    
-    // Optimistic UI - show immediately
-    const tempId = `temp-${Date.now()}`;
-    const optimisticMessage: Message = {
-      id: tempId,
-      text: messageText,
-      isUser: true,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-    
-    setMessages(prev => [...prev, optimisticMessage]);
-    
-    // Emit DIRECTLY via socket
-    socketRef.current?.emit('chat:send', { threadId, text: messageText });
-    console.log('[client] 📤 Message sent DIRECTLY');
+    // emit via global socket in App.tsx
+    const threadId = threadIdRef.current!;
+    try {
+      window.dispatchEvent(new CustomEvent('client:emitMessage', { 
+        detail: { threadId, text: messageText } 
+      }));
+    } catch {}
   };
 
-  // Emit typing DIRECTLY
+  // Emit typing events while user is composing
   const handleInputChange = (val: string) => {
     setInputMessage(val);
     const threadId = threadIdRef.current;
     if (!threadId) return;
-    
-    // Emit DIRECTLY
-    socketRef.current?.emit('chat:typing', { threadId, typing: true });
-    
-    if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
-    typingTimerRef.current = window.setTimeout(() => {
-      socketRef.current?.emit('chat:typing', { threadId, typing: false });
-    }, 1200);
+    try {
+      // Emit typing via global socket in App.tsx
+      window.dispatchEvent(new CustomEvent('client:emitTyping', { 
+        detail: { threadId, typing: true } 
+      }));
+      if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = window.setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('client:emitTyping', { 
+          detail: { threadId, typing: false } 
+        }));
+      }, 1200);
+    } catch {}
   };
 
   const handleQuickReply = (reply: string) => {
@@ -380,10 +382,8 @@ useEffect(() => {
   };
 
   return (
-    <div className="pb-16 h-screen flex flex-col bg-gradient-to-b from-purple-50 via-blue-50 to-pink-50">
-      {/* Hidden audio for notifications */}
-      <audio ref={audioRef} src={new URL('../assets/sound/noti.mp3', import.meta.url).toString()} preload="auto" />
-      
+    <div className="pb-20 h-screen flex flex-col bg-gradient-to-b from-purple-50 via-blue-50 to-pink-50">
+      {/* Audio is handled globally in App.tsx */}
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 shadow-sm">
         <div className="flex items-center gap-3">

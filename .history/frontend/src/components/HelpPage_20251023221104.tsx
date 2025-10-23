@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Send, Smile, Paperclip, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import api from "../services/api";
@@ -30,84 +30,20 @@ export function HelpPage() {
   const hasLoadedRef = useRef<boolean>(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // DIRECT socket connection - LIKE ADMIN for INSTANT updates
-  const connectSocket = () => {
+  // Direct socket message handler - INSTANT like admin
+  const playNotificationSound = useCallback(async () => {
+    if (!soundEnabledRef.current) return;
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-      
-      console.log('[client] 🚀 Connecting socket DIRECTLY...');
-      const s = io(API_BASE, { auth: { token } });
-      socketRef.current = s;
-      
-      s.on('connect', () => {
-        console.log('[client] ✅ Socket DIRECTLY connected!');
-        if (threadIdRef.current) {
-          s.emit('chat:joinThread', threadIdRef.current);
-        }
-      });
-      
-      // DIRECT MESSAGE HANDLER - NO DELAY!
-      s.on('chat:message', (msg: any) => {
-        console.log('[client] 📨 DIRECT message:', msg);
-        
-        if (String(msg.threadId) !== String(threadIdRef.current)) return;
-        
-        // Play sound for admin messages
-        if (msg.senderType === 'admin' && soundEnabledRef.current) {
-          try {
-            const a = audioRef.current;
-            if (a) {
-              a.currentTime = 0;
-              a.volume = 1;
-              a.play();
-            }
-          } catch {}
-        }
-        
-        const img = msg.imageUrl ? (String(msg.imageUrl).startsWith('/') ? `${API_BASE}${msg.imageUrl}` : msg.imageUrl) : undefined;
-        const newMessage = { 
-          id: msg._id || `temp-${Date.now()}`, 
-          text: msg.text || '', 
-          imageUrl: img, 
-          isUser: msg.senderType === 'user', 
-          timestamp: new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-        };
-        
-        // INSTANT update
-        setMessages(prev => {
-          const exists = prev.some(m => {
-            if (m.id === newMessage.id) return true;
-            if (m.id.startsWith('temp-') && m.text === newMessage.text && m.isUser === newMessage.isUser) return true;
-            return false;
-          });
-          
-          if (exists) {
-            return prev.map(m => {
-              if (m.id.startsWith('temp-') && m.text === newMessage.text && m.isUser === newMessage.isUser) {
-                return newMessage;
-              }
-              return m;
-            });
-          }
-          
-          return [...prev, newMessage];
-        });
-      });
-      
-      // TYPING HANDLER
-      s.on('chat:typing', (evt: any) => {
-        if (String(evt?.threadId) !== String(threadIdRef.current)) return;
-        if (evt?.senderType === 'admin') {
-          partnerTypingRef.current = !!evt.typing;
-          setIsTyping(!!evt.typing);
-        }
-      });
-      
+      const a = audioRef.current;
+      if (a) {
+        a.currentTime = 0;
+        a.volume = 1;
+        await a.play();
+      }
     } catch (err) {
-      console.error('[client] Socket error:', err);
+      console.error('[client] Sound play error:', err);
     }
-  };
+  }, []);
 
   const quickReplies = [
     "📦 Track my order",
@@ -179,8 +115,16 @@ useEffect(() => {
         console.log('[client] Created new thread:', threadId, 'with', arr.length, 'messages');
       }
 
-      // 3) Connect socket DIRECTLY - NO GLOBAL EVENTS!
-      connectSocket();
+      // 3) Socket is now handled globally in App.tsx to avoid duplicates
+      // No need to create separate socket connection here
+      console.log('[client] Using global socket from App.tsx');
+      
+      // Mark this thread as active for notification suppression
+      try { localStorage.setItem('client:activeThreadId', String(threadIdRef.current)); } catch {}
+      
+      // Listen for messages from global socket via custom events
+      window.addEventListener('client:chatMessage', handleGlobalMessage);
+      window.addEventListener('client:chatTyping', handleGlobalTyping);
     } catch (err) {
       console.error('[client] Chat initialization error:', err);
     }
@@ -236,12 +180,14 @@ useEffect(() => {
     window.removeEventListener('blur', onBlur);
     document.removeEventListener('visibilitychange', handleVisibilityChange);
     
-    // Disconnect socket
-    socketRef.current?.disconnect();
-    console.log('[client] Socket disconnected');
-    
+    // DON'T remove the threadId from localStorage - keep it for next time
+    // Only clear the active marker
+    try { localStorage.removeItem('client:activeThreadId'); } catch {}
     // Clear unread when leaving Help page
     try { localStorage.setItem('client:helpUnread', '0'); window.dispatchEvent(new CustomEvent('client:chatUnreadUpdated', { detail: 0 })); } catch {}
+    // Clean up event listeners
+    window.removeEventListener('client:chatMessage', handleGlobalMessage);
+    window.removeEventListener('client:chatTyping', handleGlobalTyping);
   };
 }, []);
 
@@ -316,17 +262,18 @@ useEffect(() => {
   //   };
   // }, [soundEnabled]);
 
-  const handleSendMessage = (text?: string) => {
+  const handleSendMessage = useCallback((text?: string) => {
     const messageText = text || inputMessage;
     if (!messageText.trim()) return;
     
     const threadId = threadIdRef.current;
     if (!threadId) return;
     
+    // Clear input immediately
     setInputMessage('');
     setShowQuickReplies(false);
     
-    // Optimistic UI - show immediately
+    // Optimistic UI update - show message immediately
     const tempId = `temp-${Date.now()}`;
     const optimisticMessage: Message = {
       id: tempId,
@@ -335,26 +282,36 @@ useEffect(() => {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
     
+    // Add message to UI instantly
     setMessages(prev => [...prev, optimisticMessage]);
     
-    // Emit DIRECTLY via socket
-    socketRef.current?.emit('chat:send', { threadId, text: messageText });
-    console.log('[client] 📤 Message sent DIRECTLY');
-  };
+    // Then emit to server
+    try {
+      window.dispatchEvent(new CustomEvent('client:emitMessage', { 
+        detail: { threadId, text: messageText } 
+      }));
+    } catch (err) {
+      console.error('[client] Failed to emit message:', err);
+    }
+  }, [inputMessage]);
 
-  // Emit typing DIRECTLY
+  // Emit typing events while user is composing
   const handleInputChange = (val: string) => {
     setInputMessage(val);
     const threadId = threadIdRef.current;
     if (!threadId) return;
-    
-    // Emit DIRECTLY
-    socketRef.current?.emit('chat:typing', { threadId, typing: true });
-    
-    if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
-    typingTimerRef.current = window.setTimeout(() => {
-      socketRef.current?.emit('chat:typing', { threadId, typing: false });
-    }, 1200);
+    try {
+      // Emit typing via global socket in App.tsx
+      window.dispatchEvent(new CustomEvent('client:emitTyping', { 
+        detail: { threadId, typing: true } 
+      }));
+      if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = window.setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('client:emitTyping', { 
+          detail: { threadId, typing: false } 
+        }));
+      }, 1200);
+    } catch {}
   };
 
   const handleQuickReply = (reply: string) => {
@@ -381,9 +338,7 @@ useEffect(() => {
 
   return (
     <div className="pb-16 h-screen flex flex-col bg-gradient-to-b from-purple-50 via-blue-50 to-pink-50">
-      {/* Hidden audio for notifications */}
-      <audio ref={audioRef} src={new URL('../assets/sound/noti.mp3', import.meta.url).toString()} preload="auto" />
-      
+      {/* Audio is handled globally in App.tsx */}
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 shadow-sm">
         <div className="flex items-center gap-3">

@@ -119,6 +119,7 @@ router.post('/take', authenticateToken, async (req, res) => {
   try {
     const userId = req.userId;
     const clientProduct = req.body && req.body.product;
+    const clientRequestId = (req.headers['x-idempotency-key'] || req.body?.idempotencyKey || '').toString().trim() || null;
     
     // Get user data
     const user = await User.findById(userId);
@@ -191,9 +192,43 @@ router.post('/take', authenticateToken, async (req, res) => {
       if (commissionAmount > maxThisOrder) commissionAmount = Math.round(maxThisOrder * 100) / 100;
     }
 
+  // If client provided idempotency key, try to find existing order for this user/key today
+  if (clientRequestId) {
+    const existing = await Order.findOne({ userId, clientRequestId });
+    if (existing) {
+      return res.json({
+        success: true,
+        data: {
+          // Return current wallet/daily stats without creating duplicate
+          newCommission: user.commission,
+          newBalance: user.balance,
+          newCompletedToday: todayOrders.length,
+          newOrdersGrabbed: todayOrders.length,
+          selectedProduct: {
+            productName: existing.productName,
+            productPrice: existing.productPrice,
+            commissionAmount: existing.commissionAmount,
+            commissionRate: existing.commissionRate,
+            brand: existing.brand,
+            productId: existing.productId,
+            category: existing.category,
+            image: existing.image
+          },
+          order: {
+            id: existing._id,
+            status: existing.status,
+            orderDate: existing.orderDate
+          },
+          dailyEarnings: user.dailyEarnings
+        }
+      });
+    }
+  }
+
   // Create a pending order immediately
   const newOrder = new Order({
     userId: userId,
+    clientRequestId: clientRequestId || undefined,
     productId: randomProduct.id,
     productName: randomProduct.name,
     productPrice: randomProduct.price,

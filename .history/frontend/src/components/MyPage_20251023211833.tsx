@@ -273,9 +273,9 @@ export function MyPage() {
       {/* Menu Items with Modern Design */}
       <div className="px-6 -mt-12">
         <motion.div 
-          initial={{ y: 10, opacity: 0 }}
+          initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.2, ease: "easeOut" }}
+          transition={{ delay: 1, type: "spring", stiffness: 100 }}
           className="bg-white/95 backdrop-blur-xl rounded-[2rem] shadow-2xl overflow-hidden border border-white/50"
         >
           {menuItems.map((item, index) => {
@@ -283,12 +283,13 @@ export function MyPage() {
             return (
               <motion.button
                 key={item.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.15, delay: index * 0.02 }}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1.1 + index * 0.05 }}
+                whileHover={{ x: 6, backgroundColor: 'rgba(249, 250, 251, 1)' }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleMenuClick(item.id)}
-                className={`w-full flex items-center gap-4 px-6 py-4 transition-all hover:bg-gray-50 active:bg-gray-100 ${
+                className={`w-full flex items-center gap-4 px-6 py-4 transition-all ${
                   index !== menuItems.length - 1 ? 'border-b border-gray-100/50' : ''
                 }`}
               >

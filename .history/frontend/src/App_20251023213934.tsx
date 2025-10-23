@@ -69,7 +69,6 @@ export default function App() {
 
   // Memoized content renderer for better performance
   const renderContent = useCallback(() => {
-    console.log('[App] Rendering content for tab:', activeTab);
     const content = (() => {
       switch (activeTab) {
         case 'home':

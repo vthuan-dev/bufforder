@@ -6,6 +6,12 @@ const orderSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  // Optional idempotency key provided by client to prevent duplicate orders
+  clientRequestId: {
+    type: String,
+    required: false,
+    index: true
+  },
   orderNumber: {
     type: String,
     required: true,
@@ -59,5 +65,10 @@ const orderSchema = new mongoose.Schema({
 // Index for better query performance
 orderSchema.index({ userId: 1, orderDate: -1 });
 orderSchema.index({ status: 1 });
+// Ensure (userId, clientRequestId) uniqueness when clientRequestId exists
+orderSchema.index(
+  { userId: 1, clientRequestId: 1 },
+  { unique: true, partialFilterExpression: { clientRequestId: { $type: 'string' } } }
+);
 
 module.exports = mongoose.model('Order', orderSchema);
