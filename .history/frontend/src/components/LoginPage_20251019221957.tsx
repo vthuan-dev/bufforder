@@ -11,8 +11,8 @@ interface LoginPageProps {
 }
 
 export function LoginPage({ onLogin, onSwitchToRegister, onSwitchToAdmin }: LoginPageProps) {
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("0904521288");
+  const [password, setPassword] = useState("111111");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
