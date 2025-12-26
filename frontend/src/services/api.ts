@@ -13,6 +13,31 @@ async function request(endpoint: string, options: RequestOptions = {}) {
     },
   };
   const res = await fetch(url, config);
+
+  if (res.status === 401) {
+    // Session expired
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('adminToken');
+    }
+
+    // Check if we are in admin mode or regular mode
+    const isAdmin = window.location.pathname.startsWith('/admin');
+
+    // Only redirect if not already on a login page to avoid infinite loops
+    const isLoginPage = window.location.pathname === '/login' || window.location.pathname === '/admin' || (isAdmin && window.location.pathname.includes('login'));
+
+    if (!isLoginPage) {
+      if (isAdmin) {
+        window.location.href = '/admin'; // This usually renders the admin login if not logged in
+      } else {
+        window.location.href = '/login';
+      }
+    }
+
+    throw new Error('Session expired. Please login again.');
+  }
+
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const message = (data && (data.message || data.error)) || `Request failed (${res.status})`;
@@ -38,7 +63,7 @@ export default {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
     return request('/admin/profile', { headers });
   },
-  
+
   adminDeleteUser(id: string) {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
     return request(`/admin/users/${id}`, { method: 'DELETE', headers });
@@ -229,7 +254,7 @@ export default {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
     return request(`/chat/admin/threads?${params.toString()}`, { headers });
   },
-  
+
   // ---- User Chat ----
   chatOpenThread(token?: string) {
     const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
@@ -418,10 +443,10 @@ export default {
   },
   adminSendChatMessage(roomId: string, message: string) {
     const headers: Record<string, string> = { 'Content-Type': 'application/json', ...adminTokenHeader() } as Record<string, string>;
-    return request(`/admin/chat/rooms/${roomId}/messages`, { 
-      method: 'POST', 
-      headers, 
-      body: JSON.stringify({ message }) 
+    return request(`/admin/chat/rooms/${roomId}/messages`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ message })
     });
   },
   adminGetChatStats() {
@@ -440,10 +465,10 @@ export default {
   },
   adminChangePassword(currentPassword: string, newPassword: string) {
     const headers: Record<string, string> = { 'Content-Type': 'application/json', ...adminTokenHeader() } as Record<string, string>;
-    return request('/admin/change-password', { 
-      method: 'POST', 
-      headers, 
-      body: JSON.stringify({ currentPassword, newPassword }) 
+    return request('/admin/change-password', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ currentPassword, newPassword })
     });
   },
   adminGetSystemSettings() {
