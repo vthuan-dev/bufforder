@@ -21,6 +21,7 @@ import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback } from "../ui/avatar";
+import { formatSafeDateTime } from "../ui/utils";
 import api from "../../services/api";
 
 interface DepositRow {
@@ -46,7 +47,7 @@ export function AdminDepositsPage() {
     user: { name: r.userId?.fullName || r.userId?.phoneNumber || r.userId?.username || 'User', email: r.userId?.email || '' },
     amount: Number(r.amount || 0),
     status: (r.status || 'pending').toLowerCase() === 'approved' ? 'Approved' : (r.status || 'pending').toLowerCase() === 'rejected' ? 'Rejected' : 'Pending',
-    requestDate: r.requestDate ? new Date(r.requestDate).toISOString().slice(0,16).replace('T',' ') : '',
+    requestDate: formatSafeDateTime(r.requestDate),
   });
 
   const loadData = async () => {
@@ -55,7 +56,7 @@ export function AdminDepositsPage() {
       const res = await api.adminListDepositRequests({ status: 'all', page: 1, limit: 50 });
       const list = (res?.data?.requests || res?.data || []).map(mapBackend);
       setDeposits(list);
-    } catch {}
+    } catch { }
     finally { setLoading(false); }
   };
 
@@ -181,8 +182,8 @@ export function AdminDepositsPage() {
                         deposit.status === "Approved"
                           ? "bg-green-100 text-green-700"
                           : deposit.status === "Pending"
-                          ? "bg-orange-100 text-orange-700"
-                          : "bg-red-100 text-red-700"
+                            ? "bg-orange-100 text-orange-700"
+                            : "bg-red-100 text-red-700"
                       }
                     >
                       {deposit.status}
@@ -283,9 +284,8 @@ export function AdminDepositsPage() {
                 </Button>
                 <Button
                   onClick={handleSubmitAction}
-                  className={`flex-1 ${
-                    actionType === "approve" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
-                  }`}
+                  className={`flex-1 ${actionType === "approve" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
+                    }`}
                 >
                   {actionType === "approve" ? "Approve" : "Reject"}
                 </Button>

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { motion } from "motion/react";
+import { formatSafeDate, formatSafeTime } from "./ui/utils";
 import api from "../services/api";
 
 interface Transaction {
@@ -32,23 +33,23 @@ export function TransactionHistoryPage({ onBack }: TransactionHistoryPageProps) 
           type: 'deposit' as const,
           amount: Number(r.amount || 0),
           status: (r.status || 'pending') as 'completed' | 'pending' | 'failed',
-          date: new Date(r.requestDate).toISOString().slice(0, 10),
-          time: new Date(r.requestDate).toLocaleTimeString(),
+          date: formatSafeDate(r.requestDate),
+          time: formatSafeTime(r.requestDate),
         }));
         const withdrawals = (withdrawalsRes?.data?.requests || []).map((r: any) => ({
           id: r._id,
           type: 'withdrawal' as const,
           amount: Number(r.amount || 0),
           status: (r.status || 'pending') as 'completed' | 'pending' | 'failed',
-          date: new Date(r.requestDate).toISOString().slice(0, 10),
-          time: new Date(r.requestDate).toLocaleTimeString(),
+          date: formatSafeDate(r.requestDate),
+          time: formatSafeTime(r.requestDate),
         }));
-        setTransactions([...deposits, ...withdrawals].sort((a,b)=>{
+        setTransactions([...deposits, ...withdrawals].sort((a, b) => {
           const d1 = new Date(`${a.date} ${a.time}`).getTime();
           const d2 = new Date(`${b.date} ${b.time}`).getTime();
           return d2 - d1;
         }));
-      } catch {}
+      } catch { }
     })();
   }, []);
 
@@ -59,7 +60,7 @@ export function TransactionHistoryPage({ onBack }: TransactionHistoryPageProps) 
   const totalWithdrawals = useMemo(() => transactions.filter(t => t.type === 'withdrawal').reduce((sum, t) => sum + t.amount, 0), [transactions]);
 
   const getStatusColor = (status: string) => {
-    switch(status) {
+    switch (status) {
       case 'completed': return 'text-green-600';
       case 'pending': return 'text-yellow-600';
       case 'failed': return 'text-red-600';
@@ -91,11 +92,10 @@ export function TransactionHistoryPage({ onBack }: TransactionHistoryPageProps) 
               key={tab}
               onClick={() => setFilter(tab)}
               whileTap={{ scale: 0.97 }}
-              className={`py-2.5 rounded-full text-sm capitalize transition-all text-center ${
-                filter === tab
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
+              className={`py-2.5 rounded-full text-sm capitalize transition-all text-center ${filter === tab
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-gray-600 hover:bg-gray-50'
+                }`}
             >
               {tab}
             </motion.button>
@@ -143,18 +143,17 @@ export function TransactionHistoryPage({ onBack }: TransactionHistoryPageProps) 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 flex-1">
                   {/* Icon */}
-                  <div className={`p-2.5 rounded-xl ${
-                    transaction.type === 'deposit' 
-                      ? 'bg-green-50' 
-                      : 'bg-orange-50'
-                  }`}>
+                  <div className={`p-2.5 rounded-xl ${transaction.type === 'deposit'
+                    ? 'bg-green-50'
+                    : 'bg-orange-50'
+                    }`}>
                     {transaction.type === 'deposit' ? (
                       <ArrowDownRight className="w-5 h-5 text-green-600" strokeWidth={2.5} />
                     ) : (
                       <ArrowUpRight className="w-5 h-5 text-orange-600" strokeWidth={2.5} />
                     )}
                   </div>
-                  
+
                   {/* Info */}
                   <div className="flex-1">
                     <p className="text-gray-800 capitalize mb-0.5">{transaction.type}</p>
@@ -166,9 +165,8 @@ export function TransactionHistoryPage({ onBack }: TransactionHistoryPageProps) 
 
                 {/* Amount & Status */}
                 <div className="text-right">
-                  <p className={`mb-1 ${
-                    transaction.type === 'deposit' ? 'text-green-600' : 'text-orange-600'
-                  }`}>
+                  <p className={`mb-1 ${transaction.type === 'deposit' ? 'text-green-600' : 'text-orange-600'
+                    }`}>
                     {transaction.type === 'deposit' ? '+' : '-'}${transaction.amount}
                   </p>
                   <p className={`text-xs capitalize ${getStatusColor(transaction.status)}`}>

@@ -22,6 +22,7 @@ import { Textarea } from "../ui/textarea";
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { toast } from "sonner";
+import { formatSafeDateTime } from "../ui/utils";
 import api from "../../services/api";
 
 interface WithdrawalRow {
@@ -57,7 +58,7 @@ export function AdminWithdrawalsPage() {
     accountNumber: r.bankCardId || '',
     accountName: r.userId?.fullName || '',
     status: (r.status || 'pending').toLowerCase() === 'approved' ? 'Approved' : (r.status || 'pending').toLowerCase() === 'rejected' ? 'Rejected' : 'Pending',
-    requestDate: r.requestDate ? new Date(r.requestDate).toISOString().slice(0,16).replace('T',' ') : '',
+    requestDate: formatSafeDateTime(r.requestDate),
   });
 
   const loadData = async () => {
@@ -66,7 +67,7 @@ export function AdminWithdrawalsPage() {
       const res = await api.adminListWithdrawalRequests({ status: 'all', page: 1, limit: 50 });
       const list = (res?.data?.requests || res?.data || []).map(mapBackend);
       setWithdrawals(list);
-    } catch {}
+    } catch { }
     finally { setLoading(false); }
   };
 
@@ -209,8 +210,8 @@ export function AdminWithdrawalsPage() {
                         withdrawal.status === "Approved"
                           ? "bg-green-100 text-green-700"
                           : withdrawal.status === "Pending"
-                          ? "bg-orange-100 text-orange-700"
-                          : "bg-red-100 text-red-700"
+                            ? "bg-orange-100 text-orange-700"
+                            : "bg-red-100 text-red-700"
                       }
                     >
                       {withdrawal.status}
@@ -293,11 +294,11 @@ export function AdminWithdrawalsPage() {
                   <span className="text-sm text-gray-600">Fee:</span>
                   <span className="text-red-600">-${selectedWithdrawal.fee.toFixed(2)}</span>
                 </div>
-                  {/* total to transfer is amount minus fee (fee not available from backend; show amount) */}
-                  <div className="flex justify-between border-t pt-2">
-                    <span className="text-sm text-gray-900">Total to Transfer:</span>
-                    <span className="text-green-600">${selectedWithdrawal.amount.toFixed(2)}</span>
-                  </div>
+                {/* total to transfer is amount minus fee (fee not available from backend; show amount) */}
+                <div className="flex justify-between border-t pt-2">
+                  <span className="text-sm text-gray-900">Total to Transfer:</span>
+                  <span className="text-green-600">${selectedWithdrawal.amount.toFixed(2)}</span>
+                </div>
               </div>
 
               <div className="bg-blue-50 rounded-lg p-4 space-y-2">
@@ -346,9 +347,8 @@ export function AdminWithdrawalsPage() {
                 </Button>
                 <Button
                   onClick={handleSubmitAction}
-                  className={`flex-1 ${
-                    actionType === "approve" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
-                  }`}
+                  className={`flex-1 ${actionType === "approve" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
+                    }`}
                 >
                   {actionType === "approve" ? "Approve & Transfer" : "Reject"}
                 </Button>

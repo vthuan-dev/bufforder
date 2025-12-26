@@ -12,6 +12,7 @@ const MyPage = lazy(() => import('./components/MyPage').then(module => ({ defaul
 const LoginPage = lazy(() => import('./components/LoginPage').then(module => ({ default: module.LoginPage })));
 const RegisterPage = lazy(() => import('./components/RegisterPage').then(module => ({ default: module.RegisterPage })));
 const AdminApp = lazy(() => import('./components/admin/AdminApp').then(module => ({ default: module.AdminApp })));
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 // Optimized loading component - minimal, fast render
 const PageLoader = () => (
@@ -26,7 +27,7 @@ const PageLoader = () => (
 export default function App() {
   // Debug: Unique identifier to ensure new code is running
   console.log('🚀 App.tsx loaded - Version 2.0 - Sound fix applied');
-  
+
   const [activeTab, setActiveTab] = useState('home');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authView, setAuthView] = useState<'login' | 'register'>('login');
@@ -61,9 +62,9 @@ export default function App() {
     console.log('[App] Tab change requested:', tab, '→ from:', activeTab);
     // Instant tab switch without waiting for component load
     setActiveTab(tab);
-    try { localStorage.setItem('client:activeBottomTab', tab); } catch {}
+    try { localStorage.setItem('client:activeBottomTab', tab); } catch { }
     if (tab === 'help') {
-      try { localStorage.setItem('client:helpUnread', '0'); window.dispatchEvent(new CustomEvent('client:chatUnreadUpdated', { detail: 0 })); } catch {}
+      try { localStorage.setItem('client:helpUnread', '0'); window.dispatchEvent(new CustomEvent('client:chatUnreadUpdated', { detail: 0 })); } catch { }
     }
   }, [activeTab]);
 
@@ -135,7 +136,7 @@ export default function App() {
   // Global audio play listener to debug
   useEffect(() => {
     console.log('🔧 Setting up global audio play listener');
-    
+
     const handleAudioPlay = (event: any) => {
       console.log('🔊 AUDIO PLAY DETECTED:', {
         target: event.target,
@@ -144,16 +145,16 @@ export default function App() {
         volume: event.target?.volume,
         stack: new Error().stack
       });
-      
+
       // Check if this is our expected audio element
       const isOurAudio = event.target === clientAudioRef.current;
       console.log('🔊 Is this our audio element?', isOurAudio);
-      
+
       if (!isOurAudio) {
         console.log('⚠️ UNEXPECTED AUDIO PLAY - NOT OUR AUDIO ELEMENT!');
         console.log('🔊 Unexpected audio src:', event.target?.src);
         console.log('🔊 Our audio src:', clientAudioRef.current?.src);
-        
+
         // Try to stop the unexpected audio
         try {
           event.target.pause();
@@ -166,7 +167,7 @@ export default function App() {
 
     // Listen for all audio play events
     document.addEventListener('play', handleAudioPlay, true);
-    
+
     return () => {
       document.removeEventListener('play', handleAudioPlay, true);
     };
@@ -194,15 +195,15 @@ export default function App() {
           console.log('[App] Sound disabled by preference');
           return;
         }
-      } catch {}
+      } catch { }
       const a = clientAudioRef.current;
-      if (a) { 
+      if (a) {
         console.log('[App] 🎵 PLAYING SOUND via clientAudioRef - THIS IS THE ONLY PLACE THAT SHOULD PLAY SOUND - Version 2.0');
-        a.currentTime = 0; 
-        a.volume = 1; 
+        a.currentTime = 0;
+        a.volume = 1;
         a.play().catch((err) => {
           console.error('[App] Audio play failed:', err);
-        }); 
+        });
       } else {
         console.log('[App] No audio element found');
       }
@@ -218,7 +219,7 @@ export default function App() {
         if (activeThreadId && evt?.threadId) {
           isSameActiveThread = String(activeThreadId) === String(evt.threadId);
         }
-      } catch {}
+      } catch { }
       // Play when shouldPlay is false (user not actively viewing same thread in Help and focused)
       const shouldPlay = (!isHelpActive && (!isFocused && isSameActiveThread));
       console.log('shouldPlay', shouldPlay);
@@ -238,7 +239,7 @@ export default function App() {
             volume: audio.volume
           });
         });
-        
+
         // Check if any audio is currently playing
         const playingAudio = Array.from(allAudio).filter(audio => !audio.paused);
         if (playingAudio.length > 0) {
@@ -251,7 +252,7 @@ export default function App() {
             });
           });
         }
-        
+
         // Force pause all audio elements when shouldPlay is true
         allAudio.forEach((audio, index) => {
           if (!audio.paused) {
@@ -259,7 +260,7 @@ export default function App() {
             audio.pause();
           }
         });
-        
+
         // Additional check: if we still hear sound, there might be another source
         setTimeout(() => {
           const stillPlaying = Array.from(document.querySelectorAll('audio')).filter(audio => !audio.paused);
@@ -286,8 +287,8 @@ export default function App() {
       // Forward to HelpPage via custom event
       try {
         window.dispatchEvent(new CustomEvent('client:chatMessage', { detail: msg }));
-      } catch {}
-      
+      } catch { }
+
       // Debug: check if this message should trigger sound
       const isHelpActive = activeTab === 'help';
       const isFocused = focusRef.current && !document.hidden;
@@ -297,7 +298,7 @@ export default function App() {
         if (activeThreadId && msg?.threadId) {
           isSameActiveThread = String(activeThreadId) === String(msg.threadId);
         }
-      } catch {}
+      } catch { }
       const shouldPlayForMessage = (!isHelpActive || !isFocused && isSameActiveThread);
       console.log('[App] chat:message shouldPlay:', shouldPlayForMessage, {
         isHelpActive,
@@ -306,7 +307,7 @@ export default function App() {
         msgThreadId: msg.threadId,
         activeThreadId: localStorage.getItem('client:activeThreadId')
       });
-      
+
       // Force pause all audio elements when shouldPlay is true for chat:message
       if (!shouldPlayForMessage) {
         const allAudio = document.querySelectorAll('audio');
@@ -316,7 +317,7 @@ export default function App() {
             audio.pause();
           }
         });
-        
+
         // Additional check: if we still hear sound, there might be another source
         setTimeout(() => {
           const stillPlaying = Array.from(document.querySelectorAll('audio')).filter(audio => !audio.paused);
@@ -343,7 +344,7 @@ export default function App() {
       // Forward to HelpPage via custom event
       try {
         window.dispatchEvent(new CustomEvent('client:chatTyping', { detail: evt }));
-      } catch {}
+      } catch { }
     });
 
     // Listen for events from HelpPage and emit to server
@@ -374,10 +375,10 @@ export default function App() {
   // Admin Mode
   if (isAdminMode) {
     return (
-      <>
+      <ErrorBoundary name="Admin Panel">
         {adminModeContent}
         <Toaster position="top-right" />
-      </>
+      </ErrorBoundary>
     );
   }
 
