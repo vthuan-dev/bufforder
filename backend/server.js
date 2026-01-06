@@ -48,8 +48,8 @@ const io = new Server(server, {
       callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
-    methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-    allowedHeaders: ['Content-Type','Authorization','X-Idempotency-Key']
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Idempotency-Key']
   }
 });
 // expose io to routes    
@@ -65,8 +65,8 @@ app.use(cors({
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
-  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization','X-Idempotency-Key']
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Idempotency-Key']
 }));
 // Handle preflight
 app.options('*', cors());
@@ -86,28 +86,28 @@ mongoose.connect(config.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-.then(() => {
-  console.log('✅ Connected to MongoDB successfully');
-  // Fix legacy unique index on email that allowed null duplicates to fail
-  try {
-    const User = require('./models/User');
-    // Drop old unique index if it exists, then sync new partial index from schema
-    User.collection.dropIndex('email_1')
-      .then(() => console.log('[index] Dropped legacy index email_1'))
-      .catch(() => {} )
-      .finally(() => {
-        User.syncIndexes()
-          .then(() => console.log('[index] User indexes synced'))
-          .catch((e) => console.warn('[index] syncIndexes warning', e?.message));
-      });
-  } catch (e) {
-    console.warn('[index] User index maintenance skipped', e?.message);
-  }
-})
-.catch((error) => {
-  console.error('❌ MongoDB connection error:', error);
-  process.exit(1);
-});
+  .then(() => {
+    console.log('✅ Connected to MongoDB successfully');
+    // Fix legacy unique index on email that allowed null duplicates to fail
+    try {
+      const User = require('./models/User');
+      // Drop old unique index if it exists, then sync new partial index from schema
+      User.collection.dropIndex('email_1')
+        .then(() => console.log('[index] Dropped legacy index email_1'))
+        .catch(() => { })
+        .finally(() => {
+          User.syncIndexes()
+            .then(() => console.log('[index] User indexes synced'))
+            .catch((e) => console.warn('[index] syncIndexes warning', e?.message));
+        });
+    } catch (e) {
+      console.warn('[index] User index maintenance skipped', e?.message);
+    }
+  })
+  .catch((error) => {
+    console.error('❌ MongoDB connection error:', error);
+    process.exit(1);
+  });
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -115,6 +115,11 @@ app.use('/api/vip', vipRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/chat', chatRoutes);
+
+// Start message cleanup service with Socket.io for realtime notifications
+const messageCleanupService = new MessageCleanupService();
+messageCleanupService.setSocketIO(io);
+messageCleanupService.start();
 
 // Socket.IO auth: supports user (JWT via Bearer) and admin (adminToken)
 io.use(async (socket, next) => {
@@ -152,7 +157,7 @@ io.on('connection', (socket) => {
     const uid = String(socket.data.userId);
     const current = onlineUsers.get(uid) || 0;
     onlineUsers.set(uid, current + 1);
-    try { io.to('admins').emit('presence:update', { userId: uid, online: true }); } catch {}
+    try { io.to('admins').emit('presence:update', { userId: uid, online: true }); } catch { }
   } else if (socket.data.role === 'admin') {
     socket.join('admins');
   }
@@ -190,7 +195,7 @@ io.on('connection', (socket) => {
             thread.userIp = ip;
           }
         }
-      } catch {}
+      } catch { }
 
       const senderType = socket.data.role === 'admin' ? 'admin' : 'user';
       const senderId = socket.data.role === 'admin' ? socket.data.adminId : socket.data.userId;
@@ -232,7 +237,7 @@ io.on('connection', (socket) => {
       if (!threadId) return;
       const senderType = socket.data.role === 'admin' ? 'admin' : 'user';
       io.to(`thread:${threadId}`).emit('chat:typing', { threadId, typing: !!typing, senderType });
-    } catch {}
+    } catch { }
   });
 
   socket.on('disconnect', () => {
@@ -244,9 +249,9 @@ io.on('connection', (socket) => {
         // update lastSeenAt for user
         try {
           const User = require('./models/User');
-          User.findByIdAndUpdate(uid, { lastSeenAt: new Date() }).exec().catch(() => {});
-        } catch {}
-        try { io.to('admins').emit('presence:update', { userId: uid, online: false }); } catch {}
+          User.findByIdAndUpdate(uid, { lastSeenAt: new Date() }).exec().catch(() => { });
+        } catch { }
+        try { io.to('admins').emit('presence:update', { userId: uid, online: false }); } catch { }
       } else {
         onlineUsers.set(uid, current - 1);
       }
@@ -256,8 +261,8 @@ io.on('connection', (socket) => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    success: true, 
+  res.json({
+    success: true,
     message: 'Server is running',
     timestamp: new Date().toISOString()
   });
@@ -286,11 +291,11 @@ server.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
   console.log(`📱 Frontend URL: http://localhost:3000`);
   console.log(`🔗 API URL: http://localhost:${PORT}/api`);
-  
+
   // Start message cleanup service
   const cleanupService = new MessageCleanupService();
   cleanupService.start();
-  
+
   // Graceful shutdown
   process.on('SIGINT', () => {
     console.log('\n🛑 Shutting down server...');

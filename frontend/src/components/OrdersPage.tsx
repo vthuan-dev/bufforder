@@ -71,7 +71,7 @@ export function OrdersPage() {
           const earnedToday = Number(stats.data?.dailyEarnings?.totalCommission || 0);
           setDailyCommission(isNaN(earnedToday) ? 0 : earnedToday);
         }
-      } catch {}
+      } catch { }
 
       // Fetch VIP status to determine commission rate
       try {
@@ -92,7 +92,7 @@ export function OrdersPage() {
           vip0: 0.002,
         };
         setCommissionRate(vipCommissionRates[vipKey] ?? 0.002);
-      } catch {}
+      } catch { }
     })();
   }, []);
 
@@ -176,25 +176,25 @@ export function OrdersPage() {
       console.warn('[Orders] Take order blocked: popup already open or submitting');
       return;
     }
-    
+
     setShowOrderPopup(true);
     setProgress(0);
-    
+
     // Generate idempotency key IMMEDIATELY when popup opens
     const newClientRequestId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     setLastClientRequestId(newClientRequestId);
     console.log('[Orders] Generated new idempotency key:', newClientRequestId);
-    
+
     // Optimized progress animation - faster and smoother
     const duration = 2000; // Reduced from 3000ms to 2000ms
     const steps = 50; // Reduced steps for better performance
     const stepDuration = duration / steps;
-    
+
     let currentStep = 0;
     const interval = setInterval(() => {
       currentStep += 2; // Increment by 2 for faster progress
       setProgress(Math.min(currentStep, 100));
-      
+
       if (currentStep >= 100) {
         clearInterval(interval);
         // Random select a product after loading completes
@@ -215,7 +215,7 @@ export function OrdersPage() {
       console.warn('[Orders] Confirm blocked: already submitting');
       return;
     }
-    
+
     // CRITICAL: Use the idempotency key generated when popup opened
     const clientRequestId = lastClientRequestId;
     if (!clientRequestId) {
@@ -223,11 +223,11 @@ export function OrdersPage() {
       alert('Session error. Please try again.');
       return;
     }
-    
+
     try {
       setSubmitting(true);
       console.log('[Orders] Submitting order with key:', clientRequestId);
-      
+
       // Take order -> create a pending order only; admin will update status later
       const takeRes = await api.userOrderTake({
         id: selectedProduct.id,
@@ -237,9 +237,9 @@ export function OrdersPage() {
         category: 'General',
         image: selectedProduct.image,
       }, clientRequestId);
-      
+
       console.log('[Orders] Order submitted successfully');
-      
+
       // Update UI: count order grabbed; commission updates when admin delivers
       setOrdersReceived((prev) => prev + 1);
 
@@ -258,15 +258,15 @@ export function OrdersPage() {
           const earnedToday = Number(stats.data?.dailyEarnings?.totalCommission || 0);
           setDailyCommission(isNaN(earnedToday) ? 0 : earnedToday);
         }
-      } catch {}
+      } catch { }
 
       setShowOrderPopup(false);
       setSelectedProduct(null);
       // DON'T RESET idempotency key here - let it expire naturally on next Take Order
       // setLastClientRequestId(null); // ← BUG WAS HERE!
-      
+
       // notify other pages (Record) to refresh
-      try { window.dispatchEvent(new Event('orderUpdated')); } catch {}
+      try { window.dispatchEvent(new Event('orderUpdated')); } catch { }
     } catch (e: any) {
       console.error('[Orders] Submit error:', e);
       alert(e?.message || 'Order failed');
@@ -295,9 +295,9 @@ export function OrdersPage() {
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center justify-center"
         >
-          <img 
+          <img
             src={new URL("../assets/image.png", import.meta.url).toString()}
-            alt="Ashford Logo" 
+            alt="Ashford Logo"
             className="h-8 w-auto"
           />
         </motion.div>
@@ -313,7 +313,7 @@ export function OrdersPage() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="relative h-56"
+              className="relative h-40"
             >
               <ImageWithFallback
                 src={carouselImages[currentSlide]}
@@ -334,115 +334,92 @@ export function OrdersPage() {
               <button
                 key={index}
                 onClick={() => setCurrentSlide(index)}
-                className={`h-2 rounded-full transition-all ${
-                  index === currentSlide
-                    ? 'w-8 bg-white'
-                    : 'w-2 bg-white/40'
-                }`}
+                className={`h-2 rounded-full transition-all ${index === currentSlide
+                  ? 'w-8 bg-white'
+                  : 'w-2 bg-white/40'
+                  }`}
               />
             ))}
           </div>
         </div>
       </div>
 
-      {/* Take Order Button */}
-      <div className="px-6 pt-6">
-        <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 rounded-3xl p-6 shadow-inner">
+      {/* Take Order Button - Compact */}
+      <div className="px-4 pt-4">
+        <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 rounded-2xl p-4 shadow-inner">
           <motion.button
-            whileHover={(!showOrderPopup && !submitting) ? { scale: 1.03, y: -3 } : {}}
-            whileTap={(!showOrderPopup && !submitting) ? { scale: 0.97 } : {}}
+            whileHover={(!showOrderPopup && !submitting) ? { scale: 1.02 } : {}}
+            whileTap={(!showOrderPopup && !submitting) ? { scale: 0.98 } : {}}
             onClick={handleTakeOrder}
             disabled={showOrderPopup || submitting}
-            className={`w-full py-5 rounded-2xl shadow-2xl transition-all relative overflow-hidden group ${
-              showOrderPopup || submitting 
-                ? 'bg-gray-400 cursor-not-allowed opacity-50' 
-                : 'bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 text-white hover:shadow-blue-500/50'
-            }`}
+            className={`w-full py-3 rounded-xl shadow-lg transition-all relative overflow-hidden group ${showOrderPopup || submitting
+              ? 'bg-gray-400 cursor-not-allowed opacity-50'
+              : 'bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 text-white hover:shadow-blue-500/50'
+              }`}
           >
-            {/* Animated background shine */}
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-              animate={{ x: ['-100%', '200%'] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              style={{ transform: 'skewX(-20deg)' }}
-            />
-            
-            {/* Pulse effect */}
-            <motion.div
-              className="absolute inset-0 bg-white/20 rounded-2xl"
-              animate={{ 
-                scale: [1, 1.05, 1],
-                opacity: [0.3, 0, 0.3]
-              }}
-              transition={{ 
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            />
-
             {/* Button content */}
-            <div className="relative z-10 flex items-center justify-center gap-3">
-              <Package className="w-6 h-6" strokeWidth={2.5} />
-              <span className="text-lg">
-                {showOrderPopup || submitting ? 'Processing...' : 'Take an order now'}
+            <div className="relative z-10 flex items-center justify-center gap-2">
+              <Package className="w-5 h-5" strokeWidth={2.5} />
+              <span className="text-base">
+                {showOrderPopup || submitting ? 'Processing...' : 'Đặt hàng ngay'}
               </span>
             </div>
-
-            {/* Bottom glow */}
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-1 bg-gradient-to-r from-transparent via-white/50 to-transparent blur-sm" />
           </motion.button>
-
-          {/* Helper text */}
-          <p className="text-center text-sm text-gray-600 mt-3">
-            Click the button to take an order now
+          <p className="text-center text-xs text-gray-500 mt-2">
+            Nhấn vào nút để đặt hàng ngay bây giờ
           </p>
         </div>
       </div>
 
-      {/* Stats Grid with images - Optimized for mobile */}
-      <div className="px-4 py-4 space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+      {/* Stats Grid - Compact 2x2 with smaller cards */}
+      <div className="px-4 py-3">
+        <div className="grid grid-cols-2 gap-2">
           {/* Earned commission */}
-          <div className="bg-white rounded-xl p-2.5 shadow-sm border border-gray-100 flex flex-col items-center text-center">
-            <img src={imgEarned} alt="Earned commission" className="w-16 h-16 object-contain mb-1" />
-            <p className="text-[10px] text-gray-600 leading-tight">Earned commission</p>
-            <p className="text-sm font-semibold text-red-500 mt-0.5">{dailyCommission.toFixed(2)}$</p>
+          <div className="bg-white rounded-lg p-2 shadow-sm border border-gray-100 flex items-center gap-2">
+            <img src={imgEarned} alt="Earned" className="w-10 h-10 object-contain" />
+            <div>
+              <p className="text-[9px] text-gray-500 leading-tight">Hoa hồng kiếm được</p>
+              <p className="text-xs font-semibold text-red-500">{dailyCommission.toFixed(2)} đô la</p>
+            </div>
           </div>
 
           {/* Available balance */}
-          <div className="bg-white rounded-xl p-2.5 shadow-sm border border-gray-100 flex flex-col items-center text-center">
-            <img src={imgAvailable} alt="Available balance" className="w-16 h-16 object-contain mb-1" />
-            <p className="text-[10px] text-gray-600 leading-tight">Available balance</p>
-            <p className="text-sm font-semibold text-red-500 mt-0.5">{availableBalance.toFixed(2)}$</p>
+          <div className="bg-white rounded-lg p-2 shadow-sm border border-gray-100 flex items-center gap-2">
+            <img src={imgAvailable} alt="Available" className="w-10 h-10 object-contain" />
+            <div>
+              <p className="text-[9px] text-gray-500 leading-tight">Số dư khả dụng</p>
+              <p className="text-xs font-semibold text-red-500">{availableBalance.toFixed(2)} đô la</p>
+            </div>
           </div>
-        </div>
 
-        <div className="grid grid-cols-2 gap-4">
           {/* Today's task */}
-          <div className="bg-white rounded-xl p-2.5 shadow-sm border border-gray-100 flex flex-col items-center text-center">
-            <img src={imgToday} alt="Today's task" className="w-16 h-16 object-contain mb-1" />
-            <p className="text-[10px] text-gray-600 leading-tight">Today's task</p>
-            <p className="text-sm font-semibold text-red-500 mt-0.5">{todaysTask.toFixed(2)}</p>
+          <div className="bg-white rounded-lg p-2 shadow-sm border border-gray-100 flex items-center gap-2">
+            <img src={imgToday} alt="Today" className="w-10 h-10 object-contain" />
+            <div>
+              <p className="text-[9px] text-gray-500 leading-tight">Nhiệm vụ hôm nay</p>
+              <p className="text-xs font-semibold text-red-500">{todaysTask.toFixed(2)}</p>
+            </div>
           </div>
 
           {/* Completed today */}
-          <div className="bg-white rounded-xl p-2.5 shadow-sm border border-gray-100 flex flex-col items-center text-center">
-            <img src={imgCompleted} alt="Completed today" className="w-16 h-16 object-contain mb-1" />
-            <p className="text-[10px] text-gray-600 leading-tight">Completed today</p>
-            <p className="text-sm font-semibold text-red-500 mt-0.5">{completedToday}</p>
+          <div className="bg-white rounded-lg p-2 shadow-sm border border-gray-100 flex items-center gap-2">
+            <img src={imgCompleted} alt="Completed" className="w-10 h-10 object-contain" />
+            <div>
+              <p className="text-[9px] text-gray-500 leading-tight">Hoàn thành hôm nay</p>
+              <p className="text-xs font-semibold text-red-500">{completedToday}</p>
+            </div>
           </div>
         </div>
 
-        {/* Progress Bar - Compact */}
-        <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
-          <div className="flex justify-between items-center mb-1.5">
-            <p className="text-xs text-gray-700">Orders received</p>
-            <p className="text-xs font-semibold text-red-500">{ordersReceived}/{totalOrdersLimit}</p>
+        {/* Progress Bar - More Compact */}
+        <div className="bg-white rounded-lg p-2 mt-2 shadow-sm border border-gray-100">
+          <div className="flex justify-between items-center mb-1">
+            <p className="text-[10px] text-gray-600">Đơn hàng đã nhận</p>
+            <p className="text-[10px] font-semibold text-red-500">{ordersReceived} / {totalOrdersLimit}</p>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-1.5">
-            <div 
-              className="bg-gradient-to-r from-blue-500 to-purple-500 h-1.5 rounded-full transition-all duration-500"
+          <div className="w-full bg-gray-200 rounded-full h-1">
+            <div
+              className="bg-gradient-to-r from-blue-500 to-purple-500 h-1 rounded-full transition-all duration-500"
               style={{ width: `${(ordersReceived / totalOrdersLimit) * 100}%` }}
             />
           </div>
@@ -450,59 +427,6 @@ export function OrdersPage() {
       </div>
 
       {/* Instructions - Compact */}
-      <div className="px-4 pb-3">
-        <div className="bg-gray-50 rounded-xl p-3 border border-gray-200">
-          <p className="text-xs font-medium text-gray-800 mb-2">Procedure:</p>
-          <ol className="text-[10px] text-gray-700 space-y-1.5 leading-relaxed">
-            <li>1 Click the "Start Task" button and follow the instructions to complete the task.</li>
-            <li>2 After finishing, you can settle the commission to your balance.</li>
-          </ol>
-        </div>
-      </div>
-
-      {/* Products Grid at bottom */}
-      <div className="px-6 pb-6">
-        <div className="grid grid-cols-2 gap-4">
-          {products.map((product, index) => (
-            <motion.div
-              key={product.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1, duration: 0.3 }}
-              whileHover={{ y: -6, scale: 1.02 }}
-              className="bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300"
-            >
-              {/* Product Image */}
-              <div className="relative aspect-square bg-gray-100">
-                <ImageWithFallback
-                  src={product.image}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-
-              {/* Product Info */}
-              <div className="p-4">
-                <h3 className="text-gray-800 mb-1">{product.name}</h3>
-                <p className="text-xs text-gray-500 mb-3">{product.brand}</p>
-                
-                <div className="space-y-1 mb-3">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-600">Unit price:</span>
-                    <span className="text-red-600">{product.price}</span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-600">Rebate:</span>
-                    <span className="text-red-600">{product.commission.toFixed(3)}</span>
-                  </div>
-                </div>
-
-                {/* Start Task button removed */}
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
     </>
   );
 
@@ -516,9 +440,9 @@ export function OrdersPage() {
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center justify-center"
         >
-          <img 
+          <img
             src={new URL("../assets/image.png", import.meta.url).toString()}
-            alt="Ashford Logo" 
+            alt="Ashford Logo"
             className="h-8 w-auto"
           />
         </motion.div>
@@ -562,7 +486,7 @@ export function OrdersPage() {
               <div className="p-4">
                 <h3 className="text-gray-800 mb-1">{product.name}</h3>
                 <p className="text-xs text-gray-500 mb-3">{product.brand}</p>
-                
+
                 <div className="space-y-1 mb-3">
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-600">Unit price:</span>
@@ -608,22 +532,22 @@ export function OrdersPage() {
             {/* Modal */}
             <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
               <motion.div
-                initial={{ 
-                  opacity: 0, 
+                initial={{
+                  opacity: 0,
                   scale: 0.8,
                   y: 50
                 }}
-                animate={{ 
-                  opacity: 1, 
+                animate={{
+                  opacity: 1,
                   scale: 1,
                   y: 0
                 }}
-                exit={{ 
-                  opacity: 0, 
+                exit={{
+                  opacity: 0,
                   scale: 0.8,
                   y: 50
                 }}
-                transition={{ 
+                transition={{
                   type: "spring",
                   stiffness: 300,
                   damping: 25,

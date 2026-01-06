@@ -36,6 +36,12 @@ export default function App() {
   const clientSocketRef = useRef<Socket | null>(null);
   const clientAudioRef = useRef<HTMLAudioElement | null>(null);
   const focusRef = useRef<boolean>(typeof document !== 'undefined' ? !document.hidden : true);
+  const activeTabRef = useRef<string>(activeTab);
+
+  // Keep activeTabRef in sync
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
 
   // All hooks must be called before any conditional returns
   const handleLogin = useCallback(() => {
@@ -211,7 +217,7 @@ export default function App() {
     s.on('chat:threadUpdated', (evt: any) => {
       // Suppress sound only when: user is on Help tab, tab focused, and
       // currently viewing the same thread as the event threadId
-      const isHelpActive = activeTab === 'help';
+      const isHelpActive = activeTabRef.current === 'help';
       const isFocused = !(focusRef.current && !document.hidden);
       let isSameActiveThread = false;
       try {
@@ -290,7 +296,7 @@ export default function App() {
       } catch { }
 
       // Debug: check if this message should trigger sound
-      const isHelpActive = activeTab === 'help';
+      const isHelpActive = activeTabRef.current === 'help';
       const isFocused = focusRef.current && !document.hidden;
       let isSameActiveThread = false;
       try {
@@ -363,6 +369,7 @@ export default function App() {
     window.addEventListener('client:emitMessage', handleEmitMessage);
     window.addEventListener('client:emitTyping', handleEmitTyping);
     return () => {
+      console.log('[App] Disconnecting socket due to auth change/cleanup');
       s.disconnect();
       document.removeEventListener('visibilitychange', onVis);
       window.removeEventListener('focus', onFocus);
@@ -370,7 +377,7 @@ export default function App() {
       window.removeEventListener('client:emitMessage', handleEmitMessage);
       window.removeEventListener('client:emitTyping', handleEmitTyping);
     };
-  }, [isAdminMode, isAuthenticated, activeTab]);
+  }, [isAdminMode, isAuthenticated]); // Removed activeTab to prevent reconnecting on every tab change
 
   // Admin Mode
   if (isAdminMode) {

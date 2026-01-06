@@ -53,6 +53,9 @@ export function AdminUsersPage() {
   const [formBalance, setFormBalance] = useState<string>("0");
   const [formStatus, setFormStatus] = useState<"Active" | "Suspended" | "Pending">("Active");
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createFullName, setCreateFullName] = useState("");
   const [createEmail, setCreateEmail] = useState("");
@@ -60,17 +63,12 @@ export function AdminUsersPage() {
   const [createPassword, setCreatePassword] = useState("");
   const [creating, setCreating] = useState(false);
   const [createConfirmPassword, setCreateConfirmPassword] = useState("");
-  // Commission settings state
-  const [commissionBaseRate, setCommissionBaseRate] = useState<string>("");
-  const [commissionMode, setCommissionMode] = useState<'auto' | 'low' | 'high'>('auto');
-  const [lowMin, setLowMin] = useState<string>('450');
-  const [lowMax, setLowMax] = useState<string>('600');
-  const [highMin, setHighMin] = useState<string>('800');
-  const [highMax, setHighMax] = useState<string>('1000');
-  const [dailyMode, setDailyMode] = useState<string>('');
-  const [dailyTarget, setDailyTarget] = useState<string>('');
-  const [dailySoFar, setDailySoFar] = useState<string>('');
-  const [dailyOrders, setDailyOrders] = useState<string>('');
+  // Commission settings state (simplified)
+  const [commissionPerOrder, setCommissionPerOrder] = useState<string>("");
+  const [commissionDailyTarget, setCommissionDailyTarget] = useState<string>("");
+  // Today's stats (read-only)
+  const [dailyEarnedSoFar, setDailyEarnedSoFar] = useState<string>('');
+  const [dailyOrdersCount, setDailyOrdersCount] = useState<string>('');
 
   const mapBackendUser = (u: any): UserRow => ({
     id: u._id,
@@ -83,12 +81,22 @@ export function AdminUsersPage() {
     joinDate: formatSafeDate(u.createdAt),
   });
 
-  const loadUsers = async () => {
+  const loadUsers = async (p: number = page, query: string = searchQuery, status: string = statusFilter) => {
     try {
       setLoading(true);
-      const res = await api.adminListUsers({ page: 1, limit: 100 });
-      const list = (res?.data?.users || res?.data || []).map(mapBackendUser);
+      const res = await api.adminListUsers({
+        page: p,
+        limit: 20,
+        q: query,
+        status: status
+      });
+
+      const resData = res?.data || {};
+      const list = (resData.users || []).map(mapBackendUser);
       setUsers(list);
+      setTotalPages(resData.pagination?.pages || 1);
+      setTotalUsers(resData.pagination?.total || list.length);
+      setPage(p);
     } catch (e) {
       const msg = (e as any)?.message || '';
       if (msg.toLowerCase().includes('unauthorized')) {
@@ -103,31 +111,31 @@ export function AdminUsersPage() {
   };
 
   useEffect(() => {
-    loadUsers();
-  }, []);
+    loadUsers(1, searchQuery, statusFilter);
+  }, [statusFilter]); // Reload on status change
 
-  const filteredUsers = useMemo(() => users.filter((user) => {
-    const matchesSearch =
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || user.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  }), [users, searchQuery, statusFilter]);
+  // Debounced search effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadUsers(1, searchQuery, statusFilter);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // No frontend filtering needed anymore as we do it on server
+  const filteredUsers = users;
 
   const loadCommissionConfig = async (userId: string) => {
     try {
       const res = await api.adminGetUserCommissionConfig(userId);
       const cfg = res?.data?.commissionConfig || {};
-      setCommissionBaseRate(cfg.baseRate != null ? String(cfg.baseRate) : "");
-      setCommissionMode((cfg.dailyProfitMode as any) || 'auto');
-      const low = cfg.lowTarget || {}; const high = cfg.highTarget || {};
-      setLowMin(String(low.min ?? 450)); setLowMax(String(low.max ?? 600));
-      setHighMin(String(high.min ?? 800)); setHighMax(String(high.max ?? 1000));
+      // Load simplified fields
+      setCommissionPerOrder(cfg.perOrderAmount != null ? String(cfg.perOrderAmount) : "");
+      setCommissionDailyTarget(cfg.dailyTarget != null ? String(cfg.dailyTarget) : "");
+      // Load today's read-only stats
       const de = res?.data?.dailyEarnings || {};
-      setDailyMode(de.mode || '');
-      setDailyTarget(de.targetTotal != null ? String(de.targetTotal) : '');
-      setDailySoFar(de.totalCommission != null ? String(de.totalCommission) : '');
-      setDailyOrders(de.ordersCount != null ? String(de.ordersCount) : '');
+      setDailyEarnedSoFar(de.totalCommission != null ? String(de.totalCommission) : '');
+      setDailyOrdersCount(de.ordersCount != null ? String(de.ordersCount) : '');
     } catch { }
   };
 
@@ -150,12 +158,10 @@ export function AdminUsersPage() {
         isActive: formStatus === "Active",
       };
       await api.adminUpdateUser(selectedUser.id, payload);
-      // Save commission config
+      // Save simplified commission config
       const commissionConfig: any = {
-        baseRate: commissionBaseRate !== '' ? Number(commissionBaseRate) : null,
-        dailyProfitMode: commissionMode,
-        lowTarget: { min: Number(lowMin), max: Number(lowMax) },
-        highTarget: { min: Number(highMin), max: Number(highMax) },
+        perOrderAmount: commissionPerOrder !== '' ? Number(commissionPerOrder) : null,
+        dailyTarget: commissionDailyTarget !== '' ? Number(commissionDailyTarget) : null,
       };
       await api.adminUpdateUserCommissionConfig(selectedUser.id, commissionConfig);
       // refresh list and close dialog
@@ -306,14 +312,39 @@ export function AdminUsersPage() {
           </Table>
         </div>
 
-        {/* Pagination */}
+        {/* Pagination Controls */}
         <div className="p-4 border-t border-gray-100 flex items-center justify-between">
-          <p className="text-sm text-gray-600">Showing {filteredUsers.length} of {users.length} users</p>
+          <p className="text-sm text-gray-600">Showing {filteredUsers.length} of {totalUsers} users</p>
           <div className="flex gap-2">
-            <button className="px-3 py-1 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">Previous</button>
-            <button className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm">1</button>
-            <button className="px-3 py-1 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">2</button>
-            <button className="px-3 py-1 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">Next</button>
+            <button
+              disabled={page <= 1 || loading}
+              onClick={() => loadUsers(page - 1)}
+              className="px-3 py-1 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                const pageNum = i + 1; // Simplified for now
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => loadUsers(pageNum)}
+                    className={`px-3 py-1 rounded-lg text-sm ${page === pageNum ? 'bg-blue-600 text-white' : 'border border-gray-200 hover:bg-gray-50'}`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+              {totalPages > 5 && <span className="px-1">...</span>}
+            </div>
+            <button
+              disabled={page >= totalPages || loading}
+              onClick={() => loadUsers(page + 1)}
+              className="px-3 py-1 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50"
+            >
+              Next
+            </button>
           </div>
         </div>
       </div>
@@ -352,64 +383,42 @@ export function AdminUsersPage() {
                   </Select>
                 </div>
 
-                {/* Commission settings */}
+                {/* Commission settings - SIMPLIFIED */}
                 <div className="pt-2 border-t">
-                  <h3 className="text-gray-900 mb-2">Commission settings</h3>
+                  <h3 className="text-gray-900 mb-2">Cài đặt hoa hồng</h3>
+                  <p className="text-xs text-gray-500 mb-3">Để trống để sử dụng giá trị mặc định theo VIP level</p>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="col-span-2">
-                      <Label>Base Rate (%) — leave blank to use VIP</Label>
-                      <Input placeholder="e.g. 0.5" value={commissionBaseRate} onChange={(e) => setCommissionBaseRate(e.target.value)} />
-                    </div>
-                    <div className="col-span-2">
-                      <Label>Daily Profit Mode</Label>
-                      <Select value={commissionMode} onValueChange={(v: any) => setCommissionMode(v)}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="auto">Auto (random high days)</SelectItem>
-                          <SelectItem value="low">Low</SelectItem>
-                          <SelectItem value="high">High</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div>
+                      <Label>Hoa hồng mỗi đơn ($)</Label>
+                      <Input
+                        type="number"
+                        placeholder="VD: 4.50"
+                        value={commissionPerOrder}
+                        onChange={(e) => setCommissionPerOrder(e.target.value)}
+                      />
                     </div>
                     <div>
-                      <Label>Low min</Label>
-                      <Input type="number" value={lowMin} onChange={(e) => setLowMin(e.target.value)} />
-                    </div>
-                    <div>
-                      <Label>Low max</Label>
-                      <Input type="number" value={lowMax} onChange={(e) => setLowMax(e.target.value)} />
-                    </div>
-                    <div>
-                      <Label>High min</Label>
-                      <Input type="number" value={highMin} onChange={(e) => setHighMin(e.target.value)} />
-                    </div>
-                    <div>
-                      <Label>High max</Label>
-                      <Input type="number" value={highMax} onChange={(e) => setHighMax(e.target.value)} />
+                      <Label>Mục tiêu ngày ($)</Label>
+                      <Input
+                        type="number"
+                        placeholder="VD: 270"
+                        value={commissionDailyTarget}
+                        onChange={(e) => setCommissionDailyTarget(e.target.value)}
+                      />
                     </div>
                   </div>
 
                   {/* Today read-only */}
                   <div className="mt-3 bg-gray-50 rounded-lg p-3 text-sm">
-                    <p className="text-gray-700">Today</p>
+                    <p className="text-gray-700 font-medium">Hôm nay</p>
                     <div className="grid grid-cols-2 gap-2 mt-2">
                       <div>
-                        <span className="text-gray-500">Mode: </span>
-                        <span className="text-gray-900">{dailyMode || '-'}</span>
+                        <span className="text-gray-500">Đã kiếm: </span>
+                        <span className="text-green-600 font-medium">${dailyEarnedSoFar || '0'}</span>
                       </div>
                       <div>
-                        <span className="text-gray-500">Target: </span>
-                        <span className="text-gray-900">{dailyTarget || '-'}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Earned: </span>
-                        <span className="text-gray-900">{dailySoFar || '-'}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Orders: </span>
-                        <span className="text-gray-900">{dailyOrders || '-'}</span>
+                        <span className="text-gray-500">Đơn hàng: </span>
+                        <span className="text-gray-900">{dailyOrdersCount || '0'}</span>
                       </div>
                     </div>
                   </div>

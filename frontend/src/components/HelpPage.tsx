@@ -35,24 +35,24 @@ export function HelpPage() {
     try {
       const token = localStorage.getItem('token');
       if (!token) return;
-      
+
       console.log('[client] 🚀 Connecting socket DIRECTLY...');
       const s = io(API_BASE, { auth: { token } });
       socketRef.current = s;
-      
+
       s.on('connect', () => {
         console.log('[client] ✅ Socket DIRECTLY connected!');
         if (threadIdRef.current) {
           s.emit('chat:joinThread', threadIdRef.current);
         }
       });
-      
+
       // DIRECT MESSAGE HANDLER - NO DELAY!
       s.on('chat:message', (msg: any) => {
         console.log('[client] 📨 DIRECT message:', msg);
-        
+
         if (String(msg.threadId) !== String(threadIdRef.current)) return;
-        
+
         // Play sound for admin messages
         if (msg.senderType === 'admin' && soundEnabledRef.current) {
           try {
@@ -62,18 +62,18 @@ export function HelpPage() {
               a.volume = 1;
               a.play();
             }
-          } catch {}
+          } catch { }
         }
-        
+
         const img = msg.imageUrl ? (String(msg.imageUrl).startsWith('/') ? `${API_BASE}${msg.imageUrl}` : msg.imageUrl) : undefined;
-        const newMessage = { 
-          id: msg._id || `temp-${Date.now()}`, 
-          text: msg.text || '', 
-          imageUrl: img, 
-          isUser: msg.senderType === 'user', 
-          timestamp: new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+        const newMessage = {
+          id: msg._id || `temp-${Date.now()}`,
+          text: msg.text || '',
+          imageUrl: img,
+          isUser: msg.senderType === 'user',
+          timestamp: new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
-        
+
         // INSTANT update
         setMessages(prev => {
           const exists = prev.some(m => {
@@ -81,7 +81,7 @@ export function HelpPage() {
             if (m.id.startsWith('temp-') && m.text === newMessage.text && m.isUser === newMessage.isUser) return true;
             return false;
           });
-          
+
           if (exists) {
             return prev.map(m => {
               if (m.id.startsWith('temp-') && m.text === newMessage.text && m.isUser === newMessage.isUser) {
@@ -90,11 +90,11 @@ export function HelpPage() {
               return m;
             });
           }
-          
+
           return [...prev, newMessage];
         });
       });
-      
+
       // TYPING HANDLER
       s.on('chat:typing', (evt: any) => {
         if (String(evt?.threadId) !== String(threadIdRef.current)) return;
@@ -103,7 +103,34 @@ export function HelpPage() {
           setIsTyping(!!evt.typing);
         }
       });
-      
+
+      // THREAD DELETED HANDLER (realtime sync when thread expires)
+      s.on('chat:threadDeleted', (evt: any) => {
+        console.log('[client] 🗑️ Thread deleted:', evt);
+        if (String(evt?.threadId) === String(threadIdRef.current)) {
+          // 1. Clear UI state
+          setMessages([]);
+          setIsTyping(false);
+          setShowQuickReplies(true);
+
+          // 2. Clear references and persistent storage
+          threadIdRef.current = null;
+          try {
+            localStorage.removeItem('client:threadId');
+            localStorage.removeItem('client:activeThreadId');
+          } catch { }
+
+          // 3. Inform user
+          alert(evt?.message || 'Cuộc trò chuyện đã kết thúc do không hoạt động');
+
+          // 4. Force reload initialization after a short delay if user stays on page
+          // This allows system to create a FRESH thread if they want to chat again
+          setTimeout(() => {
+            console.log('[client] Ready for fresh conversation');
+          }, 1000);
+        }
+      });
+
     } catch (err) {
       console.error('[client] Socket error:', err);
     }
@@ -124,133 +151,133 @@ export function HelpPage() {
     scrollToBottom();
   }, [messages, isTyping]);
 
-// Init: reuse saved threadId if available; otherwise open a thread. Then load messages and connect socket
-useEffect(() => {
-  // Prevent double initialization in React Strict Mode
-  if (hasLoadedRef.current) return;
-  hasLoadedRef.current = true;
+  // Init: reuse saved threadId if available; otherwise open a thread. Then load messages and connect socket
+  useEffect(() => {
+    // Prevent double initialization in React Strict Mode
+    if (hasLoadedRef.current) return;
+    hasLoadedRef.current = true;
 
-  const initChat = async () => {
-    try {
-      // 1) Try to reuse saved thread id
-      let threadId: string | null = null;
-      try { threadId = localStorage.getItem('client:threadId'); } catch {}
-      
-      if (threadId) {
-        try {
-          const list = await api.chatListMessages(threadId);
+    const initChat = async () => {
+      try {
+        // 1) Try to reuse saved thread id
+        let threadId: string | null = null;
+        try { threadId = localStorage.getItem('client:threadId'); } catch { }
+
+        if (threadId) {
+          try {
+            const list = await api.chatListMessages(threadId);
+            threadIdRef.current = threadId;
+            const arr: Message[] = (list?.data?.messages || []).map((m: any) => ({
+              id: m._id,
+              text: m.text || '',
+              imageUrl: m.imageUrl ? (m.imageUrl.startsWith('/') ? `${API_BASE}${m.imageUrl}` : m.imageUrl) : undefined,
+              isUser: m.senderType === 'user',
+              timestamp: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }));
+            setMessages(arr);
+            console.log('[client] Loaded', arr.length, 'messages from saved threadId:', threadId);
+          } catch (err) {
+            console.error('[client] Failed to load saved thread:', err);
+            // saved id invalid -> clear it
+            try { localStorage.removeItem('client:threadId'); } catch { }
+            threadId = null;
+          }
+        }
+
+        // 2) If no saved id, open/create a thread on server (which reuses latest by server logic)
+        if (!threadId) {
+          const open = await api.chatOpenThread();
+          threadId = open?.data?.threadId || null;
+          if (!threadId) {
+            console.error('[client] Failed to open/create thread');
+            return;
+          }
           threadIdRef.current = threadId;
-          const arr: Message[] = (list?.data?.messages || []).map((m: any) => ({ 
-            id: m._id, 
-            text: m.text || '', 
-            imageUrl: m.imageUrl ? (m.imageUrl.startsWith('/') ? `${API_BASE}${m.imageUrl}` : m.imageUrl) : undefined, 
-            isUser: m.senderType === 'user', 
-            timestamp: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+          const list = await api.chatListMessages(threadId);
+          const arr: Message[] = (list?.data?.messages || []).map((m: any) => ({
+            id: m._id,
+            text: m.text || '',
+            imageUrl: m.imageUrl ? (m.imageUrl.startsWith('/') ? `${API_BASE}${m.imageUrl}` : m.imageUrl) : undefined,
+            isUser: m.senderType === 'user',
+            timestamp: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           }));
           setMessages(arr);
-          console.log('[client] Loaded', arr.length, 'messages from saved threadId:', threadId);
-        } catch (err) {
-          console.error('[client] Failed to load saved thread:', err);
-          // saved id invalid -> clear it
-          try { localStorage.removeItem('client:threadId'); } catch {}
-          threadId = null;
+          try { localStorage.setItem('client:threadId', String(threadId)); } catch { }
+          console.log('[client] Created new thread:', threadId, 'with', arr.length, 'messages');
         }
-      }
 
-      // 2) If no saved id, open/create a thread on server (which reuses latest by server logic)
-      if (!threadId) {
-        const open = await api.chatOpenThread();
-        threadId = open?.data?.threadId || null;
-        if (!threadId) {
-          console.error('[client] Failed to open/create thread');
-          return;
-        }
-        threadIdRef.current = threadId;
-        const list = await api.chatListMessages(threadId);
-        const arr: Message[] = (list?.data?.messages || []).map((m: any) => ({ 
-          id: m._id, 
-          text: m.text || '', 
-          imageUrl: m.imageUrl ? (m.imageUrl.startsWith('/') ? `${API_BASE}${m.imageUrl}` : m.imageUrl) : undefined, 
-          isUser: m.senderType === 'user', 
-          timestamp: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-        }));
-        setMessages(arr);
-        try { localStorage.setItem('client:threadId', String(threadId)); } catch {}
-        console.log('[client] Created new thread:', threadId, 'with', arr.length, 'messages');
-      }
-
-      // 3) Connect socket DIRECTLY - NO GLOBAL EVENTS!
-      connectSocket();
-    } catch (err) {
-      console.error('[client] Chat initialization error:', err);
-    }
-  };
-
-  // Handle visibility change - reload messages when tab becomes visible
-  const handleVisibilityChange = async () => {
-    if (!document.hidden && threadIdRef.current) {
-      console.log('[client] Tab became visible, reloading messages');
-      isWindowFocusedRef.current = true;
-      try {
-        const list = await api.chatListMessages(threadIdRef.current);
-        const arr: Message[] = (list?.data?.messages || []).map((m: any) => ({ 
-          id: m._id, 
-          text: m.text || '', 
-          imageUrl: m.imageUrl ? (m.imageUrl.startsWith('/') ? `${API_BASE}${m.imageUrl}` : m.imageUrl) : undefined, 
-          isUser: m.senderType === 'user', 
-          timestamp: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-        }));
-        setMessages(arr);
-        console.log('[client] Reloaded', arr.length, 'messages after tab became visible');
-        
-        // Mark thread as active (socket handled globally in App.tsx)
-        try { localStorage.setItem('client:activeThreadId', String(threadIdRef.current)); } catch {}
+        // 3) Connect socket DIRECTLY - NO GLOBAL EVENTS!
+        connectSocket();
       } catch (err) {
-        console.error('[client] Failed to reload messages on visibility change:', err);
+        console.error('[client] Chat initialization error:', err);
       }
-    } else if (document.hidden) {
+    };
+
+    // Handle visibility change - reload messages when tab becomes visible
+    const handleVisibilityChange = async () => {
+      if (!document.hidden && threadIdRef.current) {
+        console.log('[client] Tab became visible, reloading messages');
+        isWindowFocusedRef.current = true;
+        try {
+          const list = await api.chatListMessages(threadIdRef.current);
+          const arr: Message[] = (list?.data?.messages || []).map((m: any) => ({
+            id: m._id,
+            text: m.text || '',
+            imageUrl: m.imageUrl ? (m.imageUrl.startsWith('/') ? `${API_BASE}${m.imageUrl}` : m.imageUrl) : undefined,
+            isUser: m.senderType === 'user',
+            timestamp: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }));
+          setMessages(arr);
+          console.log('[client] Reloaded', arr.length, 'messages after tab became visible');
+
+          // Mark thread as active (socket handled globally in App.tsx)
+          try { localStorage.setItem('client:activeThreadId', String(threadIdRef.current)); } catch { }
+        } catch (err) {
+          console.error('[client] Failed to reload messages on visibility change:', err);
+        }
+      } else if (document.hidden) {
+        isWindowFocusedRef.current = false;
+        // Clear active marker when tab is hidden
+        try { localStorage.removeItem('client:activeThreadId'); } catch { }
+      }
+    };
+
+    // Track focus/visibility
+    const onFocus = () => {
+      isWindowFocusedRef.current = true;
+      handleVisibilityChange();
+    };
+    const onBlur = () => {
       isWindowFocusedRef.current = false;
-      // Clear active marker when tab is hidden
-      try { localStorage.removeItem('client:activeThreadId'); } catch {}
-    }
-  };
+    };
 
-  // Track focus/visibility
-  const onFocus = () => { 
-    isWindowFocusedRef.current = true;
-    handleVisibilityChange();
-  };
-  const onBlur = () => { 
-    isWindowFocusedRef.current = false; 
-  };
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('blur', onBlur);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
-  window.addEventListener('focus', onFocus);
-  window.addEventListener('blur', onBlur);
-  document.addEventListener('visibilitychange', handleVisibilityChange);
+    initChat();
 
-  initChat();
+    return () => {
+      hasLoadedRef.current = false;
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('blur', onBlur);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
 
-  return () => {
-    hasLoadedRef.current = false;
-    window.removeEventListener('focus', onFocus);
-    window.removeEventListener('blur', onBlur);
-    document.removeEventListener('visibilitychange', handleVisibilityChange);
-    
-    // Disconnect socket
-    socketRef.current?.disconnect();
-    console.log('[client] Socket disconnected');
-    
-    // Clear unread when leaving Help page
-    try { localStorage.setItem('client:helpUnread', '0'); window.dispatchEvent(new CustomEvent('client:chatUnreadUpdated', { detail: 0 })); } catch {}
-  };
-}, []);
+      // Disconnect socket
+      socketRef.current?.disconnect();
+      console.log('[client] Socket disconnected');
+
+      // Clear unread when leaving Help page
+      try { localStorage.setItem('client:helpUnread', '0'); window.dispatchEvent(new CustomEvent('client:chatUnreadUpdated', { detail: 0 })); } catch { }
+    };
+  }, []);
 
   const enableSound = async () => {
     try {
       setSoundEnabled(true);
-      try { localStorage.setItem('client:soundEnabled', '1'); } catch {}
+      try { localStorage.setItem('client:soundEnabled', '1'); } catch { }
       console.log('[client] Sound enabled - handled by App.tsx');
-    } catch {}
+    } catch { }
   };
 
   // Restore preference on mount
@@ -258,7 +285,7 @@ useEffect(() => {
     try {
       const v = localStorage.getItem('client:soundEnabled');
       if (v === '1') setSoundEnabled(true);
-    } catch {}
+    } catch { }
   }, []);
 
   // Keep ref in sync to avoid stale closures in socket handlers
@@ -319,13 +346,13 @@ useEffect(() => {
   const handleSendMessage = (text?: string) => {
     const messageText = text || inputMessage;
     if (!messageText.trim()) return;
-    
+
     const threadId = threadIdRef.current;
     if (!threadId) return;
-    
+
     setInputMessage('');
     setShowQuickReplies(false);
-    
+
     // Optimistic UI - show immediately
     const tempId = `temp-${Date.now()}`;
     const optimisticMessage: Message = {
@@ -334,9 +361,9 @@ useEffect(() => {
       isUser: true,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
-    
+
     setMessages(prev => [...prev, optimisticMessage]);
-    
+
     // Emit DIRECTLY via socket
     socketRef.current?.emit('chat:send', { threadId, text: messageText });
     console.log('[client] 📤 Message sent DIRECTLY');
@@ -347,10 +374,10 @@ useEffect(() => {
     setInputMessage(val);
     const threadId = threadIdRef.current;
     if (!threadId) return;
-    
+
     // Emit DIRECTLY
     socketRef.current?.emit('chat:typing', { threadId, typing: true });
-    
+
     if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
     typingTimerRef.current = window.setTimeout(() => {
       socketRef.current?.emit('chat:typing', { threadId, typing: false });
@@ -383,7 +410,7 @@ useEffect(() => {
     <div className="pb-16 h-screen flex flex-col bg-gradient-to-b from-purple-50 via-blue-50 to-pink-50">
       {/* Hidden audio for notifications */}
       <audio ref={audioRef} src={new URL('../assets/sound/noti.mp3', import.meta.url).toString()} preload="auto" />
-      
+
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 shadow-sm">
         <div className="flex items-center gap-3">
@@ -443,15 +470,13 @@ useEffect(() => {
                 <div className={`flex flex-col ${message.isUser ? 'items-end' : 'items-start'} max-w-[75%]`}>
                   <motion.div
                     whileHover={{ scale: 1.02 }}
-                    className={`${
-                      message.imageUrl
-                        ? 'rounded-xl p-0 shadow-lg bg-transparent'
-                        : `rounded-3xl px-5 py-3 shadow-lg ${
-                            message.isUser
-                              ? 'bg-gradient-to-r from-purple-500 via-blue-500 to-indigo-500 text-white rounded-br-md'
-                              : 'bg-white text-gray-800 rounded-bl-md border border-gray-100'
-                          }`
-                    }`}
+                    className={`${message.imageUrl
+                      ? 'rounded-xl p-0 shadow-lg bg-transparent'
+                      : `rounded-3xl px-5 py-3 shadow-lg ${message.isUser
+                        ? 'bg-gradient-to-r from-purple-500 via-blue-500 to-indigo-500 text-white rounded-br-md'
+                        : 'bg-white text-gray-800 rounded-bl-md border border-gray-100'
+                      }`
+                      }`}
                   >
                     {message.imageUrl ? (
                       <a href={message.imageUrl} target="_blank" rel="noreferrer" download>
@@ -465,9 +490,8 @@ useEffect(() => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.3 }}
-                    className={`text-xs mt-1 px-2 ${
-                      message.isUser ? 'text-gray-600' : 'text-gray-500'
-                    }`}
+                    className={`text-xs mt-1 px-2 ${message.isUser ? 'text-gray-600' : 'text-gray-500'
+                      }`}
                   >
                     {message.timestamp}
                   </motion.p>

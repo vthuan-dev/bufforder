@@ -42,17 +42,17 @@ export class ErrorBoundary extends Component<Props, State> {
                     <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-4">
                         <AlertCircle className="w-8 h-8" />
                     </div>
-                    <h2 className="text-xl font-semibold text-gray-900 mb-2">Something went wrong</h2>
+                    <h2 className="text-xl font-semibold text-gray-900 mb-2">Đã xảy ra lỗi</h2>
                     <p className="text-gray-600 mb-6 max-w-md">
-                        The {this.props.name || 'component'} failed to load correctly. This might be due to a temporary issue or invalid data.
+                        Trang quản trị không tải được đúng cách. Nguyên nhân có thể là do sự cố tạm thời hoặc dữ liệu không hợp lệ.
                     </p>
                     <div className="flex gap-3">
                         <Button onClick={() => window.location.reload()} variant="outline" className="flex items-center gap-2">
                             <RefreshCcw className="w-4 h-4" />
-                            Reload Page
+                            Tải lại trang
                         </Button>
                         <Button onClick={this.handleRetry} className="bg-blue-600">
-                            Try Again
+                            Thử lại
                         </Button>
                     </div>
                     {process.env.NODE_ENV === 'development' && this.state.error && (

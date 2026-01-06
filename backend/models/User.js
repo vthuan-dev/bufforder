@@ -46,30 +46,22 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0.00
   },
-  // Per-user commission configuration
+  // Per-user commission configuration (SIMPLIFIED)
   commissionConfig: {
-    // Base commission rate override (percent). If set, overrides VIP rate
+    // Fixed commission per order in $. If set, overrides VIP level default
+    perOrderAmount: { type: Number, default: null },
+    // Daily target in $. If set, overrides VIP level default
+    dailyTarget: { type: Number, default: null },
+    // Legacy fields (kept for backward compatibility)
     baseRate: { type: Number, default: null },
-    // Daily profit mode: 'auto' | 'low' | 'high'. 'auto' lets system randomize
-    dailyProfitMode: { type: String, enum: ['auto', 'low', 'high'], default: 'auto' },
-    // Target daily profit ranges for low/high modes, in absolute USD
-    lowTarget: {
-      min: { type: Number, default: 450 },
-      max: { type: Number, default: 600 }
-    },
-    highTarget: {
-      min: { type: Number, default: 800 },
-      max: { type: Number, default: 1000 }
-    },
-    // Percentage of each order’s price used for commission when targets not enforced
-    orderRate: { type: Number, default: null }
+    dailyProfitMode: { type: String, enum: ['auto', 'low', 'high', 'fixed'], default: 'fixed' },
   },
-  // Track per-day earnings to steer toward target ranges
+  // Track per-day earnings
   dailyEarnings: {
     dateKey: { type: String, default: null }, // YYYY-MM-DD
     totalCommission: { type: Number, default: 0 },
     ordersCount: { type: Number, default: 0 },
-    mode: { type: String, enum: ['low', 'high'], default: null },
+    mode: { type: String, enum: ['low', 'high', 'fixed'], default: 'fixed' },
     targetTotal: { type: Number, default: 0 }
   },
   lastSeenAt: {
@@ -126,6 +118,8 @@ const userSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// indexing for searches
+userSchema.index({ fullName: 'text', phoneNumber: 1 });
 // Ensure unique email only when email exists and is a string
 // Avoid duplicate key on null by using partial filter expression
 userSchema.index(
@@ -134,9 +128,9 @@ userSchema.index(
 );
 
 // Hash password before saving
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
-  
+
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
@@ -147,12 +141,12 @@ userSchema.pre('save', async function(next) {
 });
 
 // Compare password method
-userSchema.methods.comparePassword = async function(candidatePassword) {
+userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
 // Method to update VIP level based on total deposited amount
-userSchema.methods.updateVipLevel = function() {
+userSchema.methods.updateVipLevel = function () {
   const newVipLevel = getVipLevelByAmount(this.totalDeposited);
   if (newVipLevel && newVipLevel.id !== this.vipLevel) {
     this.vipLevel = newVipLevel.id;
@@ -166,13 +160,13 @@ userSchema.methods.updateVipLevel = function() {
 };
 
 // Method to add deposit and update VIP level
-userSchema.methods.addDeposit = function(amount) {
+userSchema.methods.addDeposit = function (amount) {
   const oldVipLevel = this.vipLevel;
   this.totalDeposited += amount;
   this.balance += amount;
-  
+
   const newVipLevel = this.updateVipLevel();
-  
+
   // Return upgrade information
   return {
     newVipLevel,
@@ -182,7 +176,7 @@ userSchema.methods.addDeposit = function(amount) {
 };
 
 // Remove password from JSON output
-userSchema.methods.toJSON = function() {
+userSchema.methods.toJSON = function () {
   const user = this.toObject();
   delete user.password;
   return user;

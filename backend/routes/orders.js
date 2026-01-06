@@ -13,31 +13,35 @@ function getDateKey(d = new Date()) {
   return `${y}-${m}-${day}`;
 }
 
-function resolveCommissionRate(user, vipLevel) {
-  if (user?.commissionConfig && user.commissionConfig.baseRate != null) {
-    return Number(user.commissionConfig.baseRate);
+// Get fixed commission per order from VIP level or user override
+function resolveCommissionPerOrder(user, vipLevel) {
+  // User-specific override takes priority
+  if (user?.commissionConfig && user.commissionConfig.perOrderAmount != null) {
+    return Number(user.commissionConfig.perOrderAmount);
   }
-  return vipLevel ? vipLevel.commissionRate : 0;
+  // Fall back to VIP level default
+  return vipLevel?.commissionPerOrder || 0;
 }
 
-function pickDailyTarget(user) {
-  const cfg = user.commissionConfig || {};
-  const modeCfg = cfg.dailyProfitMode || 'auto';
-  const isHigh = modeCfg === 'high' ? true : modeCfg === 'low' ? false : Math.random() < 0.35; // 35% high days
-  const high = cfg.highTarget || { min: 800, max: 1000 };
-  const low = cfg.lowTarget || { min: 450, max: 600 };
-  const range = isHigh ? high : low;
-  const min = typeof range.min === 'number' ? range.min : (isHigh ? 800 : 450);
-  const max = typeof range.max === 'number' ? range.max : (isHigh ? 1000 : 600);
-  const target = Math.round((min + Math.random() * (max - min)) * 100) / 100;
-  return { mode: isHigh ? 'high' : 'low', targetTotal: target };
+// Get daily target from VIP level or user override
+function resolveDailyTarget(user, vipLevel) {
+  if (user?.commissionConfig && user.commissionConfig.dailyTarget != null) {
+    return Number(user.commissionConfig.dailyTarget);
+  }
+  return vipLevel?.dailyTarget || 0;
+}
+
+// Simplified: pick daily target from VIP level (no more random modes)
+function pickDailyTarget(user, vipLevel) {
+  const target = resolveDailyTarget(user, vipLevel);
+  return { mode: 'fixed', targetTotal: target };
 }
 
 // GET /api/orders/stats - Get user order statistics
 router.get('/stats', authenticateToken, async (req, res) => {
   try {
     const userId = req.userId;
-    
+
     // Get user data
     const user = await User.findById(userId);
     if (!user) {
@@ -68,10 +72,9 @@ router.get('/stats', authenticateToken, async (req, res) => {
     // Get VIP level info
     const vipLevel = getVipLevelByAmount(user.totalDeposited);
     // Resolve commission rate using user-specific config override
-    let commissionRate = vipLevel ? vipLevel.commissionRate : 0;
-    if (user.commissionConfig && user.commissionConfig.baseRate != null) {
-      commissionRate = Number(user.commissionConfig.baseRate);
-    }
+    // Use fixed commission per order instead of percentage
+    const commissionPerOrder = resolveCommissionPerOrder(user, vipLevel);
+    const dailyTarget = resolveDailyTarget(user, vipLevel);
     const numberOfOrders = vipLevel && vipLevel.numberOfOrders ? vipLevel.numberOfOrders : 100;
 
     // Today's earned commission and order count from user's dailyEarnings
@@ -100,7 +103,8 @@ router.get('/stats', authenticateToken, async (req, res) => {
         // ordersGrabbed reflects number of orders taken today (any status)
         ordersGrabbed: ordersGrabbedCount,
         vipLevel: user.vipLevel,
-        commissionRate: commissionRate,
+        commissionPerOrder: commissionPerOrder,
+        dailyTarget: dailyTarget,
         commissionConfig: user.commissionConfig,
         dailyEarnings: dailyEarningsToday
       }
@@ -120,7 +124,7 @@ router.post('/take', authenticateToken, async (req, res) => {
     const userId = req.userId;
     const clientProduct = req.body && req.body.product;
     const clientRequestId = (req.headers['x-idempotency-key'] || req.body?.idempotencyKey || '').toString().trim() || null;
-    
+
     // Get user data
     const user = await User.findById(userId);
     if (!user) {
@@ -150,27 +154,28 @@ router.post('/take', authenticateToken, async (req, res) => {
       });
     }
 
-  // Get VIP level and commission rate
+    // Get VIP level and commission per order
     const vipLevel = getVipLevelByAmount(user.totalDeposited);
-    const commissionRate = resolveCommissionRate(user, vipLevel);
-  // Require client to send product, no server-side catalog
-  if (!clientProduct) {
-    return res.status(400).json({ success: false, message: 'Product is required' });
-  }
-  // Basic validation of required fields
-  const { id, name, price, brand, category, image } = clientProduct;
-  if (!id || !name || !price || !brand || !category || !image) {
-    return res.status(400).json({ success: false, message: 'Invalid product payload' });
-  }
-  if (Number(price) > user.balance) {
-    return res.status(400).json({ success: false, message: 'Selected product exceeds current balance' });
-  }
-  const randomProduct = { id, name, price: Number(price), brand, category, image };
-    
+    const commissionPerOrder = resolveCommissionPerOrder(user, vipLevel);
+    const dailyTarget = resolveDailyTarget(user, vipLevel);
+    // Require client to send product, no server-side catalog
+    if (!clientProduct) {
+      return res.status(400).json({ success: false, message: 'Product is required' });
+    }
+    // Basic validation of required fields
+    const { id, name, price, brand, category, image } = clientProduct;
+    if (!id || !name || !price || !brand || !category || !image) {
+      return res.status(400).json({ success: false, message: 'Invalid product payload' });
+    }
+    if (Number(price) > user.balance) {
+      return res.status(400).json({ success: false, message: 'Selected product exceeds current balance' });
+    }
+    const randomProduct = { id, name, price: Number(price), brand, category, image };
+
     // Initialize/reset daily earnings for today (for target steering)
     const todayKey = getDateKey();
     if (user.dailyEarnings?.dateKey !== todayKey) {
-      const picked = pickDailyTarget(user);
+      const picked = pickDailyTarget(user, vipLevel);
       user.dailyEarnings = {
         dateKey: todayKey,
         totalCommission: 0,
@@ -180,115 +185,120 @@ router.post('/take', authenticateToken, async (req, res) => {
       };
     }
 
-    // Calculate commission with randomness and steering to daily target
-    const nominalCommission = (randomProduct.price * commissionRate) / 100;
+    // Calculate commission using FIXED per-order amount (with ±10% randomness)
     const randomFactor = 0.9 + Math.random() * 0.2; // ±10%
-    let commissionAmount = Math.round(nominalCommission * randomFactor * 100) / 100;
-    const target = Number(user.dailyEarnings?.targetTotal || 0);
+    let commissionAmount = Math.round(commissionPerOrder * randomFactor * 100) / 100;
+
+    // Hard cap: don't exceed daily target
+    const target = Number(user.dailyEarnings?.targetTotal || dailyTarget);
     const already = Number(user.dailyEarnings?.totalCommission || 0);
     const remaining = Math.max(0, target - already);
-    if (remaining > 0) {
-      const maxThisOrder = Math.max(0, remaining + target * 0.05);
-      if (commissionAmount > maxThisOrder) commissionAmount = Math.round(maxThisOrder * 100) / 100;
+
+    if (remaining <= 0) {
+      // Already reached daily target - no more commission
+      commissionAmount = 0;
+    } else if (commissionAmount > remaining) {
+      // Cap to remaining amount
+      commissionAmount = Math.round(remaining * 100) / 100;
     }
 
-  // CRITICAL: Prevent duplicate orders - Check multiple conditions
-  
-  // 1. Check idempotency key if provided
-  if (clientRequestId) {
-    const existing = await Order.findOne({ userId, clientRequestId });
-    if (existing) {
-      console.log('[Orders] Duplicate detected via clientRequestId:', clientRequestId);
+    // CRITICAL: Prevent duplicate orders - Check multiple conditions
+
+    // 1. Check idempotency key if provided
+    if (clientRequestId) {
+      const existing = await Order.findOne({ userId, clientRequestId });
+      if (existing) {
+        console.log('[Orders] Duplicate detected via clientRequestId:', clientRequestId);
+        return res.json({
+          success: true,
+          data: {
+            // Return current wallet/daily stats without creating duplicate
+            newCommission: user.commission,
+            newBalance: user.balance,
+            newCompletedToday: todayOrders.length,
+            newOrdersGrabbed: todayOrders.length,
+            selectedProduct: {
+              productName: existing.productName,
+              productPrice: existing.productPrice,
+              commissionAmount: existing.commissionAmount,
+              commissionRate: existing.commissionRate,
+              brand: existing.brand,
+              productId: existing.productId,
+              category: existing.category,
+              image: existing.image
+            },
+            order: {
+              id: existing._id,
+              status: existing.status,
+              orderDate: existing.orderDate
+            },
+            dailyEarnings: user.dailyEarnings
+          }
+        });
+      }
+    }
+
+    // 2. Check for same product within last 5 minutes (double-click protection)
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const recentDuplicate = await Order.findOne({
+      userId,
+      productId: randomProduct.id,
+      orderDate: { $gte: fiveMinutesAgo }
+    });
+
+    if (recentDuplicate) {
+      console.log('[Orders] Duplicate detected: same product within 5 minutes');
       return res.json({
         success: true,
         data: {
-          // Return current wallet/daily stats without creating duplicate
           newCommission: user.commission,
           newBalance: user.balance,
           newCompletedToday: todayOrders.length,
           newOrdersGrabbed: todayOrders.length,
           selectedProduct: {
-            productName: existing.productName,
-            productPrice: existing.productPrice,
-            commissionAmount: existing.commissionAmount,
-            commissionRate: existing.commissionRate,
-            brand: existing.brand,
-            productId: existing.productId,
-            category: existing.category,
-            image: existing.image
+            productName: recentDuplicate.productName,
+            productPrice: recentDuplicate.productPrice,
+            commissionAmount: recentDuplicate.commissionAmount,
+            commissionRate: recentDuplicate.commissionRate,
+            brand: recentDuplicate.brand,
+            productId: recentDuplicate.productId,
+            category: recentDuplicate.category,
+            image: recentDuplicate.image
           },
           order: {
-            id: existing._id,
-            status: existing.status,
-            orderDate: existing.orderDate
+            id: recentDuplicate._id,
+            status: recentDuplicate.status,
+            orderDate: recentDuplicate.orderDate
           },
           dailyEarnings: user.dailyEarnings
         }
       });
     }
-  }
-  
-  // 2. Check for same product within last 5 minutes (double-click protection)
-  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-  const recentDuplicate = await Order.findOne({
-    userId,
-    productId: randomProduct.id,
-    orderDate: { $gte: fiveMinutesAgo }
-  });
-  
-  if (recentDuplicate) {
-    console.log('[Orders] Duplicate detected: same product within 5 minutes');
-    return res.json({
-      success: true,
-      data: {
-        newCommission: user.commission,
-        newBalance: user.balance,
-        newCompletedToday: todayOrders.length,
-        newOrdersGrabbed: todayOrders.length,
-        selectedProduct: {
-          productName: recentDuplicate.productName,
-          productPrice: recentDuplicate.productPrice,
-          commissionAmount: recentDuplicate.commissionAmount,
-          commissionRate: recentDuplicate.commissionRate,
-          brand: recentDuplicate.brand,
-          productId: recentDuplicate.productId,
-          category: recentDuplicate.category,
-          image: recentDuplicate.image
-        },
-        order: {
-          id: recentDuplicate._id,
-          status: recentDuplicate.status,
-          orderDate: recentDuplicate.orderDate
-        },
-        dailyEarnings: user.dailyEarnings
-      }
+
+    // Create a pending order immediately
+    const newOrder = new Order({
+      userId: userId,
+      clientRequestId: clientRequestId || undefined,
+      productId: randomProduct.id,
+      productName: randomProduct.name,
+      productPrice: randomProduct.price,
+      commissionRate: commissionPerOrder, // legacy field, now stores per-order amount
+      commissionAmount: commissionAmount,
+      brand: randomProduct.brand,
+      category: randomProduct.category,
+      image: randomProduct.image,
+      status: 'pending',
+      orderDate: new Date()
     });
-  }
+    await newOrder.save();
 
-  // Create a pending order immediately
-  const newOrder = new Order({
-    userId: userId,
-    clientRequestId: clientRequestId || undefined,
-    productId: randomProduct.id,
-    productName: randomProduct.name,
-    productPrice: randomProduct.price,
-    commissionRate: commissionRate,
-    commissionAmount: commissionAmount,
-    brand: randomProduct.brand,
-    category: randomProduct.category,
-    image: randomProduct.image,
-    status: 'pending',
-    orderDate: new Date()
-  });
-  await newOrder.save();
-
-  // Immediately credit user on pending as per new rule
-  const creditedCommission = Math.round(commissionAmount * 0.8 * 100) / 100;
-  user.balance += creditedCommission;
-  user.commission += commissionAmount;
-  user.dailyEarnings.totalCommission = Math.round((user.dailyEarnings.totalCommission + commissionAmount) * 100) / 100;
-  user.dailyEarnings.ordersCount = (user.dailyEarnings.ordersCount || 0) + 1;
-  await user.save();
+    // Immediately credit user on pending as per new rule
+    const creditedCommission = Math.round(commissionAmount * 0.8 * 100) / 100;
+    user.balance += creditedCommission;
+    user.commission += commissionAmount;
+    user.dailyEarnings.totalCommission = Math.round((user.dailyEarnings.totalCommission + commissionAmount) * 100) / 100;
+    user.dailyEarnings.ordersCount = (user.dailyEarnings.ordersCount || 0) + 1;
+    await user.save();
 
     // Get updated stats
     const updatedTodayOrders = await Order.find({
@@ -313,7 +323,7 @@ router.post('/take', authenticateToken, async (req, res) => {
           productName: randomProduct.name,
           productPrice: randomProduct.price,
           commissionAmount: commissionAmount,
-          commissionRate: commissionRate,
+          commissionPerOrder: commissionPerOrder,
           brand: randomProduct.brand,
           productId: randomProduct.id,
           category: randomProduct.category,
@@ -341,7 +351,7 @@ router.post('/complete', authenticateToken, async (req, res) => {
   try {
     const userId = req.userId;
     const { productData } = req.body;
-    
+
     if (!productData) {
       return res.status(400).json({
         success: false,

@@ -2,19 +2,27 @@ const ChatMessage = require('../models/ChatMessage');
 const ChatThread = require('../models/ChatThread');
 
 /**
- * Message cleanup service
- * Automatically deletes user messages after 1 hour
- * Keeps admin messages permanently
+ * Message cleanup service - IMPROVED VERSION
+ * Deletes ENTIRE conversation (all messages, both user and admin) after 1 hour of INACTIVITY
+ * Inactivity = no new messages in the thread for 1 hour
  */
 class MessageCleanupService {
   constructor() {
     this.isRunning = false;
     this.intervalId = null;
+    this.io = null; // Socket.io instance for realtime notifications
+  }
+
+  /**
+   * Set the Socket.io instance for realtime notifications
+   */
+  setSocketIO(io) {
+    this.io = io;
   }
 
   /**
    * Start the cleanup service
-   * Runs every 5 minutes to check for messages to delete
+   * Runs every 5 minutes to check for inactive threads
    */
   start() {
     if (this.isRunning) {
@@ -23,14 +31,14 @@ class MessageCleanupService {
     }
 
     this.isRunning = true;
-    console.log('[MessageCleanup] Starting message cleanup service...');
+    console.log('[MessageCleanup] Starting cleanup service (1h inactivity rule)...');
 
     // Run immediately on start
-    this.cleanupMessages();
+    this.cleanupInactiveThreads();
 
     // Then run every 5 minutes
     this.intervalId = setInterval(() => {
-      this.cleanupMessages();
+      this.cleanupInactiveThreads();
     }, 5 * 60 * 1000); // 5 minutes
   }
 
@@ -47,40 +55,28 @@ class MessageCleanupService {
   }
 
   /**
-   * Clean up messages based on retention policy
+   * Clean up threads that have been inactive for 1 hour
+   * Deletes ALL messages in the thread (both user and admin)
    */
-  async cleanupMessages() {
+  async cleanupInactiveThreads() {
     try {
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000); // 1 hour ago
-      
-      // Find user messages older than 1 hour that haven't been marked for deletion
-      const userMessagesToDelete = await ChatMessage.find({
-        senderType: 'user',
-        createdAt: { $lt: oneHourAgo },
-        isDeletedForUser: false
+
+      // Find threads that have been inactive for 1 hour
+      const inactiveThreads = await ChatThread.find({
+        lastMessageAt: { $lt: oneHourAgo },
+        status: 'open' // Only clean open threads
       });
 
-      if (userMessagesToDelete.length > 0) {
-        console.log(`[MessageCleanup] Found ${userMessagesToDelete.length} user messages to delete`);
-        
-        // Mark user messages as deleted for user (but keep for admin)
-        await ChatMessage.updateMany(
-          {
-            _id: { $in: userMessagesToDelete.map(msg => msg._id) }
-          },
-          {
-            $set: {
-              isDeletedForUser: true,
-              deletedForUserAt: new Date()
-            }
-          }
-        );
-
-        console.log(`[MessageCleanup] Marked ${userMessagesToDelete.length} user messages as deleted for user`);
+      if (inactiveThreads.length === 0) {
+        return; // Nothing to clean
       }
 
-      // Update thread last message if needed
-      await this.updateThreadLastMessages();
+      console.log(`[MessageCleanup] Found ${inactiveThreads.length} inactive threads to clean`);
+
+      for (const thread of inactiveThreads) {
+        await this.deleteThread(thread);
+      }
 
     } catch (error) {
       console.error('[MessageCleanup] Error during cleanup:', error);
@@ -88,89 +84,95 @@ class MessageCleanupService {
   }
 
   /**
-   * Update thread last messages after cleanup
+   * Delete a thread and all its messages (HARD DELETE)
+   * Notifies connected clients via socket
    */
-  async updateThreadLastMessages() {
+  async deleteThread(thread) {
     try {
-      const threads = await ChatThread.find({});
-      
-      for (const thread of threads) {
-        // Find the last non-deleted message for this thread
-        const lastMessage = await ChatMessage.findOne({
-          threadId: thread._id,
-          isDeletedForUser: false
-        }).sort({ createdAt: -1 });
+      const threadId = thread._id;
+      const userId = thread.userId;
 
-        if (lastMessage) {
-          await ChatThread.findByIdAndUpdate(thread._id, {
-            lastMessageAt: lastMessage.createdAt,
-            lastMessageText: lastMessage.text
-          });
-        }
+      // Count messages before deletion for logging
+      const messageCount = await ChatMessage.countDocuments({ threadId });
+
+      // 1. Delete ALL messages in this thread
+      await ChatMessage.deleteMany({ threadId });
+
+      // 2. HARD DELETE the thread from DB
+      await ChatThread.deleteOne({ _id: threadId });
+
+      console.log(`[MessageCleanup] HARD DELETED thread ${threadId}: ${messageCount} messages removed`);
+
+      // 3. Notify clients via socket (realtime sync)
+      if (this.io) {
+        // Notify the user
+        this.io.to(`user:${userId}`).emit('chat:threadDeleted', {
+          threadId: String(threadId),
+          reason: 'inactivity',
+          message: 'Cuộc trò chuyện đã được xóa hoàn toàn sau 1 giờ không hoạt động để bảo mật'
+        });
+
+        // Notify admins
+        this.io.to('admins').emit('chat:threadDeleted', {
+          threadId: String(threadId),
+          userId: String(userId),
+          reason: 'inactivity'
+        });
+
+        console.log(`[MessageCleanup] Emitted chat:threadDeleted for thread ${threadId}`);
       }
+
     } catch (error) {
-      console.error('[MessageCleanup] Error updating thread messages:', error);
+      console.error(`[MessageCleanup] Error hard-deleting thread ${thread._id}:`, error);
     }
   }
 
   /**
-   * Get messages for user (excluding deleted ones)
+   * Manually delete a specific thread
+   */
+  async deleteThreadById(threadId) {
+    try {
+      const thread = await ChatThread.findById(threadId);
+      if (!thread) {
+        console.log(`[MessageCleanup] Thread ${threadId} not found`);
+        return false;
+      }
+      await this.deleteThread(thread);
+      return true;
+    } catch (error) {
+      console.error(`[MessageCleanup] Error manually deleting thread ${threadId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Get messages for user (exclude deleted threads)
    */
   static async getMessagesForUser(threadId, page = 1, limit = 50) {
     const skip = (page - 1) * limit;
-    
-    // Fetch newest first to ensure we always include the most recent messages
-    const docs = await ChatMessage.find({
-      threadId,
-      isDeletedForUser: false
-    })
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit);
 
-    // Return in chronological order for UI rendering
+    const docs = await ChatMessage.find({ threadId })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
     return docs.reverse();
   }
 
   /**
-   * Get messages for admin (including all messages)
+   * Get messages for admin
    */
   static async getMessagesForAdmin(threadId, page = 1, limit = 50) {
     const skip = (page - 1) * limit;
-    
-    const docs = await ChatMessage.find({
-      threadId,
-      isDeletedForAdmin: false
-    })
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit);
+
+    const docs = await ChatMessage.find({ threadId })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     return docs.reverse();
-  }
-
-  /**
-   * Manually delete messages for a specific user
-   */
-  static async deleteMessagesForUser(userId) {
-    try {
-      const result = await ChatMessage.updateMany(
-        { senderId: userId, senderType: 'user' },
-        {
-          $set: {
-            isDeletedForUser: true,
-            deletedForUserAt: new Date()
-          }
-        }
-      );
-      
-      console.log(`[MessageCleanup] Manually deleted ${result.modifiedCount} messages for user ${userId}`);
-      return result;
-    } catch (error) {
-      console.error('[MessageCleanup] Error deleting messages for user:', error);
-      throw error;
-    }
   }
 }
 
 module.exports = MessageCleanupService;
+

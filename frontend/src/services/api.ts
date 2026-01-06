@@ -5,45 +5,61 @@ type RequestOptions = RequestInit & { headers?: Record<string, string> };
 
 async function request(endpoint: string, options: RequestOptions = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
+
+  // Create an abort controller for timeouts
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
   const config: RequestInit = {
     ...options,
+    signal: controller.signal,
     headers: {
       'Content-Type': 'application/json',
       ...(options.headers || {}),
     },
   };
-  const res = await fetch(url, config);
 
-  if (res.status === 401) {
-    // Session expired
-    if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem('token');
-      localStorage.removeItem('adminToken');
-    }
+  try {
+    const res = await fetch(url, config);
+    clearTimeout(timeoutId);
 
-    // Check if we are in admin mode or regular mode
-    const isAdmin = window.location.pathname.startsWith('/admin');
-
-    // Only redirect if not already on a login page to avoid infinite loops
-    const isLoginPage = window.location.pathname === '/login' || window.location.pathname === '/admin' || (isAdmin && window.location.pathname.includes('login'));
-
-    if (!isLoginPage) {
-      if (isAdmin) {
-        window.location.href = '/admin'; // This usually renders the admin login if not logged in
-      } else {
-        window.location.href = '/login';
+    if (res.status === 401) {
+      // Session expired
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('adminToken');
       }
+
+      // Check if we are in admin mode or regular mode
+      const isAdmin = window.location.pathname.startsWith('/admin');
+
+      // Only redirect if not already on a login page to avoid infinite loops
+      const isLoginPage = window.location.pathname === '/login' || window.location.pathname === '/admin' || (isAdmin && window.location.pathname.includes('login'));
+
+      if (!isLoginPage) {
+        if (isAdmin) {
+          window.location.href = '/admin'; // This usually renders the admin login if not logged in
+        } else {
+          window.location.href = '/login';
+        }
+      }
+
+      throw new Error('Phiên làm việc hết hạn. Vui lòng đăng nhập lại.');
     }
 
-    throw new Error('Session expired. Please login again.');
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const message = (data && (data.message || data.error)) || `Yêu cầu thất bại (Mã lỗi: ${res.status})`;
+      throw new Error(message);
+    }
+    return data;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error('Kết nối quá hạn. Vui lòng kiểm tra lại đường truyền mạng.');
+    }
+    throw error;
   }
-
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const message = (data && (data.message || data.error)) || `Request failed (${res.status})`;
-    throw new Error(message);
-  }
-  return data;
 }
 
 function adminTokenHeader() {

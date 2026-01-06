@@ -52,7 +52,7 @@ export function AdminChatPage() {
     try {
       const v = localStorage.getItem('admin:soundEnabled');
       setSoundEnabled(v === '1');
-    } catch {}
+    } catch { }
   }, []);
 
   // Auto-unlock audio on first interaction if previously enabled
@@ -64,9 +64,9 @@ export function AdminChatPage() {
         if (!soundEnabled) setSoundEnabled(true);
         const a = audioRef.current;
         if (a) {
-          try { a.currentTime = 0; a.volume = 1; await a.play(); } catch {}
+          try { a.currentTime = 0; a.volume = 1; await a.play(); } catch { }
         }
-      } catch {}
+      } catch { }
     };
     const opts: any = { once: true };
     window.addEventListener('pointerdown', onFirstInteract, opts);
@@ -142,7 +142,7 @@ export function AdminChatPage() {
           console.warn('[admin] Sound strategy failed:', error);
         }
       }
-      
+
       console.error('[admin] All sound strategies failed');
     } catch (error) {
       console.error('[admin] Sound play error:', error);
@@ -153,9 +153,9 @@ export function AdminChatPage() {
     try {
       // Set the flag first so subsequent events can play even if play() rejects
       setSoundEnabled(true);
-      try { localStorage.setItem('admin:soundEnabled', '1'); } catch {}
+      try { localStorage.setItem('admin:soundEnabled', '1'); } catch { }
       await playNotificationSound();
-    } catch {}
+    } catch { }
   };
 
   const scrollToBottom = (smooth = false) => {
@@ -175,7 +175,7 @@ export function AdminChatPage() {
       if (!adminToken) return;
       const s = io(`${API_BASE}`, { auth: { adminToken } });
       socketRef.current = s;
-      s.on('connect', () => {});
+      s.on('connect', () => { });
       s.on('chat:message', (msg: any) => {
         const currentId = selectedThreadIdRef.current;
         // Play sound for any incoming user message only when:
@@ -232,7 +232,20 @@ export function AdminChatPage() {
         // re-fetch threads to reflect online state; lightweight approach for now
         loadThreads();
       });
-    } catch {}
+
+      // Handle thread deletion (auto-cleanup after 1h inactivity)
+      s.on('chat:threadDeleted', (evt: any) => {
+        console.log('[admin] Thread deleted:', evt);
+        // Remove the deleted thread from list
+        setThreads(prev => prev.filter(t => String(t.id) !== String(evt?.threadId)));
+        // If currently viewing this thread, clear messages
+        if (selectedThreadIdRef.current && String(evt?.threadId) === String(selectedThreadIdRef.current)) {
+          setMessages([]);
+          setSelectedThread(null);
+          selectedThreadIdRef.current = null;
+        }
+      });
+    } catch { }
   };
 
   const loadThreads = async (updatedThreadId?: string) => {
@@ -262,7 +275,7 @@ export function AdminChatPage() {
         }
       }
       prevUnreadRef.current = newUnread;
-    } catch {}
+    } catch { }
     if (!selectedThread && list.length) setSelectedThread(list[0]);
   };
 
@@ -295,7 +308,7 @@ export function AdminChatPage() {
     socketRef.current?.emit('chat:joinThread', selectedThread.id);
     selectedThreadIdRef.current = selectedThread.id;
     // mark as read when opened
-    api.adminChatMarkRead(selectedThread.id).catch(() => {});
+    api.adminChatMarkRead(selectedThread.id).catch(() => { });
   }, [selectedThread?.id]);
 
   // Auto scroll when new messages come
@@ -316,7 +329,7 @@ export function AdminChatPage() {
     // IMPORTANT: avoid REST call here to prevent duplicate messages
     socketRef.current?.emit('chat:send', { threadId, text: messageInput });
     setMessageInput("");
-    try { socketRef.current?.emit('chat:typing', { threadId, typing: false }); } catch {}
+    try { socketRef.current?.emit('chat:typing', { threadId, typing: false }); } catch { }
   };
 
   const handlePickImage = () => {
@@ -345,7 +358,7 @@ export function AdminChatPage() {
     try {
       const evt = new CustomEvent('chatUnreadUpdated', { detail: totalUnread });
       window.dispatchEvent(evt);
-    } catch {}
+    } catch { }
   }, [totalUnread]);
 
   return (
@@ -393,11 +406,10 @@ export function AdminChatPage() {
                 <button
                   key={thread.id}
                   onClick={() => setSelectedThread(thread)}
-                  className={`w-full p-3 rounded-lg text-left transition-colors mb-1 ${
-                    selectedThread?.id === thread.id
+                  className={`w-full p-3 rounded-lg text-left transition-colors mb-1 ${selectedThread?.id === thread.id
                       ? "bg-blue-50 border border-blue-200"
                       : "hover:bg-gray-50 border border-transparent"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-start gap-3">
                     <div className="relative">
@@ -491,9 +503,8 @@ export function AdminChatPage() {
                           )}
                           {!isImage && (
                             <p
-                              className={`text-xs mt-1 ${
-                                message.sender === "admin" ? "text-blue-100" : "text-gray-500"
-                              }`}
+                              className={`text-xs mt-1 ${message.sender === "admin" ? "text-blue-100" : "text-gray-500"
+                                }`}
                             >
                               {message.timestamp}
                             </p>
@@ -526,7 +537,7 @@ export function AdminChatPage() {
                         typingTimerRef.current = window.setTimeout(() => {
                           socketRef.current?.emit('chat:typing', { threadId: tid, typing: false });
                         }, 1200);
-                      } catch {}
+                      } catch { }
                     }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
