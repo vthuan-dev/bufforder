@@ -29,7 +29,15 @@ export default function App() {
   console.log('🚀 App.tsx loaded - Version 2.0 - Sound fix applied');
 
   const [activeTab, setActiveTab] = useState('home');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // Check for existing token on initial load for session persistence
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    try {
+      const token = localStorage.getItem('token');
+      return !!token; // true if token exists
+    } catch {
+      return false;
+    }
+  });
   const [authView, setAuthView] = useState<'login' | 'register'>('login');
   const [isAdminMode, setIsAdminMode] = useState(false);
   const bannerImage = 'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=800&q=80';
@@ -137,6 +145,35 @@ export default function App() {
     if (window.location.pathname.startsWith('/admin')) {
       setIsAdminMode(true);
     }
+  }, []);
+
+  // Validate token on mount - if expired, logout
+  useEffect(() => {
+    const validateSession = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      try {
+        // Use a lightweight API call to validate token
+        const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
+        const res = await fetch(`${API_BASE}/api/orders/stats`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.status === 401 || res.status === 403) {
+          // Token expired or invalid - logout
+          console.log('[Session] Token expired, logging out');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setIsAuthenticated(false);
+        }
+      } catch (e) {
+        // Network error - keep session (user might be offline)
+        console.log('[Session] Validation failed, keeping session:', e);
+      }
+    };
+
+    validateSession();
   }, []);
 
   // Global audio play listener to debug

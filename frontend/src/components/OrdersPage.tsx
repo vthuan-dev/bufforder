@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { TrendingUp, Wallet, CheckCircle, Target, ShoppingBag, Package, X, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { toast } from "sonner";
 import api from "../services/api";
 import { normalizeVipId, VipThemeKey } from "../constants/vipThemes";
 const imgEarned = new URL("../assets/orders/Earned.png", import.meta.url).toString();
@@ -269,7 +270,7 @@ export function OrdersPage() {
       try { window.dispatchEvent(new Event('orderUpdated')); } catch { }
     } catch (e: any) {
       console.error('[Orders] Submit error:', e);
-      alert(e?.message || 'Order failed');
+      toast.error(e?.message || 'Order failed');
     } finally {
       setSubmitting(false);
     }
