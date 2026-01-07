@@ -59,6 +59,17 @@ const onlineUsers = new Map(); // userId -> count
 app.set('onlineUsers', onlineUsers);
 
 // Middleware
+const compression = require('compression');
+// Enable gzip compression for all responses (60-80% size reduction)
+app.use(compression({
+  level: 6, // balanced compression level
+  threshold: 1024, // only compress responses > 1KB
+  filter: (req, res) => {
+    if (req.headers['x-no-compression']) return false;
+    return compression.filter(req, res);
+  }
+}));
+
 app.use(cors({
   origin: (origin, callback) => {
     if (isAllowedOrigin(origin)) return callback(null, true);
@@ -72,12 +83,20 @@ app.use(cors({
 app.options('*', cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// serve ảnh upload
-app.use('/uploads', express.static(require('path').join(__dirname, 'uploads')));
+// serve ảnh upload with long cache (1 hour)
+app.use('/uploads', express.static(require('path').join(__dirname, 'uploads'), {
+  maxAge: '1h',
+  etag: true
+}));
 // Disable HTTP caching for API JSON responses to avoid stale data (balances etc.)
 app.disable('etag');
 app.use((req, res, next) => {
-  res.set('Cache-Control', 'no-store');
+  // Allow caching for specific read-only endpoints
+  if (req.method === 'GET' && (req.path.includes('/vip/levels') || req.path.includes('/health'))) {
+    res.set('Cache-Control', 'public, max-age=300'); // 5 min cache
+  } else {
+    res.set('Cache-Control', 'no-store');
+  }
   next();
 });
 
@@ -115,6 +134,42 @@ app.use('/api/vip', vipRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/chat', chatRoutes);
+
+// Image proxy to bypass CORS for external images
+app.get('/api/image-proxy', async (req, res) => {
+  try {
+    const imageUrl = req.query.url;
+    if (!imageUrl) {
+      return res.status(400).json({ error: 'Missing url parameter' });
+    }
+
+    // Fetch the image from external URL
+    const response = await fetch(imageUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'image/*,*/*;q=0.8',
+        'Referer': new URL(imageUrl).origin
+      }
+    });
+
+    if (!response.ok) {
+      return res.status(response.status).json({ error: 'Failed to fetch image' });
+    }
+
+    // Get content type and forward it
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    res.set('Content-Type', contentType);
+    res.set('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+    res.set('Access-Control-Allow-Origin', '*');
+
+    // Pipe the image data to response
+    const buffer = await response.arrayBuffer();
+    res.send(Buffer.from(buffer));
+  } catch (error) {
+    console.error('Image proxy error:', error);
+    res.status(500).json({ error: 'Failed to proxy image' });
+  }
+});
 
 // Start message cleanup service with Socket.io for realtime notifications
 const messageCleanupService = new MessageCleanupService();

@@ -305,7 +305,7 @@ export function OrdersPage() {
 
       {/* Carousel */}
       <div className="px-6 pt-6">
-        <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+        <div className="relative rounded-3xl overflow-hidden shadow-2xl" style={{ height: '180px' }}>
           <AnimatePresence mode="wait">
             <motion.div
               key={currentSlide}
@@ -313,18 +313,18 @@ export function OrdersPage() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="relative h-40"
+              className="absolute inset-0"
             >
-              <ImageWithFallback
+              <img
                 src={carouselImages[currentSlide]}
                 alt="Order banner"
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  // Fallback to placeholder on error
+                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&q=80&auto=format&fit=crop';
+                }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-              {/* Ashford overlay */}
-              {/* <div className="absolute top-4 left-4 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
-                <span className="text-white text-sm font-medium">Ashford Collection</span>
-              </div> */}
             </motion.div>
           </AnimatePresence>
 
