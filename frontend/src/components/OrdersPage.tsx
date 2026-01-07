@@ -270,6 +270,12 @@ export function OrdersPage() {
       try { window.dispatchEvent(new Event('orderUpdated')); } catch { }
     } catch (e: any) {
       console.error('[Orders] Submit error:', e);
+      // Close popup first so user can see the toast error message
+      setShowOrderPopup(false);
+      setSelectedProduct(null);
+      setProgress(0);
+      setOrderNumber('');
+      // Show error toast after popup is closed
       toast.error(e?.message || 'Order failed');
     } finally {
       setSubmitting(false);
