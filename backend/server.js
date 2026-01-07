@@ -30,7 +30,9 @@ const STATIC_ALLOWED = new Set([
   'http://localhost:3000',
   'https://localhost:3000',
   'https://ashford.click',
-  'https://www.ashford.click'
+  'https://www.ashford.click',
+  'https://ashfordorder.com',
+  'https://www.ashfordorder.com'
 ]);
 
 const isAllowedOrigin = (origin) => {
