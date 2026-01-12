@@ -751,11 +751,37 @@ router.patch('/orders/:id/status', verifyAdminToken, async (req, res) => {
     const order = await prisma.order.findUnique({ where: { id: req.params.id } });
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
 
-    const oldStatus = order.status;
-    const data = { status };
+    const oldStatus = order.status.toLowerCase();
+    const newStatus = status.toLowerCase();
 
-    // Handle delivered status
-    if (status === 'delivered' && !order.completedAt) {
+    // ⚡ Status transition rules
+    const allowedTransitions = {
+      'pending': ['processing', 'cancelled'],
+      'processing': ['shipped', 'cancelled'],
+      'shipped': ['delivered', 'cancelled'],
+      'delivered': [], // Final state - no changes allowed
+      'cancelled': []  // Final state - no changes allowed
+    };
+
+    // Check if transition is allowed
+    if (oldStatus === newStatus) {
+      return res.status(400).json({ success: false, message: 'Order is already in this status' });
+    }
+
+    if (!allowedTransitions[oldStatus]?.includes(newStatus)) {
+      const allowedList = allowedTransitions[oldStatus]?.length > 0 
+        ? allowedTransitions[oldStatus].join(', ') 
+        : 'none (final state)';
+      return res.status(400).json({ 
+        success: false, 
+        message: `Cannot change status from "${oldStatus}" to "${newStatus}". Allowed transitions: ${allowedList}` 
+      });
+    }
+
+    const data = { status: newStatus };
+
+    // Handle delivered status - credit commission to user
+    if (newStatus === 'delivered' && !order.completedAt) {
       data.completedAt = new Date();
       // Credit user commission
       await prisma.user.update({
@@ -771,8 +797,8 @@ router.patch('/orders/:id/status', verifyAdminToken, async (req, res) => {
 
     res.json({
       success: true,
-      message: `Order status updated from ${oldStatus} to ${status}`,
-      data: { order: { id: order.id, status, completedAt: data.completedAt } }
+      message: `Order status updated from ${oldStatus} to ${newStatus}`,
+      data: { order: { id: order.id, status: newStatus, completedAt: data.completedAt } }
     });
   } catch (error) {
     console.error('Update order status error:', error);

@@ -21,6 +21,7 @@ import { Label } from "../ui/label";
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Progress } from "../ui/progress";
+import { toast } from "sonner";
 import api from "../../services/api";
 
 interface Order {
@@ -160,11 +161,11 @@ export function AdminOrdersPage() {
         // Reload orders to get updated data
         await loadOrders();
         setViewDialogOpen(false);
-        alert(`Order status updated to: ${newStatus}`);
+        toast.success(`Order status updated to: ${newStatus}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating order status:', error);
-      alert('Failed to update order status');
+      toast.error(error?.message || 'Failed to update order status');
     } finally {
       setUpdating(false);
     }
@@ -209,27 +210,22 @@ export function AdminOrdersPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full overflow-hidden">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl text-gray-900 mb-1">Order Management</h1>
           <p className="text-gray-600">Track and manage all customer orders</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Badge variant="secondary" className="bg-blue-100 text-blue-700 px-4 py-2">
-            <Package className="w-4 h-4 mr-2" />
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary" className="bg-blue-100 text-blue-700 px-3 py-1.5 text-sm">
+            <Package className="w-4 h-4 mr-1" />
             {stats?.totalOrders || 0} Total Orders
           </Badge>
           {stats && (
-            <>
-              <Badge variant="secondary" className="bg-green-100 text-green-700 px-4 py-2">
-                Today: {stats.todayOrders}
-              </Badge>
-              <Badge variant="secondary" className="bg-purple-100 text-purple-700 px-4 py-2">
-                Revenue: ${stats.totalRevenue.toFixed(2)}
-              </Badge>
-            </>
+            <Badge variant="secondary" className="bg-green-100 text-green-700 px-3 py-1.5 text-sm">
+              Today: {stats.todayOrders}
+            </Badge>
           )}
         </div>
       </div>
@@ -267,17 +263,17 @@ export function AdminOrdersPage() {
       {/* Orders Table */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <Table>
+          <Table className="min-w-full">
             <TableHeader>
               <TableRow>
-                <TableHead>Order ID</TableHead>
-                <TableHead>User</TableHead>
-                <TableHead>Product</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Commission</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Order Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="whitespace-nowrap">Order ID</TableHead>
+                <TableHead className="whitespace-nowrap min-w-[180px]">User</TableHead>
+                <TableHead className="whitespace-nowrap min-w-[150px]">Product</TableHead>
+                <TableHead className="whitespace-nowrap">Amount</TableHead>
+                <TableHead className="whitespace-nowrap">Commission</TableHead>
+                <TableHead className="whitespace-nowrap">Status</TableHead>
+                <TableHead className="whitespace-nowrap">Date</TableHead>
+                <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -300,43 +296,43 @@ export function AdminOrdersPage() {
                 orders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell>
-                      <code className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                      <code className="text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded truncate max-w-[120px] block">
                         {order.orderId}
                       </code>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="w-10 h-10">
-                          <AvatarFallback className="bg-blue-100 text-blue-600">
+                      <div className="flex items-center gap-2">
+                        <Avatar className="w-8 h-8 flex-shrink-0">
+                          <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
                             {(order.user?.name || 'U').split(" ").map((n) => n[0] || '').join("") || 'U'}
                           </AvatarFallback>
                         </Avatar>
-                        <div>
-                          <p className="text-gray-900">{order.user?.name || 'Unknown'}</p>
-                          <p className="text-sm text-gray-500">{order.user?.email || ''}</p>
+                        <div className="min-w-0">
+                          <p className="text-gray-900 text-sm truncate">{order.user?.name || 'Unknown'}</p>
+                          <p className="text-xs text-gray-500 truncate">{order.user?.email || ''}</p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div>
-                        <p className="text-gray-900">{order.product.name}</p>
+                      <div className="min-w-0">
+                        <p className="text-gray-900 text-sm truncate max-w-[150px]">{order.product.name}</p>
                         {order.product.brand && (
                           <p className="text-xs text-gray-500">{order.product.brand}</p>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-gray-900">${order.amount.toFixed(2)}</TableCell>
-                    <TableCell className="text-green-600">+${order.commission.toFixed(2)}</TableCell>
+                    <TableCell className="text-gray-900 text-sm whitespace-nowrap">${order.amount.toFixed(2)}</TableCell>
+                    <TableCell className="text-green-600 text-sm whitespace-nowrap">+${order.commission.toFixed(2)}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className={getStatusColor(order.status)}>
+                      <Badge variant="secondary" className={`${getStatusColor(order.status)} text-xs`}>
                         {order.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-gray-600">{order.orderDate}</TableCell>
+                    <TableCell className="text-gray-600 text-sm whitespace-nowrap">{order.orderDate}</TableCell>
                     <TableCell className="text-right">
                       <button
                         onClick={() => handleView(order)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
                       >
                         <Eye className="w-4 h-4" />
                       </button>
@@ -495,38 +491,76 @@ export function AdminOrdersPage() {
               {/* Update Status */}
               <div>
                 <Label>Update Order Status</Label>
-                <Select value={newStatus} onValueChange={setNewStatus}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Pending">Pending</SelectItem>
-                    <SelectItem value="Processing">Processing</SelectItem>
-                    <SelectItem value="Shipped">Shipped</SelectItem>
-                    <SelectItem value="Delivered">Delivered</SelectItem>
-                    <SelectItem value="Cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
+                {(() => {
+                  // Status transition rules
+                  const allowedTransitions: Record<string, string[]> = {
+                    'Pending': ['Processing', 'Cancelled'],
+                    'Processing': ['Shipped', 'Cancelled'],
+                    'Shipped': ['Delivered', 'Cancelled'],
+                    'Delivered': [], // Final state
+                    'Cancelled': []  // Final state
+                  };
+                  const currentStatus = selectedOrder.status;
+                  const allowed = allowedTransitions[currentStatus] || [];
+                  const isFinalState = allowed.length === 0;
+
+                  if (isFinalState) {
+                    return (
+                      <div className="p-3 bg-gray-100 rounded-lg text-sm text-gray-600">
+                        <span className="font-medium">{currentStatus}</span> is a final state and cannot be changed.
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <Select value={newStatus} onValueChange={setNewStatus}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={currentStatus} disabled>{currentStatus} (current)</SelectItem>
+                        {allowed.map(status => (
+                          <SelectItem key={status} value={status}>{status}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  );
+                })()}
               </div>
 
               <div className="flex gap-2 pt-4">
                 <Button onClick={() => setViewDialogOpen(false)} variant="outline" className="flex-1">
                   Close
                 </Button>
-                <Button 
-                  onClick={handleUpdateStatus} 
-                  className="flex-1 bg-blue-600"
-                  disabled={updating}
-                >
-                  {updating ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Updating...
-                    </>
-                  ) : (
-                    'Update Status'
-                  )}
-                </Button>
+                {(() => {
+                  const allowedTransitions: Record<string, string[]> = {
+                    'Pending': ['Processing', 'Cancelled'],
+                    'Processing': ['Shipped', 'Cancelled'],
+                    'Shipped': ['Delivered', 'Cancelled'],
+                    'Delivered': [],
+                    'Cancelled': []
+                  };
+                  const isFinalState = (allowedTransitions[selectedOrder.status] || []).length === 0;
+                  
+                  if (isFinalState) return null;
+                  
+                  return (
+                    <Button 
+                      onClick={handleUpdateStatus} 
+                      className="flex-1 bg-blue-600"
+                      disabled={updating || newStatus === selectedOrder.status}
+                    >
+                      {updating ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        'Update Status'
+                      )}
+                    </Button>
+                  );
+                })()}
               </div>
             </div>
           )}

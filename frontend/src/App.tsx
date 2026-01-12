@@ -219,11 +219,32 @@ export default function App() {
   // Global client chat notifications (works when not on Help tab)
   useEffect(() => {
     if (isAdminMode || !isAuthenticated) return;
+    
     const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
     if (!token) return;
+    
+    // ⚡ Prevent duplicate socket connections - check both ref and connected state
+    if (clientSocketRef.current) {
+      if (clientSocketRef.current.connected) {
+        console.log('[App] Socket already connected, skipping');
+        return;
+      }
+      // Socket exists but disconnected - clean up first
+      console.log('[App] Socket exists but disconnected, cleaning up');
+      clientSocketRef.current.disconnect();
+      clientSocketRef.current = null;
+    }
+    
     const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:5000';
-    const s = io(API_BASE, { auth: { token } });
+    const s = io(API_BASE, { 
+      auth: { token },
+      reconnection: true,
+      reconnectionAttempts: 3,
+      reconnectionDelay: 1000
+    });
     clientSocketRef.current = s;
+    console.log('[App] Created new socket connection');
+    
     const onVis = () => { focusRef.current = !document.hidden; };
     const onFocus = () => { focusRef.current = true; };
     const onBlur = () => { focusRef.current = false; };

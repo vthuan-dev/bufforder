@@ -61,36 +61,57 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
 
   // ⚡ Initialize global admin socket ONCE
   useEffect(() => {
-    if (socketInitialized.current) return;
-    socketInitialized.current = true;
-
-    (async () => {
-      try {
-        const res = await api.adminChatListThreads({ page: 1, limit: 100 });
-        const total = (res?.data?.threads || []).reduce((sum: number, t: any) => sum + (t.unreadForAdmin || 0), 0);
-        setChatUnread(total);
-      } catch {}
-    })();
+    // Fetch unread count only once
+    if (!socketInitialized.current) {
+      socketInitialized.current = true;
+      (async () => {
+        try {
+          const res = await api.adminChatListThreads({ page: 1, limit: 100 });
+          const total = (res?.data?.threads || []).reduce((sum: number, t: any) => sum + (t.unreadForAdmin || 0), 0);
+          setChatUnread(total);
+        } catch {}
+      })();
+    }
 
     try {
       const token = typeof localStorage !== 'undefined' ? localStorage.getItem('adminToken') : null;
       if (!token) return;
       
-      // ⚡ Only create socket if not exists
-      if (!globalAdminSocket || !globalAdminSocket.connected) {
-        const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:5000';
-        globalAdminSocket = io(API_BASE, { auth: { adminToken: token } });
-        console.log('[AdminLayout] Created global admin socket');
+      // ⚡ Prevent duplicate socket connections - check global socket state
+      if (globalAdminSocket) {
+        if (globalAdminSocket.connected) {
+          console.log('[AdminLayout] Admin socket already connected, skipping');
+          // Re-attach event listener for this component instance
+          const s = globalAdminSocket;
+          const handler = () => setChatUnread((u) => u + 1);
+          s.off('chat:threadUpdated', handler); // Remove old listener
+          s.on('chat:threadUpdated', handler);
+          return () => {
+            s.off('chat:threadUpdated', handler);
+          };
+        }
+        // Socket exists but disconnected - clean up
+        console.log('[AdminLayout] Admin socket disconnected, cleaning up');
+        globalAdminSocket.disconnect();
+        globalAdminSocket = null;
       }
       
-      const s = globalAdminSocket;
-      s.on('chat:threadUpdated', () => {
-        setChatUnread((u) => u + 1);
+      const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:5000';
+      globalAdminSocket = io(API_BASE, { 
+        auth: { adminToken: token },
+        reconnection: true,
+        reconnectionAttempts: 3,
+        reconnectionDelay: 1000
       });
+      console.log('[AdminLayout] Created global admin socket');
+      
+      const s = globalAdminSocket;
+      const handler = () => setChatUnread((u) => u + 1);
+      s.on('chat:threadUpdated', handler);
       
       return () => { 
-        // Don't disconnect on unmount - keep socket alive
-        // Only disconnect on logout
+        s.off('chat:threadUpdated', handler);
+        // Don't disconnect on unmount - keep socket alive for other admin pages
       };
     } catch {}
   }, []);
@@ -106,7 +127,7 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
   }, []);
 
   return (
-    <div className="h-screen bg-gray-50 flex">
+    <div className="h-screen bg-gray-50 flex overflow-hidden">
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div
@@ -189,7 +210,7 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col h-full w-full lg:w-auto min-h-0">
+      <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
         {/* Header */}
         <header className="h-16 bg-white border-b border-gray-200 sticky top-0 z-30 flex-shrink-0">
           <div className="h-full px-4 lg:px-6 flex items-center justify-between gap-4">

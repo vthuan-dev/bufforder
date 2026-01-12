@@ -98,7 +98,7 @@ export function AdminWithdrawalsPage() {
 
   const handleSubmitAction = async () => {
     if (actionType === "reject" && !actionNotes.trim()) {
-      alert("Please provide a reason for rejection");
+      toast.error("Please provide a reason for rejection");
       return;
     }
     try {
@@ -111,7 +111,7 @@ export function AdminWithdrawalsPage() {
       toast.success(`Withdrawal ${actionType === 'approve' ? 'approved' : 'rejected'} successfully!`);
       await loadData();
     } catch (e: any) {
-      alert(e?.message || 'Action failed');
+      toast.error(e?.message || 'Action failed');
     }
     setActionDialogOpen(false);
   };

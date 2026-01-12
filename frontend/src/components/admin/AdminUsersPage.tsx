@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Search, Plus, MoreHorizontal, Edit, Trash2, Eye, Filter } from "lucide-react";
 import { Badge } from "../ui/badge";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -100,7 +101,7 @@ export function AdminUsersPage() {
     } catch (e) {
       const msg = (e as any)?.message || '';
       if (msg.toLowerCase().includes('unauthorized')) {
-        alert('Your admin session expired. Please sign in again.');
+        toast.error('Your admin session expired. Please sign in again.');
         localStorage.removeItem('adminToken');
         localStorage.removeItem('adminData');
         window.location.href = '/admin';
@@ -167,8 +168,9 @@ export function AdminUsersPage() {
       // refresh list and close dialog
       await loadUsers();
       setEditDialogOpen(false);
+      toast.success('User updated successfully!');
     } catch (e: any) {
-      alert(e?.message || 'Failed to update user');
+      toast.error(e?.message || 'Failed to update user');
     }
   };
 
@@ -182,8 +184,9 @@ export function AdminUsersPage() {
     try {
       await api.adminDeleteUser(user.id);
       setUsers(prev => prev.filter(u => u.id !== user.id));
+      toast.success('User deleted successfully!');
     } catch (e: any) {
-      alert(e?.message || 'Failed to delete user');
+      toast.error(e?.message || 'Failed to delete user');
     }
   };
 
@@ -471,16 +474,23 @@ export function AdminUsersPage() {
               </Button>
               <Button
                 onClick={async () => {
-                  if (!createFullName || !createEmail || !createPassword) return alert('Please fill required fields');
-                  if (createPassword !== createConfirmPassword) return alert('Passwords do not match');
+                  if (!createFullName || !createEmail || !createPassword) {
+                    toast.error('Please fill required fields');
+                    return;
+                  }
+                  if (createPassword !== createConfirmPassword) {
+                    toast.error('Passwords do not match');
+                    return;
+                  }
                   try {
                     setCreating(true);
                     await api.adminCreateUser({ fullName: createFullName, email: createEmail, phoneNumber: createPhone, password: createPassword });
                     setCreateDialogOpen(false);
                     setCreateFullName(''); setCreateEmail(''); setCreatePhone(''); setCreatePassword(''); setCreateConfirmPassword('');
                     await loadUsers();
+                    toast.success('User created successfully!');
                   } catch (e: any) {
-                    alert(e?.message || 'Failed to create user');
+                    toast.error(e?.message || 'Failed to create user');
                   } finally {
                     setCreating(false);
                   }

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Search, Filter, Check, X, Eye, Clock } from "lucide-react";
 import { Badge } from "../ui/badge";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -87,19 +88,21 @@ export function AdminDepositsPage() {
 
   const handleSubmitAction = async () => {
     if (actionType === "reject" && !actionNotes.trim()) {
-      alert("Please provide a reason for rejection");
+      toast.error("Please provide a reason for rejection");
       return;
     }
     try {
       if (!selectedDeposit) return;
       if (actionType === 'approve') {
         await api.adminApproveDeposit(selectedDeposit.id, actionNotes);
+        toast.success('Deposit approved successfully!');
       } else {
         await api.adminRejectDeposit(selectedDeposit.id, actionNotes, actionNotes);
+        toast.success('Deposit rejected successfully!');
       }
       await loadData();
     } catch (e: any) {
-      alert(e?.message || 'Action failed');
+      toast.error(e?.message || 'Action failed');
     }
     setActionDialogOpen(false);
   };

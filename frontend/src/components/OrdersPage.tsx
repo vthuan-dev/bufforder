@@ -433,6 +433,38 @@ export function OrdersPage() {
         </div>
       </div>
 
+      {/* Products List */}
+      <div className="px-4 pb-4">
+        <p className="text-sm font-medium text-gray-700 mb-3">Sản phẩm có sẵn</p>
+        <div className="grid grid-cols-2 gap-2">
+          {products.map((product, index) => (
+            <motion.div
+              key={product.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.02 }}
+              className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100"
+            >
+              <div className="aspect-square bg-gray-50">
+                <ImageWithFallback
+                  src={product.image}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="p-2">
+                <p className="text-xs text-gray-800 truncate font-medium">{product.name}</p>
+                <p className="text-[10px] text-gray-500">{product.brand}</p>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-xs text-red-500 font-semibold">${product.price.toLocaleString()}</span>
+                  <span className="text-[10px] text-green-600">+${product.commission.toFixed(2)}</span>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
       {/* Instructions - Compact */}
     </>
   );
