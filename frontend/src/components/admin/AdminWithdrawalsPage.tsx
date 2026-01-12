@@ -49,7 +49,7 @@ export function AdminWithdrawalsPage() {
   const [loading, setLoading] = useState(false);
 
   const mapBackend = (r: any): WithdrawalRow => ({
-    id: r._id,
+    id: r.id || r._id,
     user: { name: r.userId?.fullName || r.userId?.phoneNumber || r.userId?.username || 'User', email: r.userId?.email || '', balance: Number(r.userId?.balance || 0) },
     amount: Number(r.amount || 0),
     fee: 0,
