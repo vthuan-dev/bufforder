@@ -280,7 +280,7 @@ export function AdminWithdrawalsPage() {
 
       {/* Action Dialog */}
       <Dialog open={actionDialogOpen} onOpenChange={setActionDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {actionType === "approve" ? "Approve" : "Reject"} Withdrawal Request
@@ -371,7 +371,7 @@ export function AdminWithdrawalsPage() {
 
       {/* View Details Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Withdrawal Details</DialogTitle>
           </DialogHeader>

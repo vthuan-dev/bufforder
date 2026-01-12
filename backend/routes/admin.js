@@ -707,16 +707,28 @@ router.get('/orders/:id', verifyAdminToken, async (req, res) => {
 
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
 
+    // Generate orderId like in list endpoint
+    const orderId = `ORD-${order.orderDate.toISOString().split('T')[0].replace(/-/g, '')}-${order.id.slice(-3).toUpperCase()}`;
+
     res.json({
       success: true,
       data: {
         order: {
           id: order.id,
-          user: order.user,
+          orderId: orderId,
+          user: { 
+            name: order.user?.fullName || 'Unknown',
+            email: order.user?.email || '',
+            phoneNumber: order.user?.phoneNumber || '',
+            balance: order.user?.balance || 0,
+            totalDeposited: order.user?.totalDeposited || 0,
+            vipLevel: order.user?.vipLevel || 'vip-0'
+          },
           product: { name: order.productName, image: order.image, brand: order.brand, category: order.category },
           amount: order.productPrice,
           commission: order.commissionAmount,
-          status: order.status,
+          commissionRate: order.commissionRate,
+          status: order.status.charAt(0).toUpperCase() + order.status.slice(1),
           orderDate: formatDateVN(order.orderDate),
           deliveryDate: order.completedAt ? formatDateVN(order.completedAt) : null
         }
