@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
-const Order = require('../models/Order');
+const prisma = require('../lib/prisma');
 const { getVipLevelByAmount } = require('../config/vipLevels');
 const { authenticateToken } = require('../middleware/auth');
+const { parseJsonField } = require('../lib/utils');
+const { getUserStats, getOrdersPaginated } = require('../lib/optimized-queries'); // ⚡ Optimized queries
 
 // Helpers
 function getDateKey(d = new Date()) {
@@ -13,25 +14,32 @@ function getDateKey(d = new Date()) {
   return `${y}-${m}-${day}`;
 }
 
+// Generate order number: ASH + timestamp + random 3 digits
+function generateOrderNumber() {
+  const timestamp = Date.now().toString();
+  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  return `ASH${timestamp.slice(-8)}${random}`;
+}
+
 // Get fixed commission per order from VIP level or user override
 function resolveCommissionPerOrder(user, vipLevel) {
-  // User-specific override takes priority
-  if (user?.commissionConfig && user.commissionConfig.perOrderAmount != null) {
-    return Number(user.commissionConfig.perOrderAmount);
+  const config = parseJsonField(user?.commissionConfig, {});
+  if (config.perOrderAmount != null) {
+    return Number(config.perOrderAmount);
   }
-  // Fall back to VIP level default
   return vipLevel?.commissionPerOrder || 0;
 }
 
 // Get daily target from VIP level or user override
 function resolveDailyTarget(user, vipLevel) {
-  if (user?.commissionConfig && user.commissionConfig.dailyTarget != null) {
-    return Number(user.commissionConfig.dailyTarget);
+  const config = parseJsonField(user?.commissionConfig, {});
+  if (config.dailyTarget != null) {
+    return Number(config.dailyTarget);
   }
   return vipLevel?.dailyTarget || 0;
 }
 
-// Simplified: pick daily target from VIP level (no more random modes)
+// Simplified: pick daily target from VIP level
 function pickDailyTarget(user, vipLevel) {
   const target = resolveDailyTarget(user, vipLevel);
   return { mode: 'fixed', targetTotal: target };
@@ -42,13 +50,9 @@ router.get('/stats', authenticateToken, async (req, res) => {
   try {
     const userId = req.userId;
 
-    // Get user data
-    const user = await User.findById(userId);
+    const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
 
     // Get today's date range
@@ -57,39 +61,33 @@ router.get('/stats', authenticateToken, async (req, res) => {
     const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
     // Get today's orders
-    const todayOrders = await Order.find({
-      userId: userId,
-      orderDate: {
-        $gte: startOfDay,
-        $lt: endOfDay
+    const todayOrders = await prisma.order.findMany({
+      where: {
+        userId: userId,
+        orderDate: { gte: startOfDay, lt: endOfDay }
       }
     });
 
-    // Calculate metrics based on delivered orders (completed)
     const completedOrders = todayOrders.filter(order => order.status === 'delivered');
     const totalCommission = completedOrders.reduce((sum, order) => sum + order.commissionAmount, 0);
 
     // Get VIP level info
     const vipLevel = getVipLevelByAmount(user.totalDeposited);
-    // Resolve commission rate using user-specific config override
-    // Use fixed commission per order instead of percentage
     const commissionPerOrder = resolveCommissionPerOrder(user, vipLevel);
     const dailyTarget = resolveDailyTarget(user, vipLevel);
-    const numberOfOrders = vipLevel && vipLevel.numberOfOrders ? vipLevel.numberOfOrders : 100;
+    const numberOfOrders = vipLevel?.numberOfOrders || 100;
 
-    // Today's earned commission and order count from user's dailyEarnings
+    // Today's earned commission from user's dailyEarnings
     const todayKey = getDateKey();
-    const isToday = user.dailyEarnings && user.dailyEarnings.dateKey === todayKey;
+    const dailyEarnings = parseJsonField(user.dailyEarnings, {});
+    const isToday = dailyEarnings.dateKey === todayKey;
     const dailyEarningsToday = {
-      totalCommission: isToday ? Number(user.dailyEarnings.totalCommission || 0) : 0,
-      ordersCount: isToday ? Number(user.dailyEarnings.ordersCount || 0) : 0,
-      targetTotal: isToday ? Number(user.dailyEarnings.targetTotal || 0) : 0,
-      mode: isToday ? (user.dailyEarnings.mode || 'auto') : 'auto',
+      totalCommission: isToday ? Number(dailyEarnings.totalCommission || 0) : 0,
+      ordersCount: isToday ? Number(dailyEarnings.ordersCount || 0) : 0,
+      targetTotal: isToday ? Number(dailyEarnings.targetTotal || 0) : 0,
+      mode: isToday ? (dailyEarnings.mode || 'auto') : 'auto',
       dateKey: todayKey
     };
-
-    // Count of all orders taken today (any status)
-    const ordersGrabbedCount = todayOrders.length;
 
     res.json({
       success: true,
@@ -98,23 +96,18 @@ router.get('/stats', authenticateToken, async (req, res) => {
         balance: user.balance,
         freezeBalance: user.freezeBalance,
         totalDailyTasks: numberOfOrders,
-        // Align UI: treat "Completed today" as count of orders taken today
-        completedToday: ordersGrabbedCount,
-        // ordersGrabbed reflects number of orders taken today (any status)
-        ordersGrabbed: ordersGrabbedCount,
+        completedToday: todayOrders.length,
+        ordersGrabbed: todayOrders.length,
         vipLevel: user.vipLevel,
-        commissionPerOrder: commissionPerOrder,
-        dailyTarget: dailyTarget,
-        commissionConfig: user.commissionConfig,
+        commissionPerOrder,
+        dailyTarget,
+        commissionConfig: parseJsonField(user.commissionConfig, {}),
         dailyEarnings: dailyEarningsToday
       }
     });
   } catch (error) {
     console.error('Error fetching order stats:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching order statistics'
-    });
+    res.status(500).json({ success: false, message: 'Error fetching order statistics' });
   }
 });
 
@@ -122,16 +115,12 @@ router.get('/stats', authenticateToken, async (req, res) => {
 router.post('/take', authenticateToken, async (req, res) => {
   try {
     const userId = req.userId;
-    const clientProduct = req.body && req.body.product;
+    const clientProduct = req.body?.product;
     const clientRequestId = (req.headers['x-idempotency-key'] || req.body?.idempotencyKey || '').toString().trim() || null;
 
-    // Get user data
-    const user = await User.findById(userId);
+    const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
 
     // Check daily limit
@@ -139,30 +128,27 @@ router.post('/take', authenticateToken, async (req, res) => {
     const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
-    const todayOrders = await Order.find({
-      userId: userId,
-      orderDate: {
-        $gte: startOfDay,
-        $lt: endOfDay
+    const todayOrders = await prisma.order.findMany({
+      where: {
+        userId: userId,
+        orderDate: { gte: startOfDay, lt: endOfDay }
       }
     });
 
     if (todayOrders.length >= 100) {
-      return res.status(400).json({
-        success: false,
-        message: 'Daily order limit reached (100 orders)'
-      });
+      return res.status(400).json({ success: false, message: 'Daily order limit reached (100 orders)' });
     }
 
     // Get VIP level and commission per order
     const vipLevel = getVipLevelByAmount(user.totalDeposited);
     const commissionPerOrder = resolveCommissionPerOrder(user, vipLevel);
     const dailyTarget = resolveDailyTarget(user, vipLevel);
-    // Require client to send product, no server-side catalog
+
+    // Require client to send product
     if (!clientProduct) {
       return res.status(400).json({ success: false, message: 'Product is required' });
     }
-    // Basic validation of required fields
+
     const { id, name, price, brand, category, image } = clientProduct;
     if (!id || !name || !price || !brand || !category || !image) {
       return res.status(400).json({ success: false, message: 'Invalid product payload' });
@@ -172,11 +158,12 @@ router.post('/take', authenticateToken, async (req, res) => {
     }
     const randomProduct = { id, name, price: Number(price), brand, category, image };
 
-    // Initialize/reset daily earnings for today (for target steering)
+    // Initialize/reset daily earnings for today
     const todayKey = getDateKey();
-    if (user.dailyEarnings?.dateKey !== todayKey) {
+    let dailyEarnings = parseJsonField(user.dailyEarnings, {});
+    if (dailyEarnings.dateKey !== todayKey) {
       const picked = pickDailyTarget(user, vipLevel);
-      user.dailyEarnings = {
+      dailyEarnings = {
         dateKey: todayKey,
         totalCommission: 0,
         ordersCount: 0,
@@ -185,34 +172,31 @@ router.post('/take', authenticateToken, async (req, res) => {
       };
     }
 
-    // Calculate commission using FIXED per-order amount (with ±10% randomness)
-    const randomFactor = 0.9 + Math.random() * 0.2; // ±10%
+    // Calculate commission with ±10% randomness
+    const randomFactor = 0.9 + Math.random() * 0.2;
     let commissionAmount = Math.round(commissionPerOrder * randomFactor * 100) / 100;
 
     // Hard cap: don't exceed daily target
-    const target = Number(user.dailyEarnings?.targetTotal || dailyTarget);
-    const already = Number(user.dailyEarnings?.totalCommission || 0);
+    const target = Number(dailyEarnings.targetTotal || dailyTarget);
+    const already = Number(dailyEarnings.totalCommission || 0);
     const remaining = Math.max(0, target - already);
 
     if (remaining <= 0) {
-      // Already reached daily target - no more commission
       commissionAmount = 0;
     } else if (commissionAmount > remaining) {
-      // Cap to remaining amount
       commissionAmount = Math.round(remaining * 100) / 100;
     }
 
-    // CRITICAL: Prevent duplicate orders - Check multiple conditions
-
-    // 1. Check idempotency key if provided
+    // Check idempotency key
     if (clientRequestId) {
-      const existing = await Order.findOne({ userId, clientRequestId });
+      const existing = await prisma.order.findFirst({
+        where: { userId, clientRequestId }
+      });
       if (existing) {
         console.log('[Orders] Duplicate detected via clientRequestId:', clientRequestId);
         return res.json({
           success: true,
           data: {
-            // Return current wallet/daily stats without creating duplicate
             newCommission: user.commission,
             newBalance: user.balance,
             newCompletedToday: todayOrders.length,
@@ -227,23 +211,21 @@ router.post('/take', authenticateToken, async (req, res) => {
               category: existing.category,
               image: existing.image
             },
-            order: {
-              id: existing._id,
-              status: existing.status,
-              orderDate: existing.orderDate
-            },
-            dailyEarnings: user.dailyEarnings
+            order: { id: existing.id, status: existing.status, orderDate: existing.orderDate },
+            dailyEarnings
           }
         });
       }
     }
 
-    // 2. Check for same product within last 5 minutes (double-click protection)
+    // Check for same product within last 5 minutes
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-    const recentDuplicate = await Order.findOne({
-      userId,
-      productId: randomProduct.id,
-      orderDate: { $gte: fiveMinutesAgo }
+    const recentDuplicate = await prisma.order.findFirst({
+      where: {
+        userId,
+        productId: randomProduct.id,
+        orderDate: { gte: fiveMinutesAgo }
+      }
     });
 
     if (recentDuplicate) {
@@ -265,226 +247,120 @@ router.post('/take', authenticateToken, async (req, res) => {
             category: recentDuplicate.category,
             image: recentDuplicate.image
           },
-          order: {
-            id: recentDuplicate._id,
-            status: recentDuplicate.status,
-            orderDate: recentDuplicate.orderDate
-          },
-          dailyEarnings: user.dailyEarnings
+          order: { id: recentDuplicate.id, status: recentDuplicate.status, orderDate: recentDuplicate.orderDate },
+          dailyEarnings
         }
       });
     }
 
-    // Create a pending order immediately
-    const newOrder = new Order({
-      userId: userId,
-      clientRequestId: clientRequestId || undefined,
-      productId: randomProduct.id,
-      productName: randomProduct.name,
-      productPrice: randomProduct.price,
-      commissionRate: commissionPerOrder, // legacy field, now stores per-order amount
-      commissionAmount: commissionAmount,
-      brand: randomProduct.brand,
-      category: randomProduct.category,
-      image: randomProduct.image,
-      status: 'pending',
-      orderDate: new Date()
-    });
-    await newOrder.save();
+    // Create order and update user in transaction
+    const result = await prisma.$transaction(async (tx) => {
+      const newOrder = await tx.order.create({
+        data: {
+          userId,
+          clientRequestId: clientRequestId || undefined,
+          orderNumber: generateOrderNumber(),
+          productId: randomProduct.id,
+          productName: randomProduct.name,
+          productPrice: randomProduct.price,
+          commissionRate: commissionPerOrder,
+          commissionAmount,
+          brand: randomProduct.brand,
+          category: randomProduct.category,
+          image: randomProduct.image,
+          status: 'pending',
+          orderDate: new Date()
+        }
+      });
 
-    // Immediately credit user on pending as per new rule
-    const creditedCommission = Math.round(commissionAmount * 0.8 * 100) / 100;
-    user.balance += creditedCommission;
-    user.commission += commissionAmount;
-    user.dailyEarnings.totalCommission = Math.round((user.dailyEarnings.totalCommission + commissionAmount) * 100) / 100;
-    user.dailyEarnings.ordersCount = (user.dailyEarnings.ordersCount || 0) + 1;
-    await user.save();
+      // Credit user
+      const creditedCommission = Math.round(commissionAmount * 0.8 * 100) / 100;
+      dailyEarnings.totalCommission = Math.round((dailyEarnings.totalCommission + commissionAmount) * 100) / 100;
+      dailyEarnings.ordersCount = (dailyEarnings.ordersCount || 0) + 1;
+
+      const updatedUser = await tx.user.update({
+        where: { id: userId },
+        data: {
+          balance: { increment: creditedCommission },
+          commission: { increment: commissionAmount },
+          dailyEarnings: dailyEarnings
+        }
+      });
+
+      return { newOrder, updatedUser };
+    });
 
     // Get updated stats
-    const updatedTodayOrders = await Order.find({
-      userId: userId,
-      orderDate: {
-        $gte: startOfDay,
-        $lt: endOfDay
+    const updatedTodayOrders = await prisma.order.findMany({
+      where: {
+        userId,
+        orderDate: { gte: startOfDay, lt: endOfDay }
       }
     });
-
-    const completedOrders = updatedTodayOrders.filter(order => order.status === 'delivered');
 
     res.json({
       success: true,
       data: {
-        newCommission: user.commission,
-        newBalance: user.balance,
-        // Treat "completed today" on the client as orders taken today (any status)
+        newCommission: result.updatedUser.commission,
+        newBalance: result.updatedUser.balance,
         newCompletedToday: updatedTodayOrders.length,
         newOrdersGrabbed: updatedTodayOrders.length,
         selectedProduct: {
           productName: randomProduct.name,
           productPrice: randomProduct.price,
-          commissionAmount: commissionAmount,
-          commissionPerOrder: commissionPerOrder,
+          commissionAmount,
+          commissionPerOrder,
           brand: randomProduct.brand,
           productId: randomProduct.id,
           category: randomProduct.category,
           image: randomProduct.image
         },
         order: {
-          id: newOrder._id,
-          status: newOrder.status,
-          orderDate: newOrder.orderDate
+          id: result.newOrder.id,
+          status: result.newOrder.status,
+          orderDate: result.newOrder.orderDate
         },
-        dailyEarnings: user.dailyEarnings
+        dailyEarnings
       }
     });
   } catch (error) {
     console.error('Error taking order:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error taking order'
-    });
+    res.status(500).json({ success: false, message: 'Error taking order' });
   }
 });
 
-// POST /api/orders/complete - Create and complete an order
+// POST /api/orders/complete - Disabled (orders remain pending)
 router.post('/complete', authenticateToken, async (req, res) => {
-  try {
-    const userId = req.userId;
-    const { productData } = req.body;
-
-    if (!productData) {
-      return res.status(400).json({
-        success: false,
-        message: 'Product data is required'
-      });
-    }
-
-    // Get user data
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    // Check if user still has sufficient balance
-    if (user.balance < productData.productPrice) {
-      return res.status(400).json({
-        success: false,
-        message: 'Insufficient balance to complete this order'
-      });
-    }
-
-    // Initialize/reset daily earnings for today
-    const todayKey = getDateKey();
-    if (user.dailyEarnings?.dateKey !== todayKey) {
-      const picked = pickDailyTarget(user);
-      user.dailyEarnings = {
-        dateKey: todayKey,
-        totalCommission: 0,
-        ordersCount: 0,
-        mode: picked.mode,
-        targetTotal: picked.targetTotal
-      };
-    }
-
-    // Determine commission rate (per-user override preferred)
-    const vipLevel = getVipLevelByAmount(user.totalDeposited);
-    const baseRate = resolveCommissionRate(user, vipLevel);
-    // Nominal commission with slight randomness (±10%)
-    const nominal = (Number(productData.productPrice) * baseRate) / 100;
-    const randomFactor = 0.9 + Math.random() * 0.2;
-    let commissionAmount = Math.round(nominal * randomFactor * 100) / 100;
-    // Steer toward today's target
-    const target = Number(user.dailyEarnings?.targetTotal || 0);
-    const already = Number(user.dailyEarnings?.totalCommission || 0);
-    const remaining = Math.max(0, target - already);
-    if (remaining > 0) {
-      const maxThisOrder = Math.max(0, remaining + target * 0.05); // up to 5% overshoot
-      if (commissionAmount > maxThisOrder) commissionAmount = Math.round(maxThisOrder * 100) / 100;
-    }
-
-    // Per new rule: do NOT auto-complete. Just create pending orders via /take.
-    // Keep this endpoint no-op to avoid accidental auto-delivery.
-    return res.status(400).json({ success: false, message: 'Auto-complete disabled. Orders remain pending until admin updates status.' });
-
-    // Update user balances: credit only 80% of commission to spendable balance
-    const creditedCommission = Math.round(newOrder.commissionAmount * 0.8 * 100) / 100;
-    user.balance += creditedCommission;
-    // Track full commission in lifetime/earned commission
-    user.commission += newOrder.commissionAmount;
-    // Update daily earnings
-    user.dailyEarnings.totalCommission = Math.round((user.dailyEarnings.totalCommission + newOrder.commissionAmount) * 100) / 100;
-    user.dailyEarnings.ordersCount = (user.dailyEarnings.ordersCount || 0) + 1;
-    await user.save();
-
-    // Get updated stats
-    const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-
-    const updatedTodayOrders = await Order.find({
-      userId: userId,
-      orderDate: {
-        $gte: startOfDay,
-        $lt: endOfDay
-      }
-    });
-
-    const completedOrders = updatedTodayOrders.filter(order => order.status === 'delivered');
-    const totalCommission = completedOrders.reduce((sum, order) => sum + order.commissionAmount, 0);
-
-    res.json({
-      success: true,
-      data: {
-        newCommission: user.commission,
-        newBalance: user.balance,
-        newCompletedToday: completedOrders.length,
-        newOrdersGrabbed: updatedTodayOrders.length,
-        order: {
-          productName: newOrder.productName,
-          productPrice: newOrder.productPrice,
-          commissionAmount: newOrder.commissionAmount
-        },
-        dailyEarnings: user.dailyEarnings
-      }
-    });
-  } catch (error) {
-    console.error('Error completing order:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error completing order'
-    });
-  }
+  return res.status(400).json({
+    success: false,
+    message: 'Auto-complete disabled. Orders remain pending until admin updates status.'
+  });
 });
 
-// GET /api/orders/history - Get order history (with status filter and sort)
+// GET /api/orders/history - Get order history
 router.get('/history', authenticateToken, async (req, res) => {
   try {
     const userId = req.userId;
     const { page = 1, limit = 10, status, sortBy = 'orderDate', sortOrder = 'desc' } = req.query;
 
-    const query = { userId: userId };
-    if (status) {
-      query.status = status;
-    }
+    const where = { userId };
+    if (status) where.status = status;
 
-    // sanitize sort fields to prevent injection
     const allowedSort = ['orderDate', 'productPrice', 'status'];
     const sortField = allowedSort.includes(String(sortBy)) ? String(sortBy) : 'orderDate';
-    const sortDir = String(sortOrder).toLowerCase() === 'asc' ? 1 : -1;
+    const sortDir = String(sortOrder).toLowerCase() === 'asc' ? 'asc' : 'desc';
 
-    const orders = await Order.find(query)
-      .sort({ [sortField]: sortDir })
-      .limit(parseInt(limit))
-      .skip((parseInt(page) - 1) * parseInt(limit));
+    const orders = await prisma.order.findMany({
+      where,
+      orderBy: { [sortField]: sortDir },
+      take: parseInt(limit),
+      skip: (parseInt(page) - 1) * parseInt(limit)
+    });
 
-    const total = await Order.countDocuments(query);
+    const total = await prisma.order.count({ where });
 
-    // map to lightweight response for mobile client
     const items = orders.map(o => ({
-      id: o._id,
+      id: o.id,
       productName: o.productName,
       productPrice: o.productPrice,
       commissionAmount: o.commissionAmount,
@@ -507,10 +383,7 @@ router.get('/history', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching order history:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching order history'
-    });
+    res.status(500).json({ success: false, message: 'Error fetching order history' });
   }
 });
 

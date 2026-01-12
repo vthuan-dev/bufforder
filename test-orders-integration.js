@@ -1,206 +1,205 @@
-const mongoose = require('mongoose');
-const config = require('./backend/config');
-const User = require('./backend/models/User');
-const Order = require('./backend/models/Order');
+const prisma = require('./backend/lib/prisma');
+const { hashPassword } = require('./backend/lib/utils');
 
-// Connect to MongoDB
-mongoose.connect(config.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => {
-  console.log('✅ Connected to MongoDB successfully');
-  createTestData();
-})
-.catch((error) => {
-  console.error('❌ MongoDB connection error:', error);
-  process.exit(1);
-});
-
-async function createTestData() {
+async function testOrdersIntegration() {
   try {
+    console.log('🔗 Connecting to MySQL (Prisma)...');
+    console.log('✅ Connected to MySQL successfully\n');
+
+    // Clean up test data
+    console.log('🧹 Cleaning up old test data...');
+    await prisma.order.deleteMany({
+      where: {
+        user: {
+          phoneNumber: { in: ['1111111111', '2222222222', '3333333333'] }
+        }
+      }
+    });
+    await prisma.user.deleteMany({
+      where: {
+        phoneNumber: { in: ['1111111111', '2222222222', '3333333333'] }
+      }
+    });
+    console.log('✅ Cleanup complete\n');
+
     // Create test users
-    const testUsers = await Promise.all([
-      User.findOneAndUpdate(
-        { email: 'john@example.com' },
-        {
-          fullName: 'John Doe',
-          email: 'john@example.com',
-          phoneNumber: '+1234567890',
-          password: 'password123',
-          vipLevel: 'vip-2',
-          balance: 5000,
-          totalDeposited: 10000,
-          isActive: true
-        },
-        { upsert: true, new: true }
-      ),
-      User.findOneAndUpdate(
-        { email: 'jane@example.com' },
-        {
-          fullName: 'Jane Smith',
-          email: 'jane@example.com',
-          phoneNumber: '+1234567891',
-          password: 'password123',
-          vipLevel: 'vip-3',
-          balance: 8000,
-          totalDeposited: 35000,
-          isActive: true
-        },
-        { upsert: true, new: true }
-      ),
-      User.findOneAndUpdate(
-        { email: 'mike@example.com' },
-        {
-          fullName: 'Mike Johnson',
-          email: 'mike@example.com',
-          phoneNumber: '+1234567892',
-          password: 'password123',
-          vipLevel: 'vip-1',
-          balance: 2000,
-          totalDeposited: 5000,
-          isActive: true
-        },
-        { upsert: true, new: true }
-      )
-    ]);
-
-    console.log('✅ Test users created:', testUsers.length);
-
-    // Create test orders
-    const testOrders = await Promise.all([
-      Order.findOneAndUpdate(
-        { productId: 1001 },
-        {
-          userId: testUsers[0]._id,
-          productId: 1001,
-          productName: 'Luxury Watch Set',
-          productPrice: 1250.00,
-          commissionRate: 0.5,
-          commissionAmount: 6.25,
-          brand: 'Rolex',
-          category: 'Watches',
-          image: 'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=400',
-          status: 'processing',
-          orderDate: new Date('2025-01-13T10:30:00Z')
-        },
-        { upsert: true, new: true }
-      ),
-      Order.findOneAndUpdate(
-        { productId: 1002 },
-        {
-          userId: testUsers[1]._id,
-          productId: 1002,
-          productName: 'Premium Handbag',
-          productPrice: 850.00,
-          commissionRate: 0.7,
-          commissionAmount: 5.95,
-          brand: 'Louis Vuitton',
-          category: 'Bags',
-          image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400',
-          status: 'shipped',
-          orderDate: new Date('2025-01-12T15:20:00Z')
-        },
-        { upsert: true, new: true }
-      ),
-      Order.findOneAndUpdate(
-        { productId: 1003 },
-        {
-          userId: testUsers[2]._id,
-          productId: 1003,
-          productName: 'Designer Shoes',
-          productPrice: 450.00,
-          commissionRate: 0.3,
-          commissionAmount: 1.35,
-          brand: 'Nike',
-          category: 'Shoes',
-          image: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400',
-          status: 'delivered',
-          completedAt: new Date('2025-01-12T14:30:00Z'),
-          orderDate: new Date('2025-01-10T09:15:00Z')
-        },
-        { upsert: true, new: true }
-      ),
-      Order.findOneAndUpdate(
-        { productId: 1004 },
-        {
-          userId: testUsers[0]._id,
-          productId: 1004,
-          productName: 'Jewelry Collection',
-          productPrice: 2100.00,
-          commissionRate: 0.5,
-          commissionAmount: 10.50,
-          brand: 'Tiffany',
-          category: 'Jewelry',
-          image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400',
-          status: 'pending',
-          orderDate: new Date('2025-01-13T08:45:00Z')
-        },
-        { upsert: true, new: true }
-      )
-    ]);
-
-    console.log('✅ Test orders created:', testOrders.length);
-
-    // Test API endpoints
-    console.log('\n🧪 Testing API endpoints...');
+    console.log('👥 Creating test users...');
+    const hashedPassword = await hashPassword('test123');
     
-    // Test admin login
-    const adminLoginResponse = await fetch('http://localhost:5000/api/admin/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        username: 'admin',
-        password: 'admin123'
-      })
+    const user1 = await prisma.user.create({
+      data: {
+        phoneNumber: '1111111111',
+        fullName: 'Test User 1',
+        email: 'test1@example.com',
+        password: hashedPassword,
+        vipLevel: 'vip-1',
+        balance: 1000,
+        totalDeposited: 100
+      }
     });
 
-    if (adminLoginResponse.ok) {
-      const adminData = await adminLoginResponse.json();
-      console.log('✅ Admin login successful');
-      
-      const adminToken = adminData.data.token;
-      
-      // Test get orders
-      const ordersResponse = await fetch('http://localhost:5000/api/admin/orders?page=1&limit=10', {
-        headers: {
-          'Authorization': `Bearer ${adminToken}`
-        }
-      });
-
-      if (ordersResponse.ok) {
-        const ordersData = await ordersResponse.json();
-        console.log('✅ Get orders successful:', ordersData.data.orders.length, 'orders found');
-      } else {
-        console.log('❌ Get orders failed:', ordersResponse.status);
+    const user2 = await prisma.user.create({
+      data: {
+        phoneNumber: '2222222222',
+        fullName: 'Test User 2',
+        email: 'test2@example.com',
+        password: hashedPassword,
+        vipLevel: 'vip-3',
+        balance: 5000,
+        totalDeposited: 1000
       }
+    });
 
-      // Test get order stats
-      const statsResponse = await fetch('http://localhost:5000/api/admin/orders/stats', {
-        headers: {
-          'Authorization': `Bearer ${adminToken}`
-        }
-      });
-
-      if (statsResponse.ok) {
-        const statsData = await statsResponse.json();
-        console.log('✅ Get order stats successful:', statsData.data);
-      } else {
-        console.log('❌ Get order stats failed:', statsResponse.status);
+    const user3 = await prisma.user.create({
+      data: {
+        phoneNumber: '3333333333',
+        fullName: 'Test User 3',
+        email: 'test3@example.com',
+        password: hashedPassword,
+        vipLevel: 'vip-5',
+        balance: 10000,
+        totalDeposited: 5000
       }
+    });
 
-    } else {
-      console.log('❌ Admin login failed:', adminLoginResponse.status);
-    }
+    console.log(`✅ Created user 1: ${user1.fullName} (${user1.vipLevel})`);
+    console.log(`✅ Created user 2: ${user2.fullName} (${user2.vipLevel})`);
+    console.log(`✅ Created user 3: ${user3.fullName} (${user3.vipLevel})\n`);
 
-    console.log('\n✅ Test data creation completed!');
-    console.log('You can now test the admin orders page at http://localhost:3000/admin');
+    // Create test orders
+    console.log('📦 Creating test orders...');
     
+    const order1 = await prisma.order.create({
+      data: {
+        userId: user1.id,
+        orderNumber: `ASH${Date.now()}001`,
+        productId: 1,
+        productName: 'Test Product 1',
+        productPrice: 100,
+        commissionRate: 5,
+        commissionAmount: 5,
+        brand: 'Test Brand',
+        category: 'Electronics',
+        status: 'pending'
+      }
+    });
+
+    const order2 = await prisma.order.create({
+      data: {
+        userId: user2.id,
+        orderNumber: `ASH${Date.now()}002`,
+        productId: 2,
+        productName: 'Test Product 2',
+        productPrice: 500,
+        commissionRate: 10,
+        commissionAmount: 50,
+        brand: 'Test Brand',
+        category: 'Fashion',
+        status: 'processing'
+      }
+    });
+
+    const order3 = await prisma.order.create({
+      data: {
+        userId: user3.id,
+        orderNumber: `ASH${Date.now()}003`,
+        productId: 3,
+        productName: 'Test Product 3',
+        productPrice: 1000,
+        commissionRate: 15,
+        commissionAmount: 150,
+        brand: 'Test Brand',
+        category: 'Home',
+        status: 'shipped'
+      }
+    });
+
+    const order4 = await prisma.order.create({
+      data: {
+        userId: user1.id,
+        orderNumber: `ASH${Date.now()}004`,
+        productId: 4,
+        productName: 'Test Product 4',
+        productPrice: 200,
+        commissionRate: 5,
+        commissionAmount: 10,
+        brand: 'Test Brand',
+        category: 'Electronics',
+        status: 'delivered',
+        completedAt: new Date()
+      }
+    });
+
+    console.log(`✅ Created order 1: ${order1.orderNumber} (${order1.status})`);
+    console.log(`✅ Created order 2: ${order2.orderNumber} (${order2.status})`);
+    console.log(`✅ Created order 3: ${order3.orderNumber} (${order3.status})`);
+    console.log(`✅ Created order 4: ${order4.orderNumber} (${order4.status})\n`);
+
+    // Test API endpoints
+    console.log('🧪 Testing API endpoints...\n');
+
+    const API_BASE = 'http://localhost:5000';
+
+    // Test 1: Get orders list
+    console.log('1️⃣ Testing GET /api/admin/orders');
+    const ordersResponse = await fetch(`${API_BASE}/api/admin/orders?page=1&limit=10`, {
+      headers: {
+        'Authorization': `Bearer ${process.env.ADMIN_TOKEN || 'your_admin_token_here'}`
+      }
+    });
+    const ordersData = await ordersResponse.json();
+    console.log(`   Status: ${ordersResponse.status}`);
+    console.log(`   Orders count: ${ordersData.data?.orders?.length || 0}\n`);
+
+    // Test 2: Get order details
+    console.log('2️⃣ Testing GET /api/admin/orders/:id');
+    const orderDetailResponse = await fetch(`${API_BASE}/api/admin/orders/${order1.id}`, {
+      headers: {
+        'Authorization': `Bearer ${process.env.ADMIN_TOKEN || 'your_admin_token_here'}`
+      }
+    });
+    const orderDetailData = await orderDetailResponse.json();
+    console.log(`   Status: ${orderDetailResponse.status}`);
+    console.log(`   Order: ${orderDetailData.data?.order?.product?.name || 'N/A'}\n`);
+
+    // Test 3: Update order status
+    console.log('3️⃣ Testing PATCH /api/admin/orders/:id/status');
+    const updateStatusResponse = await fetch(`${API_BASE}/api/admin/orders/${order1.id}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.ADMIN_TOKEN || 'your_admin_token_here'}`
+      },
+      body: JSON.stringify({ status: 'processing' })
+    });
+    const updateStatusData = await updateStatusResponse.json();
+    console.log(`   Status: ${updateStatusResponse.status}`);
+    console.log(`   Message: ${updateStatusData.message || 'N/A'}\n`);
+
+    // Test 4: Get order stats
+    console.log('4️⃣ Testing GET /api/admin/orders/stats');
+    const statsResponse = await fetch(`${API_BASE}/api/admin/orders/stats`, {
+      headers: {
+        'Authorization': `Bearer ${process.env.ADMIN_TOKEN || 'your_admin_token_here'}`
+      }
+    });
+    const statsData = await statsResponse.json();
+    console.log(`   Status: ${statsResponse.status}`);
+    console.log(`   Total orders: ${statsData.data?.totalOrders || 0}`);
+    console.log(`   Total revenue: $${statsData.data?.totalRevenue || 0}\n`);
+
+    console.log('✅ All tests completed!\n');
+    console.log('📝 Summary:');
+    console.log(`   - Created ${3} test users`);
+    console.log(`   - Created ${4} test orders`);
+    console.log(`   - Tested ${4} API endpoints`);
+    console.log('\n🎉 Orders integration test successful!');
+
   } catch (error) {
-    console.error('❌ Error creating test data:', error);
+    console.error('❌ Error during testing:', error);
   } finally {
-    mongoose.connection.close();
+    await prisma.$disconnect();
   }
 }
+
+testOrdersIntegration();

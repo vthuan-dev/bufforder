@@ -1,90 +1,84 @@
-const mongoose = require('mongoose');
-const Admin = require('./models/Admin');
-const config = require('./config');
+const prisma = require('./lib/prisma');
+const { hashPassword } = require('./lib/utils');
 
 async function createNewAdmin() {
   try {
-    // Connect to MongoDB
-    await mongoose.connect(config.MONGODB_URI);
-
-    console.log('✅ Connected to MongoDB');
+    console.log('🔗 Connecting to MySQL (Prisma)...');
 
     // Create new admin with different username
-    const newAdmin = new Admin({
-      username: 'admin2',
-      email: 'admin2@example.com',
-      password: 'admin123456', // This will be hashed automatically
-      role: 'super_admin',
-      fullName: 'Admin 2'
-    });
+    const username = 'superadmin';
+    const password = 'super123';
+    const email = 'superadmin@example.com';
+    const fullName = 'Super Administrator';
+
+    console.log('\n📝 Creating new admin:');
+    console.log(`   Username: ${username}`);
+    console.log(`   Email: ${email}`);
+    console.log(`   Full Name: ${fullName}`);
+    console.log(`   Password: ${password}`);
 
     // Check if admin already exists
-    const existingAdmin = await Admin.findOne({ 
-      $or: [
-        { username: 'admin2' },
-        { email: 'admin2@example.com' }
-      ]
-    });
-    
-    if (existingAdmin) {
-      console.log('❌ Admin with username "admin2" or email "admin2@example.com" already exists');
-      console.log('💡 Trying to create admin3 instead...');
-      
-      // Try admin3
-      const existingAdmin3 = await Admin.findOne({ 
-        $or: [
-          { username: 'admin3' },
-          { email: 'admin3@example.com' }
+    const existingAdmin = await prisma.admin.findFirst({
+      where: {
+        OR: [
+          { username },
+          { email }
         ]
-      });
-      
-      if (existingAdmin3) {
-        console.log('❌ Admin3 also exists. Please delete existing admin or use different username.');
-        process.exit(0);
       }
+    });
+
+    if (existingAdmin) {
+      console.log('\n⚠️  Admin already exists!');
+      console.log(`   Username: ${existingAdmin.username}`);
+      console.log(`   Email: ${existingAdmin.email}`);
       
-      // Create admin3
-      const admin3 = new Admin({
-        username: 'admin3',
-        email: 'admin3@example.com',
-        password: 'admin123456',
-        role: 'super_admin',
-        fullName: 'Admin 3'
+      // Update password instead
+      console.log('\n🔄 Updating password instead...');
+      const hashedPassword = await hashPassword(password);
+      
+      const updatedAdmin = await prisma.admin.update({
+        where: { id: existingAdmin.id },
+        data: {
+          password: hashedPassword,
+          fullName,
+          isActive: true
+        }
       });
-      
-      await admin3.save();
-      
-      console.log('✅ Admin user created successfully!');
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log('📋 Admin Credentials:');
-      console.log('   Username: admin3');
-      console.log('   Password: admin123456');
-      console.log('   Email: admin3@example.com');
-      console.log('   Role: super_admin');
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+      console.log('\n✅ Admin password updated successfully!');
+      console.log(`   Username: ${updatedAdmin.username}`);
+      console.log(`   New Password: ${password}`);
+      console.log('\n🎉 You can now login with the new password!');
     } else {
-      await newAdmin.save();
-      
-      console.log('✅ Admin user created successfully!');
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log('📋 Admin Credentials:');
-      console.log('   Username: admin2');
-      console.log('   Password: admin123456');
-      console.log('   Email: admin2@example.com');
-      console.log('   Role: super_admin');
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      // Hash password
+      const hashedPassword = await hashPassword(password);
+
+      // Create admin
+      const admin = await prisma.admin.create({
+        data: {
+          username,
+          password: hashedPassword,
+          email,
+          fullName,
+          role: 'admin',
+          isActive: true
+        }
+      });
+
+      console.log('\n✅ New admin created successfully!');
+      console.log(`   ID: ${admin.id}`);
+      console.log(`   Username: ${admin.username}`);
+      console.log(`   Email: ${admin.email}`);
+      console.log(`   Full Name: ${admin.fullName}`);
+      console.log('\n🎉 You can now login with these credentials!');
     }
 
   } catch (error) {
-    console.error('❌ Error creating admin:', error.message);
-    if (error.code === 11000) {
-      console.log('💡 Duplicate key error - Admin with this username or email already exists');
-    }
+    console.error('❌ Error creating admin:', error);
   } finally {
-    await mongoose.disconnect();
+    await prisma.$disconnect();
     process.exit(0);
   }
 }
 
 createNewAdmin();
-

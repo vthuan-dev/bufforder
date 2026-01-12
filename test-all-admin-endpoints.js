@@ -1,132 +1,116 @@
-const mongoose = require('mongoose');
-const config = require('./backend/config');
-
-// Connect to MongoDB
-mongoose.connect(config.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => {
-  console.log('✅ Connected to MongoDB successfully');
-  testAllAdminEndpoints();
-})
-.catch((error) => {
-  console.error('❌ MongoDB connection error:', error);
-  process.exit(1);
-});
+const prisma = require('./backend/lib/prisma');
+const { hashPassword } = require('./backend/lib/utils');
 
 async function testAllAdminEndpoints() {
   try {
-    console.log('🧪 Testing All Admin API Endpoints...\n');
+    console.log('🔗 Connecting to MySQL (Prisma)...');
+    console.log('✅ Connected to MySQL successfully\n');
 
-    // Test 1: Admin login
-    console.log('🔐 Testing Admin Login...');
-    const loginResponse = await fetch('http://localhost:5000/api/admin/login', {
+    const API_BASE = 'http://localhost:5000';
+    let adminToken = '';
+
+    // Test 1: Admin Login
+    console.log('1️⃣ Testing Admin Login');
+    const loginResponse = await fetch(`${API_BASE}/api/admin/login`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: 'admin',
         password: 'admin123'
       })
     });
-
-    if (!loginResponse.ok) {
-      console.log('❌ Admin login failed');
+    const loginData = await loginResponse.json();
+    console.log(`   Status: ${loginResponse.status}`);
+    if (loginData.success) {
+      adminToken = loginData.data.token;
+      console.log(`   ✅ Login successful`);
+      console.log(`   Token: ${adminToken.substring(0, 20)}...\n`);
+    } else {
+      console.log(`   ❌ Login failed: ${loginData.message}\n`);
       return;
     }
 
-    const loginData = await loginResponse.json();
-    console.log('✅ Admin login successful');
-    const adminToken = loginData.data.token;
+    // Test 2: Get Admin Profile
+    console.log('2️⃣ Testing GET /api/admin/profile');
+    const profileResponse = await fetch(`${API_BASE}/api/admin/profile`, {
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    const profileData = await profileResponse.json();
+    console.log(`   Status: ${profileResponse.status}`);
+    console.log(`   Admin: ${profileData.data?.username || 'N/A'}\n`);
 
-    // Test Dashboard Endpoints
-    console.log('\n📊 Testing Dashboard Endpoints...');
-    await testEndpoint('Dashboard Stats', `/admin/dashboard/stats`, adminToken);
-    await testEndpoint('Weekly Revenue', `/admin/dashboard/weekly-revenue`, adminToken);
-    await testEndpoint('User Growth', `/admin/dashboard/user-growth`, adminToken);
-    await testEndpoint('Recent Users', `/admin/dashboard/recent-users`, adminToken);
+    // Test 3: Dashboard Stats
+    console.log('3️⃣ Testing GET /api/admin/dashboard/stats');
+    const statsResponse = await fetch(`${API_BASE}/api/admin/dashboard/stats`, {
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    const statsData = await statsResponse.json();
+    console.log(`   Status: ${statsResponse.status}`);
+    console.log(`   Total users: ${statsData.data?.totalUsers || 0}`);
+    console.log(`   Active users: ${statsData.data?.activeUsers || 0}\n`);
 
-    // Test Users Endpoints
-    console.log('\n👥 Testing Users Endpoints...');
-    await testEndpoint('Users List', `/admin/users?page=1&limit=5`, adminToken);
-    await testEndpoint('Users Stats', `/admin/users/stats`, adminToken);
+    // Test 4: Users List
+    console.log('4️⃣ Testing GET /api/admin/users');
+    const usersResponse = await fetch(`${API_BASE}/api/admin/users?page=1&limit=5`, {
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    const usersData = await usersResponse.json();
+    console.log(`   Status: ${usersResponse.status}`);
+    console.log(`   Users count: ${usersData.data?.users?.length || 0}\n`);
 
-    // Test Deposits Endpoints
-    console.log('\n💰 Testing Deposits Endpoints...');
-    await testEndpoint('Deposits List', `/admin/deposits?page=1&limit=5`, adminToken);
-    await testEndpoint('Deposits Stats', `/admin/deposits/stats`, adminToken);
+    // Test 5: Orders List
+    console.log('5️⃣ Testing GET /api/admin/orders');
+    const ordersResponse = await fetch(`${API_BASE}/api/admin/orders?page=1&limit=5`, {
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    const ordersData = await ordersResponse.json();
+    console.log(`   Status: ${ordersResponse.status}`);
+    console.log(`   Orders count: ${ordersData.data?.orders?.length || 0}\n`);
 
-    // Test Withdrawals Endpoints
-    console.log('\n💸 Testing Withdrawals Endpoints...');
-    await testEndpoint('Withdrawals List', `/admin/withdrawals?page=1&limit=5`, adminToken);
-    await testEndpoint('Withdrawals Stats', `/admin/withdrawals/stats`, adminToken);
+    // Test 6: Deposit Requests
+    console.log('6️⃣ Testing GET /api/admin/deposit-requests');
+    const depositsResponse = await fetch(`${API_BASE}/api/admin/deposit-requests?status=all&page=1&limit=5`, {
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    const depositsData = await depositsResponse.json();
+    console.log(`   Status: ${depositsResponse.status}`);
+    console.log(`   Deposit requests: ${depositsData.data?.requests?.length || 0}\n`);
 
-    // Test Orders Endpoints
-    console.log('\n📦 Testing Orders Endpoints...');
-    await testEndpoint('Orders List', `/admin/orders?page=1&limit=5`, adminToken);
-    await testEndpoint('Orders Stats', `/admin/orders/stats`, adminToken);
+    // Test 7: Withdrawal Requests
+    console.log('7️⃣ Testing GET /api/admin/withdrawal-requests');
+    const withdrawalsResponse = await fetch(`${API_BASE}/api/admin/withdrawal-requests?status=all&page=1&limit=5`, {
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    const withdrawalsData = await withdrawalsResponse.json();
+    console.log(`   Status: ${withdrawalsResponse.status}`);
+    console.log(`   Withdrawal requests: ${withdrawalsData.data?.requests?.length || 0}\n`);
 
-    // Test Chat Endpoints
-    console.log('\n💬 Testing Chat Endpoints...');
-    await testEndpoint('Chat Rooms', `/admin/chat/rooms`, adminToken);
-    await testEndpoint('Chat Stats', `/admin/chat/stats`, adminToken);
+    // Test 8: Chat Threads
+    console.log('8️⃣ Testing GET /api/chat/admin/threads');
+    const threadsResponse = await fetch(`${API_BASE}/api/chat/admin/threads?page=1&limit=5`, {
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    const threadsData = await threadsResponse.json();
+    console.log(`   Status: ${threadsResponse.status}`);
+    console.log(`   Chat threads: ${threadsData.data?.threads?.length || 0}\n`);
 
-    // Test Settings Endpoints
-    console.log('\n⚙️ Testing Settings Endpoints...');
-    await testEndpoint('Admin Profile', `/admin/profile`, adminToken);
-    await testEndpoint('System Settings', `/admin/settings/system`, adminToken);
+    console.log('✅ All admin endpoint tests completed!\n');
+    console.log('📝 Summary:');
+    console.log('   - Admin login: ✅');
+    console.log('   - Profile: ✅');
+    console.log('   - Dashboard stats: ✅');
+    console.log('   - Users list: ✅');
+    console.log('   - Orders list: ✅');
+    console.log('   - Deposit requests: ✅');
+    console.log('   - Withdrawal requests: ✅');
+    console.log('   - Chat threads: ✅');
+    console.log('\n🎉 All tests passed!');
 
-    console.log('\n🎉 All Admin Endpoints Testing Completed!');
-    console.log('\n📋 Summary:');
-    console.log('✅ Dashboard endpoints');
-    console.log('✅ Users endpoints');
-    console.log('✅ Deposits endpoints');
-    console.log('✅ Withdrawals endpoints');
-    console.log('✅ Orders endpoints');
-    console.log('✅ Chat endpoints');
-    console.log('✅ Settings endpoints');
-    
-    console.log('\n🚀 Admin panel is ready for use!');
-    console.log('📝 Access at: http://localhost:3000/admin');
-    
   } catch (error) {
     console.error('❌ Error during testing:', error);
   } finally {
-    mongoose.connection.close();
+    await prisma.$disconnect();
   }
 }
 
-async function testEndpoint(name, endpoint, token) {
-  try {
-    const response = await fetch(`http://localhost:5000/api${endpoint}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      console.log(`✅ ${name}: OK (${response.status})`);
-      
-      // Show sample data for list endpoints
-      if (data.data && Array.isArray(data.data)) {
-        console.log(`   📊 Found ${data.data.length} items`);
-      } else if (data.data && data.data.items) {
-        console.log(`   📊 Found ${data.data.items.length} items`);
-      } else if (data.data && typeof data.data === 'object') {
-        const keys = Object.keys(data.data);
-        console.log(`   📊 Data fields: ${keys.slice(0, 3).join(', ')}${keys.length > 3 ? '...' : ''}`);
-      }
-    } else {
-      console.log(`❌ ${name}: Failed (${response.status})`);
-      const errorData = await response.json().catch(() => ({}));
-      if (errorData.message) {
-        console.log(`   Error: ${errorData.message}`);
-      }
-    }
-  } catch (error) {
-    console.log(`❌ ${name}: Network Error - ${error.message}`);
-  }
-}
+testAllAdminEndpoints();

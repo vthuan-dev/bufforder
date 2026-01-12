@@ -1,11 +1,10 @@
 const express = require('express');
-const ChatThread = require('../models/ChatThread');
-const ChatMessage = require('../models/ChatMessage');
+const prisma = require('../lib/prisma');
 const { authenticateToken } = require('../middleware/auth');
-const MessageCleanupService = require('../services/messageCleanup');
 const jwt = require('jsonwebtoken');
 const config = require('../config');
-let upload; // cấu hình upload có thể tắt nếu thiếu dependency
+
+let upload;
 try {
   const multer = require('multer');
   const path = require('path');
@@ -18,12 +17,12 @@ try {
   });
   upload = multer({ storage });
 } catch (e) {
-  upload = { single: () => (req, res) => res.status(501).json({ success: false, message: 'Image upload chưa được bật (thiếu multer).'} ) };
+  upload = { single: () => (req, res) => res.status(501).json({ success: false, message: 'Image upload not enabled' }) };
 }
 
 const router = express.Router();
 
-// Simple admin guard using Authorization: Bearer <adminToken>
+// Admin guard
 const verifyAdmin = (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
@@ -40,24 +39,40 @@ const verifyAdmin = (req, res, next) => {
 // User: open or get existing thread
 router.post('/thread', authenticateToken, async (req, res) => {
   try {
-    // Always try to reuse the latest thread for this user, regardless of status
-    // This prevents creating a new thread unintentionally which would make history appear missing on client
-    let thread = await ChatThread.findOne({ userId: req.userId })
-      .sort({ updatedAt: -1, lastMessageAt: -1 });
+    // Verify user exists first
+    const userExists = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: { id: true }
+    });
+
+    if (!userExists) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'User not found. Please login again.' 
+      });
+    }
+
+    let thread = await prisma.chatThread.findFirst({
+      where: { userId: req.userId },
+      orderBy: [{ updatedAt: 'desc' }, { lastMessageAt: 'desc' }]
+    });
 
     if (!thread) {
-      // capture user IP (behind proxies use x-forwarded-for)
       const rawIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString();
       const ip = rawIp.split(',')[0].trim();
-      thread = await ChatThread.create({ userId: req.userId, userIp: ip });
+      thread = await prisma.chatThread.create({
+        data: { userId: req.userId, userIp: ip }
+      });
     } else if (!thread.userIp) {
       const rawIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString();
       const ip = rawIp.split(',')[0].trim();
-      thread.userIp = ip;
-      await thread.save();
+      thread = await prisma.chatThread.update({
+        where: { id: thread.id },
+        data: { userIp: ip }
+      });
     }
 
-    res.json({ success: true, data: { threadId: thread._id } });
+    res.json({ success: true, data: { threadId: thread.id } });
   } catch (e) {
     console.error('open thread error', e);
     res.status(500).json({ success: false, message: 'Server error' });
@@ -67,11 +82,18 @@ router.post('/thread', authenticateToken, async (req, res) => {
 // User: list my messages (excluding deleted ones)
 router.get('/thread/:id/messages', authenticateToken, async (req, res) => {
   try {
-    const thread = await ChatThread.findById(req.params.id);
-    if (!thread || String(thread.userId) !== String(req.userId)) return res.status(404).json({ success: false, message: 'Thread not found' });
-    
-    // Use MessageCleanupService to get messages for user (excluding deleted ones)
-    const messages = await MessageCleanupService.getMessagesForUser(thread._id);
+    const thread = await prisma.chatThread.findFirst({
+      where: { id: req.params.id, userId: req.userId }
+    });
+    if (!thread) return res.status(404).json({ success: false, message: 'Thread not found' });
+
+    const messages = await prisma.chatMessage.findMany({
+      where: {
+        threadId: thread.id,
+        isDeletedForUser: false
+      },
+      orderBy: { createdAt: 'asc' }
+    });
     res.json({ success: true, data: { messages } });
   } catch (e) {
     console.error('list messages error', e);
@@ -83,13 +105,24 @@ router.get('/thread/:id/messages', authenticateToken, async (req, res) => {
 router.post('/thread/:id/messages', authenticateToken, async (req, res) => {
   try {
     const { text } = req.body;
-    const thread = await ChatThread.findById(req.params.id);
-    if (!thread || String(thread.userId) !== String(req.userId)) return res.status(404).json({ success: false, message: 'Thread not found' });
-    const msg = await ChatMessage.create({ threadId: thread._id, senderType: 'user', senderId: req.userId, text });
-    thread.lastMessageAt = new Date();
-    thread.lastMessageText = text;
-    thread.unreadForAdmin += 1;
-    await thread.save();
+    const thread = await prisma.chatThread.findFirst({
+      where: { id: req.params.id, userId: req.userId }
+    });
+    if (!thread) return res.status(404).json({ success: false, message: 'Thread not found' });
+
+    const msg = await prisma.chatMessage.create({
+      data: { threadId: thread.id, senderType: 'user', senderId: req.userId, text }
+    });
+
+    await prisma.chatThread.update({
+      where: { id: thread.id },
+      data: {
+        lastMessageAt: new Date(),
+        lastMessageText: text,
+        unreadForAdmin: { increment: 1 }
+      }
+    });
+
     res.json({ success: true, data: { message: msg } });
   } catch (e) {
     console.error('send message error', e);
@@ -101,38 +134,50 @@ router.post('/thread/:id/messages', authenticateToken, async (req, res) => {
 router.get('/admin/threads', verifyAdmin, async (req, res) => {
   try {
     const { page = 1, limit = 10, q = '' } = req.query;
-    const query = {};
-    if (q) query.lastMessageText = new RegExp(q, 'i');
-    const threads = await ChatThread.find(query)
-      .populate('userId', 'fullName username email phoneNumber')
-      .sort({ lastMessageAt: -1 })
-      .limit(parseInt(limit))
-      .skip((parseInt(page) - 1) * parseInt(limit));
-    const total = await ChatThread.countDocuments(query);
-    // attach presence (online) info for each thread user
-    try {
-      const onlineUsers = req.app.get('onlineUsers');
-      const threadsWithPresence = threads.map((t) => {
-        const obj = t.toObject();
-        const online = onlineUsers?.has(String(t.userId?._id)) || false;
-        const lastSeenAt = t.userId?.lastSeenAt || null;
-        return { ...obj, userOnline: online, userLastSeenAt: lastSeenAt };
-      });
-      return res.json({ success: true, data: { threads: threadsWithPresence, pagination: { current: parseInt(page), pages: Math.ceil(total / limit), total } } });
-    } catch {
-      return res.json({ success: true, data: { threads, pagination: { current: parseInt(page), pages: Math.ceil(total / limit), total } } });
-    }
+
+    const where = q ? { lastMessageText: { contains: q } } : {};
+
+    const threads = await prisma.chatThread.findMany({
+      where,
+      include: {
+        user: { select: { id: true, fullName: true, email: true, phoneNumber: true, lastSeenAt: true } }
+      },
+      orderBy: { lastMessageAt: 'desc' },
+      take: parseInt(limit),
+      skip: (parseInt(page) - 1) * parseInt(limit)
+    });
+
+    const total = await prisma.chatThread.count({ where });
+
+    // Attach presence info
+    const onlineUsers = req.app.get('onlineUsers');
+    const threadsWithPresence = threads.map(t => ({
+      ...t,
+      userId: t.user,
+      userOnline: onlineUsers?.has(t.user?.id) || false,
+      userLastSeenAt: t.user?.lastSeenAt || null
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        threads: threadsWithPresence,
+        pagination: { current: parseInt(page), pages: Math.ceil(total / parseInt(limit)), total }
+      }
+    });
   } catch (e) {
     console.error('admin list threads error', e);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
-// Admin: list messages in thread (including all messages)
+// Admin: list messages in thread
 router.get('/admin/threads/:id/messages', verifyAdmin, async (req, res) => {
   try {
-    // Use MessageCleanupService to get messages for admin (including all messages)
-    const messages = await MessageCleanupService.getMessagesForAdmin(req.params.id);
+    const messages = await prisma.chatMessage.findMany({
+      where: { threadId: req.params.id },
+      orderBy: { createdAt: 'asc' }
+    });
     res.json({ success: true, data: { messages } });
   } catch (e) {
     console.error('admin list messages error', e);
@@ -144,46 +189,66 @@ router.get('/admin/threads/:id/messages', verifyAdmin, async (req, res) => {
 router.post('/admin/threads/:id/messages', verifyAdmin, async (req, res) => {
   try {
     const { text } = req.body;
-    const thread = await ChatThread.findById(req.params.id);
+    const thread = await prisma.chatThread.findUnique({ where: { id: req.params.id } });
     if (!thread) return res.status(404).json({ success: false, message: 'Thread not found' });
-    const msg = await ChatMessage.create({ threadId: thread._id, senderType: 'admin', senderId: req.adminId, text });
-    thread.lastMessageAt = new Date();
-    thread.lastMessageText = text;
-    thread.unreadForUser += 1;
-    await thread.save();
-    // emit realtime to thread room and user room
+
+    const msg = await prisma.chatMessage.create({
+      data: { threadId: thread.id, senderType: 'admin', senderId: req.adminId, text }
+    });
+
+    await prisma.chatThread.update({
+      where: { id: thread.id },
+      data: {
+        lastMessageAt: new Date(),
+        lastMessageText: text,
+        unreadForUser: { increment: 1 }
+      }
+    });
+
+    // Emit realtime
     try {
       const io = req.app.get('io');
       if (io) {
-        io.to(`thread:${thread._id}`).emit('chat:message', { _id: msg._id, threadId: thread._id, senderType: 'admin', text, createdAt: msg.createdAt });
-        io.to(`user:${thread.userId}`).emit('chat:threadUpdated', { threadId: thread._id, lastMessageText: text, lastMessageAt: thread.lastMessageAt });
+        io.to(`thread:${thread.id}`).emit('chat:message', { _id: msg.id, threadId: thread.id, senderType: 'admin', text, createdAt: msg.createdAt });
+        io.to(`user:${thread.userId}`).emit('chat:threadUpdated', { threadId: thread.id, lastMessageText: text, lastMessageAt: new Date() });
       }
-    } catch {}
+    } catch { }
+
     res.json({ success: true, data: { message: msg } });
   } catch (e) {
     console.error('admin send message error', e);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-// Admin: gửi ảnh
+
+// Admin: send image
 router.post('/admin/threads/:id/images', verifyAdmin, upload.single('image'), async (req, res) => {
   try {
-    const thread = await ChatThread.findById(req.params.id);
+    const thread = await prisma.chatThread.findUnique({ where: { id: req.params.id } });
     if (!thread) return res.status(404).json({ success: false, message: 'Thread not found' });
+
     const imageUrl = `/uploads/${req.file.filename}`;
-    const msg = await ChatMessage.create({ threadId: thread._id, senderType: 'admin', senderId: req.adminId, imageUrl });
-    thread.lastMessageAt = new Date();
-    thread.lastMessageText = '[image]';
-    thread.unreadForUser += 1;
-    await thread.save();
+    const msg = await prisma.chatMessage.create({
+      data: { threadId: thread.id, senderType: 'admin', senderId: req.adminId, imageUrl }
+    });
+
+    await prisma.chatThread.update({
+      where: { id: thread.id },
+      data: {
+        lastMessageAt: new Date(),
+        lastMessageText: '[image]',
+        unreadForUser: { increment: 1 }
+      }
+    });
+
     try {
       const io = req.app.get('io');
       if (io) {
-        io.to(`thread:${thread._id}`).emit('chat:message', { _id: msg._id, threadId: thread._id, senderType: 'admin', imageUrl, text: '', createdAt: msg.createdAt });
-        io.to('admins').emit('chat:threadUpdated', { threadId: thread._id, lastMessageText: '[image]', lastMessageAt: thread.lastMessageAt });
-        io.to(`user:${thread.userId}`).emit('chat:threadUpdated', { threadId: thread._id, lastMessageText: '[image]', lastMessageAt: thread.lastMessageAt });
+        io.to(`thread:${thread.id}`).emit('chat:message', { _id: msg.id, threadId: thread.id, senderType: 'admin', imageUrl, text: '', createdAt: msg.createdAt });
+        io.to('admins').emit('chat:threadUpdated', { threadId: thread.id, lastMessageText: '[image]', lastMessageAt: new Date() });
       }
-    } catch {}
+    } catch { }
+
     res.json({ success: true, data: { message: msg, imageUrl } });
   } catch (e) {
     console.error('admin send image error', e);
@@ -191,14 +256,13 @@ router.post('/admin/threads/:id/images', verifyAdmin, upload.single('image'), as
   }
 });
 
-
-// Admin: mark thread as read (clear unread counter for admin)
+// Admin: mark thread as read
 router.post('/admin/threads/:id/read', verifyAdmin, async (req, res) => {
   try {
-    const thread = await ChatThread.findById(req.params.id);
-    if (!thread) return res.status(404).json({ success: false, message: 'Thread not found' });
-    thread.unreadForAdmin = 0;
-    await thread.save();
+    await prisma.chatThread.update({
+      where: { id: req.params.id },
+      data: { unreadForAdmin: 0 }
+    });
     res.json({ success: true });
   } catch (e) {
     console.error('admin mark read error', e);
@@ -206,22 +270,20 @@ router.post('/admin/threads/:id/read', verifyAdmin, async (req, res) => {
   }
 });
 
-// Admin: delete a thread and its messages
+// Admin: delete thread
 router.delete('/admin/threads/:id', verifyAdmin, async (req, res) => {
   try {
     const threadId = req.params.id;
-    const thread = await ChatThread.findById(threadId);
-    if (!thread) return res.status(404).json({ success: false, message: 'Thread not found' });
 
-    await ChatMessage.deleteMany({ threadId });
-    await ChatThread.deleteOne({ _id: threadId });
+    await prisma.$transaction([
+      prisma.chatMessage.deleteMany({ where: { threadId } }),
+      prisma.chatThread.delete({ where: { id: threadId } })
+    ]);
 
     try {
       const io = req.app.get('io');
-      if (io) {
-        io.to(`thread:${threadId}`).emit('chat:threadDeleted', { threadId });
-      }
-    } catch {}
+      if (io) io.to(`thread:${threadId}`).emit('chat:threadDeleted', { threadId });
+    } catch { }
 
     res.json({ success: true });
   } catch (e) {
@@ -230,15 +292,14 @@ router.delete('/admin/threads/:id', verifyAdmin, async (req, res) => {
   }
 });
 
-// Admin: get user info by phone number
+// Admin: get user by phone
 router.get('/admin/users/by-phone/:phone', verifyAdmin, async (req, res) => {
   try {
-    const { phone } = req.params;
-    const User = require('../models/User');
-    const user = await User.findOne({ phoneNumber: phone }).select('fullName username email phoneNumber');
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
+    const user = await prisma.user.findUnique({
+      where: { phoneNumber: req.params.phone },
+      select: { id: true, fullName: true, email: true, phoneNumber: true }
+    });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     res.json({ success: true, data: { user } });
   } catch (e) {
     console.error('admin get user by phone error', e);
@@ -246,37 +307,56 @@ router.get('/admin/users/by-phone/:phone', verifyAdmin, async (req, res) => {
   }
 });
 
-// Admin: manually delete messages for a user
+// Admin: delete messages for user
 router.post('/admin/users/:userId/delete-messages', verifyAdmin, async (req, res) => {
   try {
-    const { userId } = req.params;
-    const result = await MessageCleanupService.deleteMessagesForUser(userId);
-    res.json({ success: true, data: { deletedCount: result.modifiedCount } });
+    const threads = await prisma.chatThread.findMany({
+      where: { userId: req.params.userId },
+      select: { id: true }
+    });
+
+    const result = await prisma.chatMessage.updateMany({
+      where: { threadId: { in: threads.map(t => t.id) } },
+      data: { isDeletedForUser: true, deletedForUserAt: new Date() }
+    });
+
+    res.json({ success: true, data: { deletedCount: result.count } });
   } catch (e) {
     console.error('admin delete user messages error', e);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
-// User: gửi ảnh
+// User: send image
 router.post('/thread/:id/images', authenticateToken, upload.single('image'), async (req, res) => {
   try {
-    const thread = await ChatThread.findById(req.params.id);
-    if (!thread || String(thread.userId) !== String(req.userId)) return res.status(404).json({ success: false, message: 'Thread not found' });
+    const thread = await prisma.chatThread.findFirst({
+      where: { id: req.params.id, userId: req.userId }
+    });
+    if (!thread) return res.status(404).json({ success: false, message: 'Thread not found' });
+
     const imageUrl = `/uploads/${req.file.filename}`;
-    const msg = await ChatMessage.create({ threadId: thread._id, senderType: 'user', senderId: req.userId, imageUrl });
-    thread.lastMessageAt = new Date();
-    thread.lastMessageText = '[image]';
-    thread.unreadForAdmin += 1;
-    await thread.save();
+    const msg = await prisma.chatMessage.create({
+      data: { threadId: thread.id, senderType: 'user', senderId: req.userId, imageUrl }
+    });
+
+    await prisma.chatThread.update({
+      where: { id: thread.id },
+      data: {
+        lastMessageAt: new Date(),
+        lastMessageText: '[image]',
+        unreadForAdmin: { increment: 1 }
+      }
+    });
+
     try {
       const io = req.app.get('io');
       if (io) {
-        io.to(`thread:${thread._id}`).emit('chat:message', { _id: msg._id, threadId: thread._id, senderType: 'user', imageUrl, text: '', createdAt: msg.createdAt });
-        io.to('admins').emit('chat:threadUpdated', { threadId: thread._id, lastMessageText: '[image]', lastMessageAt: thread.lastMessageAt });
-        io.to(`user:${thread.userId}`).emit('chat:threadUpdated', { threadId: thread._id, lastMessageText: '[image]', lastMessageAt: thread.lastMessageAt });
+        io.to(`thread:${thread.id}`).emit('chat:message', { _id: msg.id, threadId: thread.id, senderType: 'user', imageUrl, text: '', createdAt: msg.createdAt });
+        io.to('admins').emit('chat:threadUpdated', { threadId: thread.id, lastMessageText: '[image]', lastMessageAt: new Date() });
       }
-    } catch {}
+    } catch { }
+
     res.json({ success: true, data: { message: msg, imageUrl } });
   } catch (e) {
     console.error('user send image error', e);
@@ -285,5 +365,3 @@ router.post('/thread/:id/images', authenticateToken, upload.single('image'), asy
 });
 
 module.exports = router;
-
-

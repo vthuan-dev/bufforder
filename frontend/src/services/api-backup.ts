@@ -1,54 +1,10 @@
 const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:5000';
 const API_BASE_URL = `${API_BASE}/api`;
 
-// ⚡ Performance Optimization: Cache for GET requests
-const cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
-const pendingRequests = new Map<string, Promise<any>>();
-
-type RequestOptions = RequestInit & { 
-  headers?: Record<string, string>;
-  cache?: boolean;
-  cacheTTL?: number;
-};
-
-function getCacheKey(endpoint: string, options: RequestOptions): string {
-  const method = options.method || 'GET';
-  return `${method}:${endpoint}`;
-}
-
-function getCached(key: string): any | null {
-  const cached = cache.get(key);
-  if (!cached) return null;
-  
-  if (Date.now() - cached.timestamp < cached.ttl) {
-    console.log(`[Cache Hit] ${key}`);
-    return cached.data;
-  }
-  
-  cache.delete(key);
-  return null;
-}
-
-function setCache(key: string, data: any, ttl: number): void {
-  cache.set(key, { data, timestamp: Date.now(), ttl });
-  setTimeout(() => cache.delete(key), ttl);
-}
+type RequestOptions = RequestInit & { headers?: Record<string, string> };
 
 async function request(endpoint: string, options: RequestOptions = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
-  const cacheKey = getCacheKey(endpoint, options);
-  
-  // ⚡ Check cache for GET requests
-  if ((options.method === 'GET' || !options.method) && options.cache !== false) {
-    const cached = getCached(cacheKey);
-    if (cached) return cached;
-  }
-  
-  // ⚡ Request deduplication
-  if (pendingRequests.has(cacheKey)) {
-    console.log(`[Dedup] ${endpoint}`);
-    return pendingRequests.get(cacheKey);
-  }
 
   // Create an abort controller for timeouts
   const controller = new AbortController();
@@ -63,64 +19,46 @@ async function request(endpoint: string, options: RequestOptions = {}) {
     },
   };
 
-  const requestPromise = (async () => {
-    try {
-      const res = await fetch(url, config);
-      clearTimeout(timeoutId);
-
-      if (res.status === 401) {
-        // Session expired
-        if (typeof localStorage !== 'undefined') {
-          localStorage.removeItem('token');
-          localStorage.removeItem('adminToken');
-        }
-
-        // Check if we are in admin mode or regular mode
-        const isAdmin = window.location.pathname.startsWith('/admin');
-
-        // Only redirect if not already on a login page to avoid infinite loops
-        const isLoginPage = window.location.pathname === '/login' || window.location.pathname === '/admin' || (isAdmin && window.location.pathname.includes('login'));
-
-        if (!isLoginPage) {
-          if (isAdmin) {
-            window.location.href = '/admin'; // This usually renders the admin login if not logged in
-          } else {
-            window.location.href = '/login';
-          }
-        }
-
-        throw new Error('Phiên làm việc hết hạn. Vui lòng đăng nhập lại.');
-      }
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const message = (data && (data.message || data.error)) || `Yêu cầu thất bại (Mã lỗi: ${res.status})`;
-        throw new Error(message);
-      }
-      
-      // ⚡ Cache successful GET responses
-      if ((options.method === 'GET' || !options.method) && options.cache !== false) {
-        const ttl = options.cacheTTL || 30000; // Default 30s
-        setCache(cacheKey, data, ttl);
-      }
-      
-      return data;
-    } catch (error: any) {
-      clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
-        throw new Error('Kết nối quá hạn. Vui lòng kiểm tra lại đường truyền mạng.');
-      }
-      throw error;
-    }
-  })();
-  
-  // Store pending request
-  pendingRequests.set(cacheKey, requestPromise);
-  
   try {
-    return await requestPromise;
-  } finally {
-    pendingRequests.delete(cacheKey);
+    const res = await fetch(url, config);
+    clearTimeout(timeoutId);
+
+    if (res.status === 401) {
+      // Session expired
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('adminToken');
+      }
+
+      // Check if we are in admin mode or regular mode
+      const isAdmin = window.location.pathname.startsWith('/admin');
+
+      // Only redirect if not already on a login page to avoid infinite loops
+      const isLoginPage = window.location.pathname === '/login' || window.location.pathname === '/admin' || (isAdmin && window.location.pathname.includes('login'));
+
+      if (!isLoginPage) {
+        if (isAdmin) {
+          window.location.href = '/admin'; // This usually renders the admin login if not logged in
+        } else {
+          window.location.href = '/login';
+        }
+      }
+
+      throw new Error('Phiên làm việc hết hạn. Vui lòng đăng nhập lại.');
+    }
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const message = (data && (data.message || data.error)) || `Yêu cầu thất bại (Mã lỗi: ${res.status})`;
+      throw new Error(message);
+    }
+    return data;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error('Kết nối quá hạn. Vui lòng kiểm tra lại đường truyền mạng.');
+    }
+    throw error;
   }
 }
 
@@ -130,27 +68,16 @@ function adminTokenHeader() {
 }
 
 export default {
-  // ⚡ Utility: Clear cache
-  clearCache() {
-    cache.clear();
-    console.log('[Cache] Cleared all cache');
-  },
-  
   // ----- Admin -----
   adminLogin(username: string, password: string) {
     return request('/admin/login', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
-      cache: false
     });
   },
   adminProfile() {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
-    return request('/admin/profile', { 
-      headers,
-      cache: true,
-      cacheTTL: 60000 // ⚡ Cache 1 minute
-    });
+    return request('/admin/profile', { headers });
   },
 
   adminDeleteUser(id: string) {

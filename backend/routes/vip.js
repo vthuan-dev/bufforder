@@ -1,21 +1,21 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-const DepositRequest = require('../models/DepositRequest');
-const WithdrawalRequest = require('../models/WithdrawalRequest');
+const prisma = require('../lib/prisma');
 const { VIP_LEVELS, getVipLevelByAmount, getNextVipLevel, getProgressToNextLevel } = require('../config/vipLevels');
 const config = require('../config');
+const { comparePassword } = require('../lib/utils');
+const { cached } = require('../lib/cache'); // ⚡ Caching
 
 const router = express.Router();
 
 // Middleware to verify JWT token
 const verifyToken = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
-  
+
   if (!token) {
-    return res.status(401).json({ 
-      success: false, 
-      message: 'Token không hợp lệ' 
+    return res.status(401).json({
+      success: false,
+      message: 'Token không hợp lệ'
     });
   }
 
@@ -24,27 +24,32 @@ const verifyToken = (req, res, next) => {
     req.userId = decoded.userId;
     next();
   } catch (error) {
-    return res.status(401).json({ 
-      success: false, 
-      message: 'Token không hợp lệ' 
+    return res.status(401).json({
+      success: false,
+      message: 'Token không hợp lệ'
     });
   }
 };
 
 // Get all VIP levels
-router.get('/levels', (req, res) => {
+router.get('/levels', async (req, res) => {
   try {
+    // ⚡ Cache for 1 hour (static data)
+    const levels = await cached('vip:levels', async () => {
+      return VIP_LEVELS;
+    }, 3600);
+    
     res.json({
       success: true,
       data: {
-        levels: VIP_LEVELS
+        levels
       }
     });
   } catch (error) {
     console.error('Get VIP levels error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Lỗi server. Vui lòng thử lại sau.' 
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi server. Vui lòng thử lại sau.'
     });
   }
 });
@@ -52,19 +57,21 @@ router.get('/levels', (req, res) => {
 // Get user's current VIP level and progress
 router.get('/status', verifyToken, async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
-    
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId }
+    });
+
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Không tìm thấy người dùng' 
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy người dùng'
       });
     }
 
     const currentLevel = getVipLevelByAmount(user.totalDeposited);
     let nextLevel = null;
     let progress = { progress: 0, remaining: 0 };
-    
+
     if (currentLevel) {
       nextLevel = getNextVipLevel(currentLevel);
       progress = getProgressToNextLevel(currentLevel, user.totalDeposited);
@@ -93,9 +100,9 @@ router.get('/status', verifyToken, async (req, res) => {
 
   } catch (error) {
     console.error('Get VIP status error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Lỗi server. Vui lòng thử lại sau.' 
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi server. Vui lòng thử lại sau.'
     });
   }
 });
@@ -103,55 +110,51 @@ router.get('/status', verifyToken, async (req, res) => {
 // Request deposit (requires admin approval)
 router.post('/deposit', verifyToken, async (req, res) => {
   try {
-    console.log('Request body:', req.body);
-    console.log('Request headers:', req.headers);
-    
     const { amount } = req.body;
-    
-    console.log('Deposit request - amount:', amount, 'type:', typeof amount);
 
     if (!amount || isNaN(amount) || amount <= 0) {
-      console.log('Validation failed - amount:', amount, 'isNaN:', isNaN(amount), '<= 0:', amount <= 0);
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid deposit amount' 
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid deposit amount'
       });
     }
 
-    const user = await User.findById(req.userId);
-    
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId }
+    });
+
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
       });
     }
 
     // Create deposit request
-    const depositRequest = new DepositRequest({
-      userId: req.userId,
-      amount: amount,
-      status: 'pending'
+    const depositRequest = await prisma.depositRequest.create({
+      data: {
+        userId: req.userId,
+        amount: parseFloat(amount),
+        status: 'pending'
+      }
     });
-
-    await depositRequest.save();
 
     res.json({
       success: true,
       message: 'Deposit request submitted successfully. Please wait for admin approval.',
       data: {
-        requestId: depositRequest._id,
-        amount: amount,
-        status: 'pending',
+        requestId: depositRequest.id,
+        amount: depositRequest.amount,
+        status: depositRequest.status,
         requestDate: depositRequest.requestDate
       }
     });
 
   } catch (error) {
     console.error('Deposit request error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error. Please try again later.' 
+    res.status(500).json({
+      success: false,
+      message: 'Server error. Please try again later.'
     });
   }
 });
@@ -159,9 +162,10 @@ router.post('/deposit', verifyToken, async (req, res) => {
 // Get user's deposit requests
 router.get('/deposit-requests', verifyToken, async (req, res) => {
   try {
-    const depositRequests = await DepositRequest.find({ userId: req.userId })
-      .sort({ requestDate: -1 })
-      .populate('approvedBy', 'username email');
+    const depositRequests = await prisma.depositRequest.findMany({
+      where: { userId: req.userId },
+      orderBy: { requestDate: 'desc' }
+    });
 
     res.json({
       success: true,
@@ -171,9 +175,9 @@ router.get('/deposit-requests', verifyToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Get deposit requests error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error. Please try again later.' 
+    res.status(500).json({
+      success: false,
+      message: 'Server error. Please try again later.'
     });
   }
 });
@@ -181,9 +185,11 @@ router.get('/deposit-requests', verifyToken, async (req, res) => {
 // ===== Bank cards =====
 router.get('/bank-cards', verifyToken, async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    res.json({ success: true, data: { bankCards: user.bankCards || [] } });
+    const bankCards = await prisma.bankCard.findMany({
+      where: { userId: req.userId },
+      orderBy: { isDefault: 'desc' }
+    });
+    res.json({ success: true, data: { bankCards } });
   } catch (e) {
     res.status(500).json({ success: false, message: 'Server error' });
   }
@@ -195,70 +201,139 @@ router.post('/bank-cards', verifyToken, async (req, res) => {
     if (!bankName || !cardNumber || !accountName) {
       return res.status(400).json({ success: false, message: 'Thiếu thông tin thẻ ngân hàng' });
     }
-    const user = await User.findById(req.userId);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-    const newCard = {
-      id: String(Date.now()),
-      bankName,
-      cardNumber,
-      accountName,
-      isDefault: !!isDefault
-    };
-    if (newCard.isDefault) {
-      user.bankCards.forEach(c => (c.isDefault = false));
-    } else if (user.bankCards.length === 0) {
-      newCard.isDefault = true;
-    }
-    user.bankCards.push(newCard);
-    await user.save();
-    res.json({ success: true, message: 'Thêm thẻ thành công', data: { bankCards: user.bankCards } });
+    // Count existing cards
+    const cardCount = await prisma.bankCard.count({
+      where: { userId: req.userId }
+    });
+
+    const shouldBeDefault = !!isDefault || cardCount === 0;
+
+    // Use transaction
+    const result = await prisma.$transaction(async (tx) => {
+      if (shouldBeDefault) {
+        // Remove default from all other cards
+        await tx.bankCard.updateMany({
+          where: { userId: req.userId },
+          data: { isDefault: false }
+        });
+      }
+
+      // Create new card
+      const newCard = await tx.bankCard.create({
+        data: {
+          userId: req.userId,
+          bankName,
+          cardNumber,
+          accountName,
+          isDefault: shouldBeDefault
+        }
+      });
+
+      // Get all cards
+      const allCards = await tx.bankCard.findMany({
+        where: { userId: req.userId },
+        orderBy: { isDefault: 'desc' }
+      });
+
+      return { newCard, allCards };
+    });
+
+    res.json({ success: true, message: 'Thêm thẻ thành công', data: { bankCards: result.allCards } });
   } catch (e) {
+    console.error('Add bank card error:', e);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
 router.delete('/bank-cards/:id', verifyToken, async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    const idx = user.bankCards.findIndex(c => c.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ success: false, message: 'Không tìm thấy thẻ' });
-    const wasDefault = user.bankCards[idx].isDefault;
-    user.bankCards.splice(idx, 1);
-    if (wasDefault && user.bankCards.length > 0) user.bankCards[0].isDefault = true;
-    await user.save();
-    res.json({ success: true, message: 'Xóa thẻ thành công', data: { bankCards: user.bankCards } });
+    const card = await prisma.bankCard.findFirst({
+      where: {
+        id: req.params.id,
+        userId: req.userId
+      }
+    });
+
+    if (!card) return res.status(404).json({ success: false, message: 'Không tìm thấy thẻ' });
+
+    const bankCards = await prisma.$transaction(async (tx) => {
+      await tx.bankCard.delete({
+        where: { id: req.params.id }
+      });
+
+      // If deleted card was default, set first remaining as default
+      if (card.isDefault) {
+        const firstCard = await tx.bankCard.findFirst({
+          where: { userId: req.userId },
+          orderBy: { createdAt: 'asc' }
+        });
+
+        if (firstCard) {
+          await tx.bankCard.update({
+            where: { id: firstCard.id },
+            data: { isDefault: true }
+          });
+        }
+      }
+
+      return tx.bankCard.findMany({
+        where: { userId: req.userId },
+        orderBy: { isDefault: 'desc' }
+      });
+    });
+
+    res.json({ success: true, message: 'Xóa thẻ thành công', data: { bankCards } });
   } catch (e) {
+    console.error('Delete bank card error:', e);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
-// ===== Withdrawal request (placeholder record) =====
+// ===== Withdrawal request =====
 router.post('/withdrawal', verifyToken, async (req, res) => {
   try {
     const { amount, bankCardId, password } = req.body || {};
     const parsed = Number(amount);
+
     if (!parsed || isNaN(parsed) || parsed <= 0) {
       return res.status(400).json({ success: false, message: 'Số tiền rút không hợp lệ' });
     }
-    const user = await User.findById(req.userId);
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId }
+    });
+
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     if (!password) return res.status(400).json({ success: false, message: 'Vui lòng nhập mật khẩu để xác nhận' });
-    const ok = await user.comparePassword(password);
+
+    const ok = await comparePassword(password, user.password);
     if (!ok) return res.status(401).json({ success: false, message: 'Mật khẩu không đúng' });
-    const card = (user.bankCards || []).find(c => c.id === bankCardId);
+
+    const card = await prisma.bankCard.findFirst({
+      where: {
+        id: bankCardId,
+        userId: req.userId
+      }
+    });
+
     if (!card) return res.status(400).json({ success: false, message: 'Vui lòng chọn thẻ ngân hàng' });
     if (parsed > user.balance) return res.status(400).json({ success: false, message: 'Số dư không đủ' });
 
-    // Create withdrawal request (pending)
-    const wr = await WithdrawalRequest.create({ userId: user._id, amount: parsed, bankCardId });
+    // Create withdrawal request
+    const wr = await prisma.withdrawalRequest.create({
+      data: {
+        userId: user.id,
+        amount: parsed,
+        bankCardId
+      }
+    });
 
     res.json({
       success: true,
       message: 'Đã tạo yêu cầu rút tiền. Vui lòng chờ admin duyệt.',
       data: {
-        requestId: wr._id,
+        requestId: wr.id,
         status: wr.status,
         amount: wr.amount,
         bankCardId: wr.bankCardId,
@@ -274,7 +349,10 @@ router.post('/withdrawal', verifyToken, async (req, res) => {
 // List user's withdrawal requests
 router.get('/withdrawal-requests', verifyToken, async (req, res) => {
   try {
-    const list = await WithdrawalRequest.find({ userId: req.userId }).sort({ requestDate: -1 });
+    const list = await prisma.withdrawalRequest.findMany({
+      where: { userId: req.userId },
+      orderBy: { requestDate: 'desc' }
+    });
     res.json({ success: true, data: { requests: list } });
   } catch (e) {
     res.status(500).json({ success: false, message: 'Server error' });
@@ -285,11 +363,11 @@ router.get('/withdrawal-requests', verifyToken, async (req, res) => {
 router.get('/level/:amount', (req, res) => {
   try {
     const amount = parseFloat(req.params.amount);
-    
+
     if (isNaN(amount) || amount < 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Số tiền không hợp lệ' 
+      return res.status(400).json({
+        success: false,
+        message: 'Số tiền không hợp lệ'
       });
     }
 
@@ -309,9 +387,9 @@ router.get('/level/:amount', (req, res) => {
 
   } catch (error) {
     console.error('Get VIP level error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Lỗi server. Vui lòng thử lại sau.' 
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi server. Vui lòng thử lại sau.'
     });
   }
 });

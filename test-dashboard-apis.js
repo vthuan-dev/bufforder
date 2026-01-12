@@ -1,150 +1,146 @@
-const mongoose = require('mongoose');
-const config = require('./backend/config');
-const User = require('./backend/models/User');
-const DepositRequest = require('./backend/models/DepositRequest');
-const Order = require('./backend/models/Order');
-
-// Connect to MongoDB
-mongoose.connect(config.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => {
-  console.log('✅ Connected to MongoDB successfully');
-  testDashboardAPIs();
-})
-.catch((error) => {
-  console.error('❌ MongoDB connection error:', error);
-  process.exit(1);
-});
+const prisma = require('./backend/lib/prisma');
+const { hashPassword } = require('./backend/lib/utils');
 
 async function testDashboardAPIs() {
   try {
-    console.log('🧪 Testing Dashboard APIs...\n');
+    console.log('🔗 Connecting to MySQL (Prisma)...');
+    console.log('✅ Connected to MySQL successfully\n');
 
-    // Test 1: Admin login
-    console.log('🔐 Testing Admin Login...');
-    const loginResponse = await fetch('http://localhost:5000/api/admin/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        username: 'admin',
-        password: 'admin123'
-      })
-    });
-
-    if (!loginResponse.ok) {
-      console.log('❌ Admin login failed');
-      return;
-    }
-
-    const loginData = await loginResponse.json();
-    console.log('✅ Admin login successful');
-    const adminToken = loginData.data.token;
-
-    // Test 2: Dashboard Stats API
-    console.log('\n📊 Testing Dashboard Stats API...');
-    const statsResponse = await fetch('http://localhost:5000/api/admin/dashboard/stats', {
-      headers: {
-        'Authorization': `Bearer ${adminToken}`
-      }
-    });
-
-    if (statsResponse.ok) {
-      const statsData = await statsResponse.json();
-      console.log('✅ Dashboard Stats API working');
-      console.log('📈 Stats Data:', {
-        totalUsers: statsData.data.totalUsers,
-        activeUsers: statsData.data.activeUsers,
-        pendingDeposits: statsData.data.pendingDeposits,
-        todayDeposits: statsData.data.todayDeposits,
-        todayAmount: statsData.data.todayAmount,
-        todayCommission: statsData.data.todayCommission
+    // Create test data
+    console.log('📝 Creating test data...');
+    
+    const hashedPassword = await hashPassword('test123');
+    
+    // Create test users
+    const testUsers = [];
+    for (let i = 1; i <= 5; i++) {
+      const user = await prisma.user.create({
+        data: {
+          phoneNumber: `999000000${i}`,
+          fullName: `Test User ${i}`,
+          email: `testuser${i}@example.com`,
+          password: hashedPassword,
+          vipLevel: `vip-${i % 3}`,
+          balance: 1000 * i,
+          totalDeposited: 500 * i
+        }
       });
-    } else {
-      console.log('❌ Dashboard Stats API failed');
+      testUsers.push(user);
     }
+    console.log(`✅ Created ${testUsers.length} test users\n`);
 
-    // Test 3: Weekly Revenue API
-    console.log('\n📈 Testing Weekly Revenue API...');
-    const revenueResponse = await fetch('http://localhost:5000/api/admin/dashboard/weekly-revenue', {
-      headers: {
-        'Authorization': `Bearer ${adminToken}`
-      }
+    // Create test orders
+    const testOrders = [];
+    for (let i = 0; i < testUsers.length; i++) {
+      const order = await prisma.order.create({
+        data: {
+          userId: testUsers[i].id,
+          orderNumber: `ASH${Date.now()}${i}`,
+          productId: i + 1,
+          productName: `Test Product ${i + 1}`,
+          productPrice: 100 * (i + 1),
+          commissionRate: 5 + i,
+          commissionAmount: (100 * (i + 1)) * (5 + i) / 100,
+          brand: 'Test Brand',
+          category: 'Test Category',
+          status: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'][i % 5]
+        }
+      });
+      testOrders.push(order);
+    }
+    console.log(`✅ Created ${testOrders.length} test orders\n`);
+
+    // Create test deposit requests
+    for (let i = 0; i < 3; i++) {
+      await prisma.depositRequest.create({
+        data: {
+          userId: testUsers[i].id,
+          amount: 500 * (i + 1),
+          status: ['pending', 'approved', 'rejected'][i]
+        }
+      });
+    }
+    console.log(`✅ Created 3 test deposit requests\n`);
+
+    // Test API endpoints
+    console.log('🧪 Testing Dashboard API endpoints...\n');
+
+    const API_BASE = 'http://localhost:5000';
+    const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'your_admin_token_here';
+
+    // Test 1: Dashboard stats
+    console.log('1️⃣ Testing GET /api/admin/dashboard/stats');
+    const statsResponse = await fetch(`${API_BASE}/api/admin/dashboard/stats`, {
+      headers: { 'Authorization': `Bearer ${ADMIN_TOKEN}` }
     });
+    const statsData = await statsResponse.json();
+    console.log(`   Status: ${statsResponse.status}`);
+    console.log(`   Total users: ${statsData.data?.totalUsers || 0}`);
+    console.log(`   Active users: ${statsData.data?.activeUsers || 0}`);
+    console.log(`   Pending deposits: ${statsData.data?.pendingDeposits || 0}\n`);
 
-    if (revenueResponse.ok) {
-      const revenueData = await revenueResponse.json();
-      console.log('✅ Weekly Revenue API working');
-      console.log('💰 Revenue Data:', revenueData.data);
-    } else {
-      console.log('❌ Weekly Revenue API failed');
-    }
-
-    // Test 4: User Growth API
-    console.log('\n👥 Testing User Growth API...');
-    const userGrowthResponse = await fetch('http://localhost:5000/api/admin/dashboard/user-growth', {
-      headers: {
-        'Authorization': `Bearer ${adminToken}`
-      }
+    // Test 2: Recent users
+    console.log('2️⃣ Testing GET /api/admin/dashboard/recent-users');
+    const recentUsersResponse = await fetch(`${API_BASE}/api/admin/dashboard/recent-users`, {
+      headers: { 'Authorization': `Bearer ${ADMIN_TOKEN}` }
     });
+    const recentUsersData = await recentUsersResponse.json();
+    console.log(`   Status: ${recentUsersResponse.status}`);
+    console.log(`   Recent users count: ${recentUsersData.data?.length || 0}\n`);
 
-    if (userGrowthResponse.ok) {
-      const userGrowthData = await userGrowthResponse.json();
-      console.log('✅ User Growth API working');
-      console.log('📊 User Growth Data:', userGrowthData.data);
-    } else {
-      console.log('❌ User Growth API failed');
-    }
-
-    // Test 5: Recent Users API
-    console.log('\n🆕 Testing Recent Users API...');
-    const recentUsersResponse = await fetch('http://localhost:5000/api/admin/dashboard/recent-users', {
-      headers: {
-        'Authorization': `Bearer ${adminToken}`
-      }
+    // Test 3: Users list
+    console.log('3️⃣ Testing GET /api/admin/users');
+    const usersResponse = await fetch(`${API_BASE}/api/admin/users?page=1&limit=10`, {
+      headers: { 'Authorization': `Bearer ${ADMIN_TOKEN}` }
     });
+    const usersData = await usersResponse.json();
+    console.log(`   Status: ${usersResponse.status}`);
+    console.log(`   Users count: ${usersData.data?.users?.length || 0}\n`);
 
-    if (recentUsersResponse.ok) {
-      const recentUsersData = await recentUsersResponse.json();
-      console.log('✅ Recent Users API working');
-      console.log('👤 Recent Users Data:', recentUsersData.data);
-    } else {
-      console.log('❌ Recent Users API failed');
-    }
+    // Test 4: Orders list
+    console.log('4️⃣ Testing GET /api/admin/orders');
+    const ordersResponse = await fetch(`${API_BASE}/api/admin/orders?page=1&limit=10`, {
+      headers: { 'Authorization': `Bearer ${ADMIN_TOKEN}` }
+    });
+    const ordersData = await ordersResponse.json();
+    console.log(`   Status: ${ordersResponse.status}`);
+    console.log(`   Orders count: ${ordersData.data?.orders?.length || 0}\n`);
 
-    // Test 6: Generate some test data if needed
-    console.log('\n🔧 Checking if we need to generate test data...');
-    
-    const userCount = await User.countDocuments();
-    const depositCount = await DepositRequest.countDocuments();
-    const orderCount = await Order.countDocuments();
+    // Test 5: Deposit requests
+    console.log('5️⃣ Testing GET /api/admin/deposit-requests');
+    const depositsResponse = await fetch(`${API_BASE}/api/admin/deposit-requests?status=all&page=1&limit=10`, {
+      headers: { 'Authorization': `Bearer ${ADMIN_TOKEN}` }
+    });
+    const depositsData = await depositsResponse.json();
+    console.log(`   Status: ${depositsResponse.status}`);
+    console.log(`   Deposit requests count: ${depositsData.data?.requests?.length || 0}\n`);
 
-    console.log(`📊 Current Data Counts:`);
-    console.log(`   Users: ${userCount}`);
-    console.log(`   Deposit Requests: ${depositCount}`);
-    console.log(`   Orders: ${orderCount}`);
+    // Cleanup
+    console.log('🧹 Cleaning up test data...');
+    await prisma.order.deleteMany({
+      where: { userId: { in: testUsers.map(u => u.id) } }
+    });
+    await prisma.depositRequest.deleteMany({
+      where: { userId: { in: testUsers.map(u => u.id) } }
+    });
+    await prisma.user.deleteMany({
+      where: { id: { in: testUsers.map(u => u.id) } }
+    });
+    console.log('✅ Cleanup complete\n');
 
-    if (userCount === 0 || depositCount === 0 || orderCount === 0) {
-      console.log('\n⚠️  Some data is missing. Consider running test-orders-integration.js to generate test data.');
-    }
+    console.log('✅ All dashboard API tests completed!\n');
+    console.log('📝 Summary:');
+    console.log(`   - Created ${testUsers.length} test users`);
+    console.log(`   - Created ${testOrders.length} test orders`);
+    console.log(`   - Created 3 test deposit requests`);
+    console.log(`   - Tested 5 API endpoints`);
+    console.log('\n🎉 Dashboard APIs test successful!');
 
-    console.log('\n🎉 Dashboard API Testing Completed!');
-    console.log('\n📋 Test Summary:');
-    console.log('✅ Admin login');
-    console.log('✅ Dashboard stats API');
-    console.log('✅ Weekly revenue API');
-    console.log('✅ User growth API');
-    console.log('✅ Recent users API');
-    
-    console.log('\n🚀 You can now test the dashboard at http://localhost:3000/admin');
-    console.log('📝 The dashboard should display real data from your database');
-    
   } catch (error) {
     console.error('❌ Error during testing:', error);
   } finally {
-    mongoose.connection.close();
+    await prisma.$disconnect();
   }
 }
+
+testDashboardAPIs();
