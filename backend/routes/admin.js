@@ -734,6 +734,71 @@ router.patch('/orders/:id/status', verifyAdminToken, async (req, res) => {
   }
 });
 
+// Weekly Revenue Stats
+router.get('/weekly-revenue', verifyAdminToken, async (req, res) => {
+  try {
+    const today = new Date();
+    const weeklyData = [];
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+      
+      const dayStats = await prisma.order.aggregate({
+        where: {
+          orderDate: { gte: startOfDay, lt: endOfDay }
+        },
+        _sum: { productPrice: true }
+      });
+      
+      weeklyData.push({
+        date: startOfDay.toISOString().split('T')[0],
+        day: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][startOfDay.getDay()],
+        revenue: dayStats._sum.productPrice || 0
+      });
+    }
+    
+    res.json({ success: true, data: weeklyData });
+  } catch (error) {
+    console.error('Get weekly revenue error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// User Growth Stats
+router.get('/user-growth', verifyAdminToken, async (req, res) => {
+  try {
+    const today = new Date();
+    const growthData = [];
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+      
+      const newUsers = await prisma.user.count({
+        where: {
+          createdAt: { gte: startOfDay, lt: endOfDay }
+        }
+      });
+      
+      growthData.push({
+        date: startOfDay.toISOString().split('T')[0],
+        day: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][startOfDay.getDay()],
+        users: newUsers
+      });
+    }
+    
+    res.json({ success: true, data: growthData });
+  } catch (error) {
+    console.error('Get user growth error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 router.get('/orders/stats', verifyAdminToken, async (req, res) => {
   try {
     const today = new Date();
