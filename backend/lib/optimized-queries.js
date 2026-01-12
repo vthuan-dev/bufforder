@@ -54,6 +54,12 @@ async function getDashboardStats() {
   const today = new Date();
   const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+  
+  // Yesterday for trend calculation
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const startOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+  const endOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate() + 1);
 
   // Execute all queries in parallel
   const [
@@ -63,7 +69,12 @@ async function getDashboardStats() {
     todayDeposits,
     todayDepositAmount,
     totalOrders,
-    todayOrders
+    todayOrders,
+    todayCommission,
+    yesterdayUsers,
+    yesterdayDeposits,
+    yesterdayAmount,
+    yesterdayCommission
   ] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { totalDeposited: { gt: 0 } } }),
@@ -84,8 +95,43 @@ async function getDashboardStats() {
     prisma.order.count(),
     prisma.order.count({
       where: { orderDate: { gte: startOfDay, lt: endOfDay } }
+    }),
+    prisma.order.aggregate({
+      where: { orderDate: { gte: startOfDay, lt: endOfDay } },
+      _sum: { commissionAmount: true }
+    }),
+    // Yesterday stats for trends
+    prisma.user.count({
+      where: { createdAt: { gte: startOfYesterday, lt: endOfYesterday } }
+    }),
+    prisma.depositRequest.count({
+      where: {
+        status: 'approved',
+        approvedAt: { gte: startOfYesterday, lt: endOfYesterday }
+      }
+    }),
+    prisma.depositRequest.aggregate({
+      where: {
+        status: 'approved',
+        approvedAt: { gte: startOfYesterday, lt: endOfYesterday }
+      },
+      _sum: { amount: true }
+    }),
+    prisma.order.aggregate({
+      where: { orderDate: { gte: startOfYesterday, lt: endOfYesterday } },
+      _sum: { commissionAmount: true }
     })
   ]);
+
+  // Calculate trends (percentage change from yesterday)
+  const todayNewUsers = await prisma.user.count({
+    where: { createdAt: { gte: startOfDay, lt: endOfDay } }
+  });
+  
+  const calcTrend = (today, yesterday) => {
+    if (yesterday === 0) return today > 0 ? 100 : 0;
+    return Math.round(((today - yesterday) / yesterday) * 100);
+  };
 
   return {
     totalUsers,
@@ -93,8 +139,15 @@ async function getDashboardStats() {
     pendingDeposits,
     todayDeposits,
     todayAmount: todayDepositAmount._sum.amount || 0,
+    todayCommission: todayCommission._sum.commissionAmount || 0,
     totalOrders,
-    todayOrders
+    todayOrders,
+    // Trends
+    totalUsersTrend: calcTrend(todayNewUsers, yesterdayUsers),
+    activeUsersTrend: 0, // Active users trend is complex, set to 0
+    todayDepositsTrend: calcTrend(todayDeposits, yesterdayDeposits),
+    todayAmountTrend: calcTrend(todayDepositAmount._sum.amount || 0, yesterdayAmount._sum.amount || 0),
+    todayCommissionTrend: calcTrend(todayCommission._sum.commissionAmount || 0, yesterdayCommission._sum.commissionAmount || 0)
   };
 }
 

@@ -754,9 +754,8 @@ router.get('/dashboard/weekly-revenue', verifyAdminToken, async (req, res) => {
       });
       
       weeklyData.push({
-        date: startOfDay.toISOString().split('T')[0],
-        day: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][startOfDay.getDay()],
-        revenue: dayStats._sum.productPrice || 0
+        name: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][startOfDay.getDay()],
+        value: dayStats._sum.productPrice || 0
       });
     }
     
@@ -786,8 +785,7 @@ router.get('/dashboard/user-growth', verifyAdminToken, async (req, res) => {
       });
       
       growthData.push({
-        date: startOfDay.toISOString().split('T')[0],
-        day: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][startOfDay.getDay()],
+        name: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][startOfDay.getDay()],
         users: newUsers
       });
     }
