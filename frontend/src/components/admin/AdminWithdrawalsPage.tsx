@@ -47,6 +47,8 @@ export function AdminWithdrawalsPage() {
   const [actionType, setActionType] = useState<"approve" | "reject">("approve");
   const [actionNotes, setActionNotes] = useState("");
   const [loading, setLoading] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [viewWithdrawal, setViewWithdrawal] = useState<WithdrawalRow | null>(null);
 
   const mapBackend = (r: any): WithdrawalRow => ({
     id: r.id || r._id,
@@ -87,6 +89,11 @@ export function AdminWithdrawalsPage() {
     setActionType(type);
     setActionNotes("");
     setActionDialogOpen(true);
+  };
+
+  const handleViewDetails = (withdrawal: WithdrawalRow) => {
+    setViewWithdrawal(withdrawal);
+    setViewDialogOpen(true);
   };
 
   const handleSubmitAction = async () => {
@@ -238,7 +245,11 @@ export function AdminWithdrawalsPage() {
                           </button>
                         </>
                       ) : (
-                        <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg">
+                        <button 
+                          onClick={() => handleViewDetails(withdrawal)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                          title="View Details"
+                        >
                           <Eye className="w-4 h-4" />
                         </button>
                       )}
@@ -351,6 +362,92 @@ export function AdminWithdrawalsPage() {
                     }`}
                 >
                   {actionType === "approve" ? "Approve & Transfer" : "Reject"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* View Details Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Withdrawal Details</DialogTitle>
+          </DialogHeader>
+          {viewWithdrawal && (
+            <div className="space-y-4">
+              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">User:</span>
+                  <span className="text-gray-900 font-medium">{viewWithdrawal.user.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Email:</span>
+                  <span className="text-gray-900">{viewWithdrawal.user.email}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Amount:</span>
+                  <span className="text-gray-900 font-medium">${viewWithdrawal.amount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Fee:</span>
+                  <span className="text-red-600">-${viewWithdrawal.fee.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Total:</span>
+                  <span className="text-green-600 font-medium">${viewWithdrawal.totalAmount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Status:</span>
+                  <Badge
+                    variant="secondary"
+                    className={
+                      viewWithdrawal.status === "Approved"
+                        ? "bg-green-100 text-green-700"
+                        : viewWithdrawal.status === "Rejected"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-orange-100 text-orange-700"
+                    }
+                  >
+                    {viewWithdrawal.status}
+                  </Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Request Date:</span>
+                  <span className="text-gray-900">{viewWithdrawal.requestDate}</span>
+                </div>
+              </div>
+              
+              <div className="bg-blue-50 rounded-lg p-4 space-y-2">
+                <p className="text-sm text-gray-900 font-medium">Bank Details:</p>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Bank:</span>
+                    <span className="text-gray-900">{viewWithdrawal.bankName}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Account:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-900">{viewWithdrawal.accountNumber}</span>
+                      <button
+                        onClick={() => handleCopy(viewWithdrawal.accountNumber)}
+                        className="p-1 hover:bg-blue-100 rounded"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Name:</span>
+                    <span className="text-gray-900">{viewWithdrawal.accountName}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-end pt-2">
+                <Button onClick={() => setViewDialogOpen(false)} variant="outline">
+                  Close
                 </Button>
               </div>
             </div>

@@ -338,10 +338,12 @@ router.post('/withdrawal-requests/:id/reject', verifyAdminToken, async (req, res
 // =====================
 // Dashboard Statistics
 // =====================
+const { cached } = require('../lib/cache');
+
 router.get('/dashboard/stats', verifyAdminToken, async (req, res) => {
   try {
-    // ⚡ Use optimized parallel queries
-    const stats = await getDashboardStats();
+    // ⚡ Cache dashboard stats for 30 seconds
+    const stats = await cached('admin:dashboard:stats', () => getDashboardStats(), 30);
     
     res.json({
       success: true,
@@ -619,6 +621,38 @@ router.delete('/users/:id', verifyAdminToken, async (req, res) => {
 // =====================
 // Orders Management
 // =====================
+
+// Order Stats - MUST be before /orders/:id to avoid route conflict
+router.get('/orders/stats', verifyAdminToken, async (req, res) => {
+  try {
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+
+    const [totalOrders, todayOrdersCount] = await Promise.all([
+      prisma.order.count(),
+      prisma.order.count({ where: { orderDate: { gte: startOfDay, lt: endOfDay } } })
+    ]);
+
+    const revenueStats = await prisma.order.aggregate({
+      _sum: { productPrice: true, commissionAmount: true }
+    });
+
+    res.json({
+      success: true,
+      data: {
+        totalOrders,
+        todayOrders: todayOrdersCount,
+        totalRevenue: revenueStats._sum.productPrice || 0,
+        totalCommission: revenueStats._sum.commissionAmount || 0
+      }
+    });
+  } catch (error) {
+    console.error('Get order stats error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 router.get('/orders', verifyAdminToken, async (req, res) => {
   try {
     const { page = 1, limit = 20, q = '', status = 'all', sortBy = 'orderDate', sortOrder = 'desc' } = req.query;
@@ -734,30 +768,40 @@ router.patch('/orders/:id/status', verifyAdminToken, async (req, res) => {
   }
 });
 
-// Weekly Revenue Stats
+// Weekly Revenue Stats - ⚡ Optimized with single query + caching
 router.get('/dashboard/weekly-revenue', verifyAdminToken, async (req, res) => {
   try {
-    const today = new Date();
-    const weeklyData = [];
-    
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-      const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+    const weeklyData = await cached('admin:weekly-revenue', async () => {
+      const today = new Date();
+      const sevenDaysAgo = new Date(today);
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+      sevenDaysAgo.setHours(0, 0, 0, 0);
       
-      const dayStats = await prisma.order.aggregate({
-        where: {
-          orderDate: { gte: startOfDay, lt: endOfDay }
-        },
-        _sum: { productPrice: true }
+      // Single query for all 7 days
+      const orders = await prisma.order.findMany({
+        where: { orderDate: { gte: sevenDaysAgo } },
+        select: { orderDate: true, productPrice: true }
       });
       
-      weeklyData.push({
-        name: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][startOfDay.getDay()],
-        value: dayStats._sum.productPrice || 0
+      // Group by day
+      const dayMap = {};
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()];
+        const dateKey = date.toISOString().split('T')[0];
+        dayMap[dateKey] = { name: dayName, value: 0 };
+      }
+      
+      orders.forEach(order => {
+        const dateKey = order.orderDate.toISOString().split('T')[0];
+        if (dayMap[dateKey]) {
+          dayMap[dateKey].value += order.productPrice || 0;
+        }
       });
-    }
+      
+      return Object.values(dayMap);
+    }, 60); // Cache 1 minute
     
     res.json({ success: true, data: weeklyData });
   } catch (error) {
@@ -766,63 +810,44 @@ router.get('/dashboard/weekly-revenue', verifyAdminToken, async (req, res) => {
   }
 });
 
-// User Growth Stats
+// User Growth Stats - ⚡ Optimized with single query + caching
 router.get('/dashboard/user-growth', verifyAdminToken, async (req, res) => {
   try {
-    const today = new Date();
-    const growthData = [];
-    
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-      const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+    const growthData = await cached('admin:user-growth', async () => {
+      const today = new Date();
+      const sevenDaysAgo = new Date(today);
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+      sevenDaysAgo.setHours(0, 0, 0, 0);
       
-      const newUsers = await prisma.user.count({
-        where: {
-          createdAt: { gte: startOfDay, lt: endOfDay }
+      // Single query for all 7 days
+      const users = await prisma.user.findMany({
+        where: { createdAt: { gte: sevenDaysAgo } },
+        select: { createdAt: true }
+      });
+      
+      // Group by day
+      const dayMap = {};
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()];
+        const dateKey = date.toISOString().split('T')[0];
+        dayMap[dateKey] = { name: dayName, users: 0 };
+      }
+      
+      users.forEach(user => {
+        const dateKey = user.createdAt.toISOString().split('T')[0];
+        if (dayMap[dateKey]) {
+          dayMap[dateKey].users += 1;
         }
       });
       
-      growthData.push({
-        name: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][startOfDay.getDay()],
-        users: newUsers
-      });
-    }
+      return Object.values(dayMap);
+    }, 60); // Cache 1 minute
     
     res.json({ success: true, data: growthData });
   } catch (error) {
     console.error('Get user growth error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
-});
-
-router.get('/orders/stats', verifyAdminToken, async (req, res) => {
-  try {
-    const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-
-    const [totalOrders, todayOrdersCount] = await Promise.all([
-      prisma.order.count(),
-      prisma.order.count({ where: { orderDate: { gte: startOfDay, lt: endOfDay } } })
-    ]);
-
-    const revenueStats = await prisma.order.aggregate({
-      _sum: { productPrice: true, commissionAmount: true }
-    });
-
-    res.json({
-      success: true,
-      data: {
-        totalOrders,
-        todayOrders: todayOrdersCount,
-        totalRevenue: revenueStats._sum.productPrice || 0,
-        totalCommission: revenueStats._sum.commissionAmount || 0
-      }
-    });
-  } catch (error) {
-    console.error('Get order stats error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });

@@ -41,6 +41,8 @@ export function AdminDepositsPage() {
   const [actionType, setActionType] = useState<"approve" | "reject">("approve");
   const [actionNotes, setActionNotes] = useState("");
   const [loading, setLoading] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [viewDeposit, setViewDeposit] = useState<DepositRow | null>(null);
 
   const mapBackend = (r: any): DepositRow => ({
     id: r.id || r._id,
@@ -76,6 +78,11 @@ export function AdminDepositsPage() {
     setActionType(type);
     setActionNotes("");
     setActionDialogOpen(true);
+  };
+
+  const handleViewDetails = (deposit: DepositRow) => {
+    setViewDeposit(deposit);
+    setViewDialogOpen(true);
   };
 
   const handleSubmitAction = async () => {
@@ -210,7 +217,11 @@ export function AdminDepositsPage() {
                           </button>
                         </>
                       ) : (
-                        <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg">
+                        <button 
+                          onClick={() => handleViewDetails(deposit)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                          title="View Details"
+                        >
                           <Eye className="w-4 h-4" />
                         </button>
                       )}
@@ -288,6 +299,57 @@ export function AdminDepositsPage() {
                     }`}
                 >
                   {actionType === "approve" ? "Approve" : "Reject"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* View Details Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Deposit Details</DialogTitle>
+          </DialogHeader>
+          {viewDeposit && (
+            <div className="space-y-4">
+              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">User:</span>
+                  <span className="text-gray-900 font-medium">{viewDeposit.user.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Email:</span>
+                  <span className="text-gray-900">{viewDeposit.user.email}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Amount:</span>
+                  <span className="text-gray-900 font-medium">${viewDeposit.amount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Status:</span>
+                  <Badge
+                    variant="secondary"
+                    className={
+                      viewDeposit.status === "Approved"
+                        ? "bg-green-100 text-green-700"
+                        : viewDeposit.status === "Rejected"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-orange-100 text-orange-700"
+                    }
+                  >
+                    {viewDeposit.status}
+                  </Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Request Date:</span>
+                  <span className="text-gray-900">{viewDeposit.requestDate}</span>
+                </div>
+              </div>
+              <div className="flex justify-end pt-2">
+                <Button onClick={() => setViewDialogOpen(false)} variant="outline">
+                  Close
                 </Button>
               </div>
             </div>

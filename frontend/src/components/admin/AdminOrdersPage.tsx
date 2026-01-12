@@ -102,7 +102,7 @@ export function AdminOrdersPage() {
     }
   };
 
-  // Load order stats
+  // Load order stats - only once on mount
   const loadStats = async () => {
     try {
       const response = await api.adminGetOrderStats();
@@ -114,10 +114,14 @@ export function AdminOrdersPage() {
     }
   };
 
-  // Load data on component mount and when filters change
+  // ⚡ Load stats only once on mount
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+  // Load orders when filters change
   useEffect(() => {
     loadOrders();
-    loadStats();
   }, [currentPage, statusFilter]);
 
   // Debounce search query
@@ -304,12 +308,12 @@ export function AdminOrdersPage() {
                       <div className="flex items-center gap-3">
                         <Avatar className="w-10 h-10">
                           <AvatarFallback className="bg-blue-100 text-blue-600">
-                            {order.user.name.split(" ").map((n) => n[0]).join("")}
+                            {(order.user?.name || 'U').split(" ").map((n) => n[0] || '').join("") || 'U'}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="text-gray-900">{order.user.name}</p>
-                          <p className="text-sm text-gray-500">{order.user.email}</p>
+                          <p className="text-gray-900">{order.user?.name || 'Unknown'}</p>
+                          <p className="text-sm text-gray-500">{order.user?.email || ''}</p>
                         </div>
                       </div>
                     </TableCell>
@@ -420,13 +424,13 @@ export function AdminOrdersPage() {
                   <div className="flex items-center gap-3">
                     <Avatar className="w-12 h-12">
                       <AvatarFallback className="bg-blue-100 text-blue-600">
-                        {selectedOrder.user.name.split(" ").map((n) => n[0]).join("")}
+                        {(selectedOrder.user?.name || 'U').split(" ").map((n) => n[0] || '').join("") || 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="text-gray-900 font-medium">{selectedOrder.user.name}</p>
-                      <p className="text-sm text-gray-500">{selectedOrder.user.email}</p>
-                      {selectedOrder.user.phoneNumber && (
+                      <p className="text-gray-900 font-medium">{selectedOrder.user?.name || 'Unknown'}</p>
+                      <p className="text-sm text-gray-500">{selectedOrder.user?.email || ''}</p>
+                      {selectedOrder.user?.phoneNumber && (
                         <p className="text-sm text-gray-500">{selectedOrder.user.phoneNumber}</p>
                       )}
                     </div>

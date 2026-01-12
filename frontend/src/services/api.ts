@@ -2,12 +2,12 @@ const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env
 const API_BASE_URL = `${API_BASE}/api`;
 
 // ⚡ Performance Optimization: Cache for GET requests
-const cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
+const responseCache = new Map<string, { data: any; timestamp: number; ttl: number }>();
 const pendingRequests = new Map<string, Promise<any>>();
 
-type RequestOptions = RequestInit & { 
+type RequestOptions = Omit<RequestInit, 'cache'> & { 
   headers?: Record<string, string>;
-  cache?: boolean;
+  useCache?: boolean;
   cacheTTL?: number;
 };
 
@@ -17,7 +17,7 @@ function getCacheKey(endpoint: string, options: RequestOptions): string {
 }
 
 function getCached(key: string): any | null {
-  const cached = cache.get(key);
+  const cached = responseCache.get(key);
   if (!cached) return null;
   
   if (Date.now() - cached.timestamp < cached.ttl) {
@@ -25,13 +25,13 @@ function getCached(key: string): any | null {
     return cached.data;
   }
   
-  cache.delete(key);
+  responseCache.delete(key);
   return null;
 }
 
 function setCache(key: string, data: any, ttl: number): void {
-  cache.set(key, { data, timestamp: Date.now(), ttl });
-  setTimeout(() => cache.delete(key), ttl);
+  responseCache.set(key, { data, timestamp: Date.now(), ttl });
+  setTimeout(() => responseCache.delete(key), ttl);
 }
 
 async function request(endpoint: string, options: RequestOptions = {}) {
@@ -39,7 +39,7 @@ async function request(endpoint: string, options: RequestOptions = {}) {
   const cacheKey = getCacheKey(endpoint, options);
   
   // ⚡ Check cache for GET requests
-  if ((options.method === 'GET' || !options.method) && options.cache !== false) {
+  if ((options.method === 'GET' || !options.method) && options.useCache !== false) {
     const cached = getCached(cacheKey);
     if (cached) return cached;
   }
@@ -99,7 +99,7 @@ async function request(endpoint: string, options: RequestOptions = {}) {
       }
       
       // ⚡ Cache successful GET responses
-      if ((options.method === 'GET' || !options.method) && options.cache !== false) {
+      if ((options.method === 'GET' || !options.method) && options.useCache !== false) {
         const ttl = options.cacheTTL || 30000; // Default 30s
         setCache(cacheKey, data, ttl);
       }
@@ -132,7 +132,7 @@ function adminTokenHeader() {
 export default {
   // ⚡ Utility: Clear cache
   clearCache() {
-    cache.clear();
+    responseCache.clear();
     console.log('[Cache] Cleared all cache');
   },
   
@@ -141,14 +141,14 @@ export default {
     return request('/admin/login', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
-      cache: 'no-store'
+      useCache: false
     });
   },
   adminProfile() {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
     return request('/admin/profile', { 
       headers,
-      cache: true,
+      useCache: true,
       cacheTTL: 60000 // ⚡ Cache 1 minute
     });
   },
@@ -414,19 +414,35 @@ export default {
   // Admin - Dashboard Tab
   adminGetDashboardStats() {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
-    return request('/admin/dashboard/stats', { headers });
+    return request('/admin/dashboard/stats', { 
+      headers,
+      useCache: true,
+      cacheTTL: 30000 // ⚡ Cache 30 seconds
+    });
   },
   adminGetWeeklyRevenue() {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
-    return request('/admin/dashboard/weekly-revenue', { headers });
+    return request('/admin/dashboard/weekly-revenue', { 
+      headers,
+      useCache: true,
+      cacheTTL: 60000 // ⚡ Cache 1 minute
+    });
   },
   adminGetUserGrowth() {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
-    return request('/admin/dashboard/user-growth', { headers });
+    return request('/admin/dashboard/user-growth', { 
+      headers,
+      useCache: true,
+      cacheTTL: 60000 // ⚡ Cache 1 minute
+    });
   },
   adminGetRecentUsers() {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
-    return request('/admin/dashboard/recent-users', { headers });
+    return request('/admin/dashboard/recent-users', { 
+      headers,
+      useCache: true,
+      cacheTTL: 30000 // ⚡ Cache 30 seconds
+    });
   },
   adminDownloadReport() {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
@@ -515,7 +531,11 @@ export default {
   },
   adminGetOrderStats() {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
-    return request('/admin/orders/stats', { headers });
+    return request('/admin/orders/stats', { 
+      headers,
+      useCache: true,
+      cacheTTL: 30000 // ⚡ Cache 30 seconds
+    });
   },
 
   // Admin - Chat Support Tab

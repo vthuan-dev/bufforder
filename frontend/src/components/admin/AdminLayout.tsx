@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useState, useRef } from "react";
 import {
   LayoutDashboard,
   Users,
@@ -30,6 +30,12 @@ import { Badge } from "../ui/badge";
 import api from "../../services/api";
 import { io, Socket } from "socket.io-client";
 
+// ⚡ Global admin socket - shared across all admin components
+let globalAdminSocket: Socket | null = null;
+export function getAdminSocket(): Socket | null {
+  return globalAdminSocket;
+}
+
 interface AdminLayoutProps {
   children: ReactNode;
   currentPage: string;
@@ -51,10 +57,13 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [chatUnread, setChatUnread] = useState<number>(0);
-  const socketRef = useState<Socket | null>(null)[0];
+  const socketInitialized = useRef(false);
 
-  // Initial fetch unread + listen to socket updates
+  // ⚡ Initialize global admin socket ONCE
   useEffect(() => {
+    if (socketInitialized.current) return;
+    socketInitialized.current = true;
+
     (async () => {
       try {
         const res = await api.adminChatListThreads({ page: 1, limit: 100 });
@@ -66,13 +75,23 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
     try {
       const token = typeof localStorage !== 'undefined' ? localStorage.getItem('adminToken') : null;
       if (!token) return;
-      const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:5000';
-      const s = io(API_BASE, { auth: { adminToken: token } });
-      (AdminLayout as any)._socket = s; // store to static for cleanup
+      
+      // ⚡ Only create socket if not exists
+      if (!globalAdminSocket || !globalAdminSocket.connected) {
+        const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:5000';
+        globalAdminSocket = io(API_BASE, { auth: { adminToken: token } });
+        console.log('[AdminLayout] Created global admin socket');
+      }
+      
+      const s = globalAdminSocket;
       s.on('chat:threadUpdated', () => {
         setChatUnread((u) => u + 1);
       });
-      return () => { try { s.disconnect(); } catch {} };
+      
+      return () => { 
+        // Don't disconnect on unmount - keep socket alive
+        // Only disconnect on logout
+      };
     } catch {}
   }, []);
 

@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from "react";
 import { Send, Smile, Paperclip, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import api from "../services/api";
-import { io, Socket } from "socket.io-client";
 const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:5000';
 
 interface Message {
@@ -22,119 +21,13 @@ export function HelpPage() {
   const [showQuickReplies, setShowQuickReplies] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const threadIdRef = useRef<string | null>(null);
-  const socketRef = useRef<Socket | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
   const soundEnabledRef = useRef<boolean>(false);
   const isWindowFocusedRef = useRef<boolean>(typeof document !== 'undefined' ? !document.hidden : true);
   const hasLoadedRef = useRef<boolean>(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // DIRECT socket connection - LIKE ADMIN for INSTANT updates
-  const connectSocket = () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
-      console.log('[client] 🚀 Connecting socket DIRECTLY...');
-      const s = io(API_BASE, { auth: { token } });
-      socketRef.current = s;
-
-      s.on('connect', () => {
-        console.log('[client] ✅ Socket DIRECTLY connected!');
-        if (threadIdRef.current) {
-          s.emit('chat:joinThread', threadIdRef.current);
-        }
-      });
-
-      // DIRECT MESSAGE HANDLER - NO DELAY!
-      s.on('chat:message', (msg: any) => {
-        console.log('[client] 📨 DIRECT message:', msg);
-
-        if (String(msg.threadId) !== String(threadIdRef.current)) return;
-
-        // Play sound for admin messages
-        if (msg.senderType === 'admin' && soundEnabledRef.current) {
-          try {
-            const a = audioRef.current;
-            if (a) {
-              a.currentTime = 0;
-              a.volume = 1;
-              a.play();
-            }
-          } catch { }
-        }
-
-        const img = msg.imageUrl ? (String(msg.imageUrl).startsWith('/') ? `${API_BASE}${msg.imageUrl}` : msg.imageUrl) : undefined;
-        const newMessage = {
-          id: msg._id || `temp-${Date.now()}`,
-          text: msg.text || '',
-          imageUrl: img,
-          isUser: msg.senderType === 'user',
-          timestamp: new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-
-        // INSTANT update
-        setMessages(prev => {
-          const exists = prev.some(m => {
-            if (m.id === newMessage.id) return true;
-            if (m.id.startsWith('temp-') && m.text === newMessage.text && m.isUser === newMessage.isUser) return true;
-            return false;
-          });
-
-          if (exists) {
-            return prev.map(m => {
-              if (m.id.startsWith('temp-') && m.text === newMessage.text && m.isUser === newMessage.isUser) {
-                return newMessage;
-              }
-              return m;
-            });
-          }
-
-          return [...prev, newMessage];
-        });
-      });
-
-      // TYPING HANDLER
-      s.on('chat:typing', (evt: any) => {
-        if (String(evt?.threadId) !== String(threadIdRef.current)) return;
-        if (evt?.senderType === 'admin') {
-          partnerTypingRef.current = !!evt.typing;
-          setIsTyping(!!evt.typing);
-        }
-      });
-
-      // THREAD DELETED HANDLER (realtime sync when thread expires)
-      s.on('chat:threadDeleted', (evt: any) => {
-        console.log('[client] 🗑️ Thread deleted:', evt);
-        if (String(evt?.threadId) === String(threadIdRef.current)) {
-          // 1. Clear UI state
-          setMessages([]);
-          setIsTyping(false);
-          setShowQuickReplies(true);
-
-          // 2. Clear references and persistent storage
-          threadIdRef.current = null;
-          try {
-            localStorage.removeItem('client:threadId');
-            localStorage.removeItem('client:activeThreadId');
-          } catch { }
-
-          // 3. Inform user
-          alert(evt?.message || 'Cuộc trò chuyện đã kết thúc do không hoạt động');
-
-          // 4. Force reload initialization after a short delay if user stays on page
-          // This allows system to create a FRESH thread if they want to chat again
-          setTimeout(() => {
-            console.log('[client] Ready for fresh conversation');
-          }, 1000);
-        }
-      });
-
-    } catch (err) {
-      console.error('[client] Socket error:', err);
-    }
-  };
+  // ⚡ NO SOCKET HERE - Use events from App.tsx global socket
 
   const quickReplies = [
     "📦 Track my order",
@@ -151,7 +44,8 @@ export function HelpPage() {
     scrollToBottom();
   }, [messages, isTyping]);
 
-  // Init: reuse saved threadId if available; otherwise open a thread. Then load messages and connect socket
+  // Init: reuse saved threadId if available; otherwise open a thread. Then load messages
+  // ⚡ NO SOCKET CONNECTION HERE - Use global socket from App.tsx
   useEffect(() => {
     // Prevent double initialization in React Strict Mode
     if (hasLoadedRef.current) return;
@@ -176,6 +70,8 @@ export function HelpPage() {
             }));
             setMessages(arr);
             console.log('[client] Loaded', arr.length, 'messages from saved threadId:', threadId);
+            // Mark as active thread
+            try { localStorage.setItem('client:activeThreadId', String(threadId)); } catch { }
           } catch (err) {
             console.error('[client] Failed to load saved thread:', err);
             // saved id invalid -> clear it
@@ -202,16 +98,63 @@ export function HelpPage() {
             timestamp: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           }));
           setMessages(arr);
-          try { localStorage.setItem('client:threadId', String(threadId)); } catch { }
+          try { 
+            localStorage.setItem('client:threadId', String(threadId)); 
+            localStorage.setItem('client:activeThreadId', String(threadId));
+          } catch { }
           console.log('[client] Created new thread:', threadId, 'with', arr.length, 'messages');
         }
-
-        // 3) Connect socket DIRECTLY - NO GLOBAL EVENTS!
-        connectSocket();
       } catch (err) {
         console.error('[client] Chat initialization error:', err);
       }
     };
+
+    // ⚡ Listen for messages from App.tsx global socket
+    const handleChatMessage = (event: any) => {
+      const msg = event.detail;
+      if (String(msg.threadId) !== String(threadIdRef.current)) return;
+
+      const img = msg.imageUrl ? (String(msg.imageUrl).startsWith('/') ? `${API_BASE}${msg.imageUrl}` : msg.imageUrl) : undefined;
+      const newMessage = {
+        id: msg._id || `temp-${Date.now()}`,
+        text: msg.text || '',
+        imageUrl: img,
+        isUser: msg.senderType === 'user',
+        timestamp: new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+
+      setMessages(prev => {
+        const exists = prev.some(m => {
+          if (m.id === newMessage.id) return true;
+          if (m.id.startsWith('temp-') && m.text === newMessage.text && m.isUser === newMessage.isUser) return true;
+          return false;
+        });
+
+        if (exists) {
+          return prev.map(m => {
+            if (m.id.startsWith('temp-') && m.text === newMessage.text && m.isUser === newMessage.isUser) {
+              return newMessage;
+            }
+            return m;
+          });
+        }
+
+        return [...prev, newMessage];
+      });
+    };
+
+    // ⚡ Listen for typing from App.tsx global socket
+    const handleChatTyping = (event: any) => {
+      const evt = event.detail;
+      if (String(evt?.threadId) !== String(threadIdRef.current)) return;
+      if (evt?.senderType === 'admin') {
+        partnerTypingRef.current = !!evt.typing;
+        setIsTyping(!!evt.typing);
+      }
+    };
+
+    window.addEventListener('client:chatMessage', handleChatMessage);
+    window.addEventListener('client:chatTyping', handleChatTyping);
 
     // Handle visibility change - reload messages when tab becomes visible
     const handleVisibilityChange = async () => {
@@ -230,7 +173,7 @@ export function HelpPage() {
           setMessages(arr);
           console.log('[client] Reloaded', arr.length, 'messages after tab became visible');
 
-          // Mark thread as active (socket handled globally in App.tsx)
+          // Mark thread as active
           try { localStorage.setItem('client:activeThreadId', String(threadIdRef.current)); } catch { }
         } catch (err) {
           console.error('[client] Failed to reload messages on visibility change:', err);
@@ -262,10 +205,8 @@ export function HelpPage() {
       window.removeEventListener('focus', onFocus);
       window.removeEventListener('blur', onBlur);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-
-      // Disconnect socket
-      socketRef.current?.disconnect();
-      console.log('[client] Socket disconnected');
+      window.removeEventListener('client:chatMessage', handleChatMessage);
+      window.removeEventListener('client:chatTyping', handleChatTyping);
 
       // Clear unread when leaving Help page
       try { localStorage.setItem('client:helpUnread', '0'); window.dispatchEvent(new CustomEvent('client:chatUnreadUpdated', { detail: 0 })); } catch { }
@@ -364,23 +305,29 @@ export function HelpPage() {
 
     setMessages(prev => [...prev, optimisticMessage]);
 
-    // Emit DIRECTLY via socket
-    socketRef.current?.emit('chat:send', { threadId, text: messageText });
-    console.log('[client] 📤 Message sent DIRECTLY');
+    // ⚡ Emit via App.tsx global socket using custom event
+    try {
+      window.dispatchEvent(new CustomEvent('client:emitMessage', { detail: { threadId, text: messageText } }));
+    } catch { }
+    console.log('[client] 📤 Message sent via global socket');
   };
 
-  // Emit typing DIRECTLY
+  // ⚡ Emit typing via App.tsx global socket
   const handleInputChange = (val: string) => {
     setInputMessage(val);
     const threadId = threadIdRef.current;
     if (!threadId) return;
 
-    // Emit DIRECTLY
-    socketRef.current?.emit('chat:typing', { threadId, typing: true });
+    // Emit via global socket
+    try {
+      window.dispatchEvent(new CustomEvent('client:emitTyping', { detail: { threadId, typing: true } }));
+    } catch { }
 
     if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
     typingTimerRef.current = window.setTimeout(() => {
-      socketRef.current?.emit('chat:typing', { threadId, typing: false });
+      try {
+        window.dispatchEvent(new CustomEvent('client:emitTyping', { detail: { threadId, typing: false } }));
+      } catch { }
     }, 1200);
   };
 
@@ -408,9 +355,6 @@ export function HelpPage() {
 
   return (
     <div className="pb-16 h-screen flex flex-col bg-gradient-to-b from-purple-50 via-blue-50 to-pink-50">
-      {/* Hidden audio for notifications */}
-      <audio ref={audioRef} src={new URL('../assets/sound/noti.mp3', import.meta.url).toString()} preload="auto" />
-
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 shadow-sm">
         <div className="flex items-center gap-3">

@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import { ScrollArea } from "../ui/scroll-area";
 import api from "../../services/api";
+import { getAdminSocket } from "./AdminLayout";
 import { io, Socket } from "socket.io-client";
 
 interface ChatThread {
@@ -171,9 +172,19 @@ export function AdminChatPage() {
 
   const connectSocket = () => {
     try {
-      const adminToken = typeof localStorage !== 'undefined' ? localStorage.getItem('adminToken') : null;
-      if (!adminToken) return;
-      const s = io(`${API_BASE}`, { auth: { adminToken } });
+      // ⚡ Use global admin socket from AdminLayout
+      let s = getAdminSocket();
+      
+      if (!s || !s.connected) {
+        const adminToken = typeof localStorage !== 'undefined' ? localStorage.getItem('adminToken') : null;
+        if (!adminToken) return;
+        const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:5000';
+        s = io(API_BASE, { auth: { adminToken } });
+        console.log('[AdminChatPage] Created fallback socket');
+      } else {
+        console.log('[AdminChatPage] Using global admin socket');
+      }
+      
       socketRef.current = s;
       s.on('connect', () => { });
       s.on('chat:message', (msg: any) => {
@@ -298,7 +309,8 @@ export function AdminChatPage() {
     loadThreads();
     connectSocket();
     return () => {
-      socketRef.current?.disconnect();
+      // ⚡ Don't disconnect - socket is shared globally
+      // socketRef.current?.disconnect();
     };
   }, []);
 
