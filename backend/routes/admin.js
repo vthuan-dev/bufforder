@@ -735,7 +735,7 @@ router.patch('/orders/:id/status', verifyAdminToken, async (req, res) => {
 });
 
 // Weekly Revenue Stats
-router.get('/weekly-revenue', verifyAdminToken, async (req, res) => {
+router.get('/dashboard/weekly-revenue', verifyAdminToken, async (req, res) => {
   try {
     const today = new Date();
     const weeklyData = [];
@@ -768,7 +768,7 @@ router.get('/weekly-revenue', verifyAdminToken, async (req, res) => {
 });
 
 // User Growth Stats
-router.get('/user-growth', verifyAdminToken, async (req, res) => {
+router.get('/dashboard/user-growth', verifyAdminToken, async (req, res) => {
   try {
     const today = new Date();
     const growthData = [];
