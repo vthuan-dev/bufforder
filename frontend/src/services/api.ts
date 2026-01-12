@@ -141,7 +141,7 @@ export default {
     return request('/admin/login', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
-      cache: false
+      cache: 'no-store'
     });
   },
   adminProfile() {

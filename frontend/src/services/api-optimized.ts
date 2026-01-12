@@ -275,7 +275,7 @@ export default {
     return request('/admin/login', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
-      cache: false
+      cache: 'no-store'
     });
   },
   
@@ -336,7 +336,7 @@ export default {
         'X-Idempotency-Key': idempotencyKey
       } as Record<string, string>,
       body: JSON.stringify({ product }),
-      cache: false,
+      cache: 'no-store',
       retry: 2 // Retry twice on failure
     });
   },
