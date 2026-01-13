@@ -580,6 +580,49 @@ export default {
       body: JSON.stringify({ currentPassword, newPassword })
     });
   },
+
+  // Products API (public)
+  getProducts() {
+    return request('/products', {
+      useCache: true,
+      cacheTTL: 60000 // Cache 1 minute
+    });
+  },
+
+  // Admin Products CRUD
+  adminListProducts({ page = 1, limit = 20, q = '', category = 'all', isActive = 'all' }: {
+    page?: number;
+    limit?: number;
+    q?: string;
+    category?: string;
+    isActive?: string;
+  } = {}) {
+    const params = new URLSearchParams();
+    params.set('page', String(page));
+    params.set('limit', String(limit));
+    if (q) params.set('q', q);
+    if (category !== 'all') params.set('category', category);
+    if (isActive !== 'all') params.set('isActive', isActive);
+    const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
+    return request(`/admin/products?${params.toString()}`, { headers });
+  },
+  adminGetProduct(id: number) {
+    const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
+    return request(`/admin/products/${id}`, { headers });
+  },
+  adminCreateProduct(data: { name: string; brand: string; category: string; price: number; image?: string; isActive?: boolean }) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json', ...adminTokenHeader() } as Record<string, string>;
+    return request('/admin/products', { method: 'POST', headers, body: JSON.stringify(data) });
+  },
+  adminUpdateProduct(id: number, data: { name?: string; brand?: string; category?: string; price?: number; image?: string; isActive?: boolean }) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json', ...adminTokenHeader() } as Record<string, string>;
+    return request(`/admin/products/${id}`, { method: 'PUT', headers, body: JSON.stringify(data) });
+  },
+  adminDeleteProduct(id: number) {
+    const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
+    return request(`/admin/products/${id}`, { method: 'DELETE', headers });
+  },
+
   adminGetSystemSettings() {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
     return request('/admin/settings/system', { headers });

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, lazy, Suspense } from "react";
 import { 
   MapPin, 
   Wallet, 
@@ -13,17 +13,29 @@ import {
   
 } from "lucide-react";
 import { motion } from "motion/react";
-import { ShippingAddressPage } from "./ShippingAddressPage";
-import { TopUpPage } from "./TopUpPage";
-import { WithdrawalPage } from "./WithdrawalPage";
-import { TransactionHistoryPage } from "./TransactionHistoryPage";
-import { BankCardPage } from "./BankCardPage";
-import { SecurityCenterPage } from "./SecurityCenterPage";
 import api from "../services/api";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { DEFAULT_VIP_THEME_KEY, normalizeVipId, vipThemes } from "../constants/vipThemes";
 
+// ⚡ Lazy load sub-pages for faster initial load
+const ShippingAddressPage = lazy(() => import('./ShippingAddressPage').then(m => ({ default: m.ShippingAddressPage })));
+const TopUpPage = lazy(() => import('./TopUpPage').then(m => ({ default: m.TopUpPage })));
+const WithdrawalPage = lazy(() => import('./WithdrawalPage').then(m => ({ default: m.WithdrawalPage })));
+const TransactionHistoryPage = lazy(() => import('./TransactionHistoryPage').then(m => ({ default: m.TransactionHistoryPage })));
+const BankCardPage = lazy(() => import('./BankCardPage').then(m => ({ default: m.BankCardPage })));
+const SecurityCenterPage = lazy(() => import('./SecurityCenterPage').then(m => ({ default: m.SecurityCenterPage })));
+
 type PageView = 'main' | 'address' | 'topup' | 'withdrawal' | 'history' | 'card' | 'security';
+
+// ⚡ Loading fallback component
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30">
+    <div className="text-center">
+      <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+      <p className="text-gray-600">Loading...</p>
+    </div>
+  </div>
+);
 
 export function MyPage() {
   const [currentView, setCurrentView] = useState<PageView>('main');
@@ -33,28 +45,26 @@ export function MyPage() {
   const [vipLabel, setVipLabel] = useState<string>(vipThemes[DEFAULT_VIP_THEME_KEY].label);
   const [vipTierId, setVipTierId] = useState<string>(DEFAULT_VIP_THEME_KEY);
 
+  // ⚡ Fetch data in parallel, not sequential
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await api.profile();
-        const user = res?.data?.user;
-        if (user) {
-          setAvailableBalance(Number(user.balance || 0));
-          setFreezeBalance(Number(user.freezeBalance || 0));
-          setUserId(String(user._id || '').toUpperCase());
-        }
-      } catch (e) {
-        // ignore, keep defaults
+    // Fire both requests simultaneously
+    const profilePromise = api.profile().catch(() => null);
+    const vipPromise = api.vipStatus().catch(() => null);
+
+    Promise.all([profilePromise, vipPromise]).then(([profileRes, vipRes]) => {
+      // Handle profile
+      const user = profileRes?.data?.user;
+      if (user) {
+        setAvailableBalance(Number(user.balance || 0));
+        setFreezeBalance(Number(user.freezeBalance || 0));
+        setUserId(String(user._id || user.id || '').toUpperCase());
       }
-      try {
-        const vs = await api.vipStatus();
-        const currentLevel = vs?.data?.currentLevel;
-        if (currentLevel?.name) setVipLabel(currentLevel.name);
-        else setVipLabel(vipThemes[DEFAULT_VIP_THEME_KEY].label);
-        if (currentLevel?.id) setVipTierId(String(currentLevel.id));
-        else setVipTierId(DEFAULT_VIP_THEME_KEY);
-      } catch {}
-    })();
+
+      // Handle VIP status
+      const currentLevel = vipRes?.data?.currentLevel;
+      if (currentLevel?.name) setVipLabel(currentLevel.name);
+      if (currentLevel?.id) setVipTierId(String(currentLevel.id));
+    });
   }, []);
 
   const menuItems = [
@@ -66,8 +76,9 @@ export function MyPage() {
     { id: 'security' as PageView, label: 'Security Center', icon: Shield, color: 'text-teal-600', bgColor: 'bg-gradient-to-br from-teal-50 to-teal-100' },
   ];
 
-  const normalizedVipKey = normalizeVipId(vipTierId);
-  const vipTheme = vipThemes[normalizedVipKey];
+  // ⚡ Memoize computed values
+  const normalizedVipKey = useMemo(() => normalizeVipId(vipTierId), [vipTierId]);
+  const vipTheme = useMemo(() => vipThemes[normalizedVipKey], [normalizedVipKey]);
   const vipDisplayLabel = vipLabel || vipTheme.label;
   const vipSubtitle = vipTheme.subtitle;
 
@@ -86,22 +97,22 @@ export function MyPage() {
 
   // Render different pages based on currentView
   if (currentView === 'address') {
-    return <ShippingAddressPage onBack={() => setCurrentView('main')} />;
+    return <Suspense fallback={<PageLoader />}><ShippingAddressPage onBack={() => setCurrentView('main')} /></Suspense>;
   }
   if (currentView === 'topup') {
-    return <TopUpPage onBack={() => setCurrentView('main')} />;
+    return <Suspense fallback={<PageLoader />}><TopUpPage onBack={() => setCurrentView('main')} /></Suspense>;
   }
   if (currentView === 'withdrawal') {
-    return <WithdrawalPage onBack={() => setCurrentView('main')} />;
+    return <Suspense fallback={<PageLoader />}><WithdrawalPage onBack={() => setCurrentView('main')} /></Suspense>;
   }
   if (currentView === 'history') {
-    return <TransactionHistoryPage onBack={() => setCurrentView('main')} />;
+    return <Suspense fallback={<PageLoader />}><TransactionHistoryPage onBack={() => setCurrentView('main')} /></Suspense>;
   }
   if (currentView === 'card') {
-    return <BankCardPage onBack={() => setCurrentView('main')} />;
+    return <Suspense fallback={<PageLoader />}><BankCardPage onBack={() => setCurrentView('main')} /></Suspense>;
   }
   if (currentView === 'security') {
-    return <SecurityCenterPage onBack={() => setCurrentView('main')} />;
+    return <Suspense fallback={<PageLoader />}><SecurityCenterPage onBack={() => setCurrentView('main')} /></Suspense>;
   }
 
   return (
@@ -189,7 +200,7 @@ export function MyPage() {
                     <motion.h2 
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.5 }}
+                      transition={{ delay: 0.1 }}
                       className={`text-xl font-semibold ${vipTheme.titleClass}`}
                     >
                       {vipDisplayLabel}
@@ -206,7 +217,7 @@ export function MyPage() {
                     <motion.div
                       initial={{ rotate: -180, opacity: 0 }}
                       animate={{ rotate: 0, opacity: 1 }}
-                      transition={{ delay: 0.6 }}
+                      transition={{ delay: 0.15 }}
                     >
                       <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
                     </motion.div>
@@ -214,7 +225,7 @@ export function MyPage() {
                   <motion.p 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: 0.65 }}
+                    transition={{ delay: 0.1 }}
                     className={`text-sm ${vipTheme.subtitleClass}`}
                   >
                     {vipSubtitle}
@@ -222,7 +233,7 @@ export function MyPage() {
                   <motion.p 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: 0.7 }}
+                    transition={{ delay: 0.1 }}
                     className={`text-xs font-medium ${vipTheme.idClass}`}
                   >
                     ID: {userId}
@@ -234,7 +245,7 @@ export function MyPage() {
                 <motion.div 
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.8 }}
+                  transition={{ delay: 0.15 }}
                   whileHover={{ scale: 1.03, y: -2 }}
                   className="bg-gradient-to-br from-emerald-400 to-teal-500 rounded-[1.5rem] p-5 shadow-lg relative overflow-hidden"
                 >
@@ -251,7 +262,7 @@ export function MyPage() {
                 <motion.div 
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.9 }}
+                  transition={{ delay: 0.2 }}
                   whileHover={{ scale: 1.03, y: -2 }}
                   className="bg-gradient-to-br from-orange-400 to-orange-500 rounded-[1.5rem] p-5 shadow-lg relative overflow-hidden"
                 >
@@ -285,7 +296,7 @@ export function MyPage() {
                 key={item.id}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ duration: 0.15, delay: index * 0.02 }}
+                transition={{ duration: 0.1, delay: index * 0.01 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleMenuClick(item.id)}
                 className={`w-full flex items-center gap-4 px-6 py-4 transition-all hover:bg-gray-50 active:bg-gray-100 ${
@@ -309,7 +320,7 @@ export function MyPage() {
         <motion.button
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 1.4 }}
+          transition={{ delay: 0.2 }}
           whileHover={{ scale: 1.02, y: -2 }}
           whileTap={{ scale: 0.98 }}
           className="w-full mt-6 mb-4 bg-gradient-to-r from-red-500 to-red-600 rounded-[1.5rem] shadow-xl px-6 py-4 flex items-center justify-center gap-3 text-white hover:shadow-2xl transition-all relative overflow-hidden group"

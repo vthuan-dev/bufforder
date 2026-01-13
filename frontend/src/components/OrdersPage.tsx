@@ -19,6 +19,16 @@ interface Product {
   image: string;
 }
 
+interface ProductFromAPI {
+  id: number;
+  name: string;
+  brand: string;
+  category: string;
+  price: number;
+  image: string | null;
+  isActive: boolean;
+}
+
 export function OrdersPage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showOrderPopup, setShowOrderPopup] = useState(false);
@@ -29,6 +39,10 @@ export function OrdersPage() {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [lastClientRequestId, setLastClientRequestId] = useState<string | null>(null);
 
+  // Products from API
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+
   // Daily stats with auto-reset at new day
   const [dailyCommission, setDailyCommission] = useState<number>(0);
   const [ordersReceived, setOrdersReceived] = useState<number>(0);
@@ -36,6 +50,30 @@ export function OrdersPage() {
   const [todaysTask, setTodaysTask] = useState<number>(0);
   const [completedToday, setCompletedToday] = useState<number>(0);
   const [totalOrdersLimit, setTotalOrdersLimit] = useState<number>(100);
+
+  // Fetch products from API
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await api.getProducts();
+        if (res.success && res.data) {
+          const apiProducts: Product[] = res.data.map((p: ProductFromAPI) => ({
+            id: String(p.id),
+            name: p.name,
+            brand: p.brand,
+            price: p.price,
+            commission: +(p.price * commissionRate).toFixed(2),
+            image: p.image || '',
+          }));
+          setProducts(apiProducts);
+        }
+      } catch (err) {
+        console.error('Failed to load products:', err);
+      } finally {
+        setLoadingProducts(false);
+      }
+    })();
+  }, [commissionRate]);
 
   useEffect(() => {
     const today = new Date();
@@ -132,37 +170,6 @@ export function OrdersPage() {
     "https://hoanghamobile.com/tin-tuc/wp-content/uploads/2023/09/hinh-nen-may-tinh-4k-cong-nghe-4.jpg"
   ];
 
-  // Diverse product catalog matching backend (provided list)
-  const allProducts = [
-    { id: 1, name: "Rolex Submariner", brand: "Rolex", category: "Watches", image: "https://24kara.com/files/sanpham/4581/1/jpg/dong-ho-rolex-submariner-date-40-m116613lb-0005-116613lb-0005-thep-oystersteel-va-vang-kim-18ct-mat-xanh-luot.jpg", price: 8500 },
-    { id: 2, name: "Omega Speedmaster", brand: "Omega", category: "Watches", image: "https://i.ebayimg.com/images/g/8QMAAeSw5YNoowXB/s-l1600.webp", price: 5500 },
-    { id: 3, name: "Patek Philippe Calatrava", brand: "Patek Philippe", category: "Watches", image: "https://i.ebayimg.com/images/g/srcAAeSwXdlopIOi/s-l1600.webp", price: 25000 },
-    { id: 4, name: "Audemars Piguet Royal Oak", brand: "Audemars Piguet", category: "Watches", image: "https://24kara.com/files/sanpham/31574/1/jpg/dong-ho-piaget-polo-perpetual-calendar-ultra-thin-g0a48006.jpg", price: 18000 },
-    { id: 5, name: "Cartier Santos", brand: "Cartier", category: "Watches", image: "https://bizweb.dktcdn.net/100/175/988/products/wro16ms27rb21aa-1-copy.jpg?v=1722223341387", price: 7200 },
-    { id: 21, name: "Hermès Birkin Bag", brand: "Hermès", category: "Handbags", image: "https://product.hstatic.net/200000465663/product/2b92308f-7d4c-4845-b8d3-7af5c333b83b_33d3cb42159a434a856ab0537f181c85_master.jpg", price: 15000 },
-    { id: 22, name: "Chanel Classic Flap", brand: "Chanel", category: "Handbags", image: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=500&h=500&fit=crop", price: 8500 },
-    { id: 31, name: "Balenciaga Triple S Sneakers", brand: "Balenciaga", category: "Shoes", image: "https://d3vfig6e0r0snz.cloudfront.net/rcYjnYuenaTH5vyDF/images/products/39728db5eed29247de6835853e910f6e.webp", price: 1200 },
-    { id: 32, name: "Off-White Air Jordan 1", brand: "Off-White", category: "Shoes", image: "https://i.ebayimg.com/images/g/~mMAAOSwIY1oEIlQ/s-l1600.webp", price: 1800 },
-    { id: 41, name: "Tiffany & Co. Diamond Ring", brand: "Tiffany & Co.", category: "Jewelry", image: "https://cdn.shopify.com/s/files/1/0097/1276/2940/products/Natural_Round_Cut_3_Row_Micro_Pave_Unique_Diamond_Engagement_Ring_Profile_View_White_Gold_Platinum_be378a38-79f3-4e1e-b901-ecaff3b22aa2.jpg?v=1651252990", price: 12000 },
-    { id: 42, name: "Cartier Love Bracelet", brand: "Cartier", category: "Jewelry", image: "https://d3vfig6e0r0snz.cloudfront.net/rcYjnYuenaTH5vyDF/images/products/858aa5f08d22028bf064340dcada0b9a.webp", price: 8500 },
-    { id: 51, name: "Hermès Silk Scarf", brand: "Hermès", category: "Accessories", image: "https://i.ebayimg.com/images/g/VowAAeSwgnBohkwK/s-l1600.webp", price: 450 },
-    { id: 52, name: "Gucci GG Belt", brand: "Gucci", category: "Accessories", image: "https://i.ebayimg.com/images/g/l7EAAeSwSORodzog/s-l1600.webp", price: 650 },
-    { id: 61, name: "Apple iPhone 17 Pro", brand: "Apple", category: "Electronics", image: "https://down-vn.img.susercontent.com/file/vn-11134207-820l4-megx9gfulgcmf4.webp", price: 1299 },
-    { id: 62, name: "Samsung Galaxy S24 Ultra", brand: "Samsung", category: "Electronics", image: "https://down-vn.img.susercontent.com/file/vn-11134207-7ras8-mdofu5fqmt2p5f.webp", price: 1199 },
-    { id: 63, name: "Sony WH-1000XM5 Headphones", brand: "Sony", category: "Electronics", image: "https://songlongmedia.com/media/product/3123_untitled.jpg", price: 399 },
-    { id: 71, name: "Dyson Supersonic Hair Dryer", brand: "Dyson", category: "Beauty", image: "https://dyson-h.assetsadobe2.com/is/image/content/dam/dyson/leap-petite-global/markets/vietnam/campaigns/pdp/hd16-kanzan-pink-case-storage-bag.png", price: 429 },
-    { id: 72, name: "La Mer Moisturizing Cream", brand: "La Mer", category: "Beauty", image: "https://down-vn.img.susercontent.com/file/vn-11134207-7r98o-lvyfnpdrsn2xba.webp", price: 345 },
-  ];
-
-  const products: Product[] = allProducts.map((p) => ({
-    id: String(p.id),
-    name: p.name,
-    brand: p.brand,
-    price: p.price,
-    commission: +(p.price * commissionRate).toFixed(2),
-    image: p.image,
-  }));
-
   // Auto-rotate carousel with performance optimization
   useEffect(() => {
     const interval = setInterval(() => {
@@ -214,6 +221,12 @@ export function OrdersPage() {
     if (!selectedProduct) return;
     if (submitting) {
       console.warn('[Orders] Confirm blocked: already submitting');
+      return;
+    }
+
+    // Check if user has enough balance
+    if (availableBalance < selectedProduct.price) {
+      toast.error(`Số dư không đủ! Cần $${selectedProduct.price.toLocaleString()} nhưng bạn chỉ có $${availableBalance.toFixed(2)}. Vui lòng nạp thêm tiền.`);
       return;
     }
 
@@ -368,7 +381,7 @@ export function OrdersPage() {
             <div className="relative z-10 flex items-center justify-center gap-2">
               <Package className="w-5 h-5" strokeWidth={2.5} />
               <span className="text-base">
-                {showOrderPopup || submitting ? 'Processing...' : 'Đặt hàng ngay'}
+                {showOrderPopup || submitting ? 'Processing...' : 'Submit'}
               </span>
             </div>
           </motion.button>
@@ -727,21 +740,21 @@ export function OrdersPage() {
                     {/* Action Buttons */}
                     <div className="flex gap-3">
                       <motion.button
-                        whileHover={{ scale: 1.02, y: -1 }}
+                        whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={handleCancelQueue}
-                        className="flex-1 py-3.5 rounded-2xl bg-white border border-gray-200 text-gray-700 shadow-sm hover:shadow-md hover:border-gray-300 transition-all"
+                        className="flex-1 py-3 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm"
                       >
                         Later
                       </motion.button>
                       <motion.button
-                        whileHover={{ scale: 1.02, y: -1 }}
+                        whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={handleConfirmOrder}
                         disabled={submitting}
-                        className={`flex-1 py-3.5 rounded-2xl text-white shadow-lg transition-all ${submitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-br from-gray-900 to-black hover:shadow-xl hover:shadow-gray-900/40 shadow-gray-900/30'}`}
+                        className={`flex-1 py-3 rounded-xl text-white text-sm ${submitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600'}`}
                       >
-                        {submitting ? 'Submitting...' : 'Submit Order'}
+                        {submitting ? 'Đang xử lý...' : 'Xác nhận đặt hàng'}
                       </motion.button>
                     </div>
                   </div>

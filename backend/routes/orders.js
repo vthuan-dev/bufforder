@@ -115,11 +115,16 @@ router.get('/stats', authenticateToken, async (req, res) => {
 router.post('/take', authenticateToken, async (req, res) => {
   try {
     const userId = req.userId;
+    console.log('[Orders/take] userId from token:', userId);
+    
     const clientProduct = req.body?.product;
     const clientRequestId = (req.headers['x-idempotency-key'] || req.body?.idempotencyKey || '').toString().trim() || null;
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
+    console.log('[Orders/take] user found:', user ? 'yes' : 'no');
+    
     if (!user) {
+      console.log('[Orders/take] User not found for id:', userId);
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 

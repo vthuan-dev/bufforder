@@ -890,4 +890,109 @@ router.get('/dashboard/user-growth', verifyAdminToken, async (req, res) => {
   }
 });
 
+// =====================
+// Products Management (Admin CRUD)
+// =====================
+router.get('/products', verifyAdminToken, async (req, res) => {
+  try {
+    const { page = 1, limit = 20, q = '', category = 'all', isActive = 'all' } = req.query;
+    const where = {};
+    
+    if (q) {
+      where.OR = [
+        { name: { contains: q } },
+        { brand: { contains: q } }
+      ];
+    }
+    if (category !== 'all') where.category = category;
+    if (isActive !== 'all') where.isActive = isActive === 'true';
+
+    const products = await prisma.product.findMany({
+      where,
+      orderBy: { id: 'asc' },
+      take: parseInt(limit),
+      skip: (parseInt(page) - 1) * parseInt(limit)
+    });
+
+    const total = await prisma.product.count({ where });
+
+    res.json({
+      success: true,
+      data: {
+        products,
+        pagination: { current: parseInt(page), pages: Math.ceil(total / parseInt(limit)), total }
+      }
+    });
+  } catch (error) {
+    console.error('List products error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+router.get('/products/:id', verifyAdminToken, async (req, res) => {
+  try {
+    const product = await prisma.product.findUnique({
+      where: { id: parseInt(req.params.id) }
+    });
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+    res.json({ success: true, data: product });
+  } catch (error) {
+    console.error('Get product error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+router.post('/products', verifyAdminToken, async (req, res) => {
+  try {
+    const { name, brand, category, price, image, isActive = true } = req.body;
+    
+    if (!name || !brand || !category || price === undefined) {
+      return res.status(400).json({ success: false, message: 'name, brand, category, price are required' });
+    }
+
+    const product = await prisma.product.create({
+      data: { name, brand, category, price: parseFloat(price), image, isActive }
+    });
+
+    res.status(201).json({ success: true, data: product });
+  } catch (error) {
+    console.error('Create product error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+router.put('/products/:id', verifyAdminToken, async (req, res) => {
+  try {
+    const { name, brand, category, price, image, isActive } = req.body;
+    const data = {};
+    
+    if (name !== undefined) data.name = name;
+    if (brand !== undefined) data.brand = brand;
+    if (category !== undefined) data.category = category;
+    if (price !== undefined) data.price = parseFloat(price);
+    if (image !== undefined) data.image = image;
+    if (isActive !== undefined) data.isActive = isActive;
+
+    const product = await prisma.product.update({
+      where: { id: parseInt(req.params.id) },
+      data
+    });
+
+    res.json({ success: true, data: product });
+  } catch (error) {
+    console.error('Update product error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+router.delete('/products/:id', verifyAdminToken, async (req, res) => {
+  try {
+    await prisma.product.delete({ where: { id: parseInt(req.params.id) } });
+    res.json({ success: true, message: 'Product deleted successfully' });
+  } catch (error) {
+    console.error('Delete product error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 module.exports = router;

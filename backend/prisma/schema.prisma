@@ -22,10 +22,7 @@ model User {
   lastSeenAt        DateTime?
   inviteCodeUsed    String?
   
-  // Commission Config (Stored as JSON for flexibility)
   commissionConfig  Json?     @default("{\"perOrderAmount\": null, \"dailyTarget\": null, \"baseRate\": null, \"dailyProfitMode\": \"fixed\"}")
-  
-  // Daily Earnings (Stored as JSON)
   dailyEarnings     Json?     @default("{\"dateKey\": null, \"totalCommission\": 0, \"ordersCount\": 0, \"mode\": \"fixed\", \"targetTotal\": 0}")
 
   addresses         Address[]
@@ -40,6 +37,7 @@ model User {
 
   @@index([phoneNumber])
   @@index([fullName])
+  @@map("user")
 }
 
 model Address {
@@ -54,6 +52,7 @@ model Address {
   isDefault     Boolean @default(false)
 
   @@index([userId])
+  @@map("address")
 }
 
 model BankCard {
@@ -66,6 +65,7 @@ model BankCard {
   isDefault     Boolean @default(false)
 
   @@index([userId])
+  @@map("bankcard")
 }
 
 model Order {
@@ -90,8 +90,9 @@ model Order {
   updatedAt        DateTime  @updatedAt
 
   @@unique([userId, clientRequestId])
-  @@index([userId, orderDate(sort: Desc)])
+  @@index([userId, orderDate])
   @@index([status])
+  @@map("order")
 }
 
 model Admin {
@@ -107,6 +108,8 @@ model Admin {
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
+  @@map("admin")
 }
 
 model ChatThread {
@@ -124,8 +127,9 @@ model ChatThread {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
-  @@index([userId, lastMessageAt(sort: Desc)])
+  @@index([userId, lastMessageAt])
   @@index([lastMessageAt])
+  @@map("chatthread")
 }
 
 model ChatMessage {
@@ -147,6 +151,7 @@ model ChatMessage {
   updatedAt         DateTime   @updatedAt
 
   @@index([threadId])
+  @@map("chatmessage")
 }
 
 model DepositRequest {
@@ -165,7 +170,8 @@ model DepositRequest {
   updatedAt       DateTime  @updatedAt
 
   @@index([userId, status])
-  @@index([status, requestDate(sort: Desc)])
+  @@index([status, requestDate])
+  @@map("depositrequest")
 }
 
 model WithdrawalRequest {
@@ -185,5 +191,23 @@ model WithdrawalRequest {
   updatedAt       DateTime  @updatedAt
 
   @@index([userId, status])
-  @@index([status, requestDate(sort: Desc)])
+  @@index([status, requestDate])
+  @@map("withdrawalrequest")
+}
+
+model Product {
+  id          Int       @id @default(autoincrement())
+  name        String
+  brand       String
+  category    String
+  price       Float
+  image       String?   @db.Text
+  isActive    Boolean   @default(true)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+  @@map("product")
 }

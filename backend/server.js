@@ -13,6 +13,7 @@ const vipRoutes = require('./routes/vip');
 const orderRoutes = require('./routes/orders');
 const adminRoutes = require('./routes/admin');
 const chatRoutes = require('./routes/chat');
+const productRoutes = require('./routes/products');
 
 const app = express();
 const server = http.createServer(app);
@@ -113,6 +114,7 @@ app.use('/api/vip', vipRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/products', productRoutes);
 
 // Image proxy
 app.get('/api/image-proxy', async (req, res) => {
@@ -291,11 +293,21 @@ io.on('connection', (socket) => {
       if (current <= 1) {
         onlineUsers.delete(uid);
         try {
-          await prisma.user.update({
+          // Check if user exists before updating
+          const userExists = await prisma.user.findUnique({
             where: { id: uid },
-            data: { lastSeenAt: new Date() }
+            select: { id: true }
           });
-        } catch { }
+          
+          if (userExists) {
+            await prisma.user.update({
+              where: { id: uid },
+              data: { lastSeenAt: new Date() }
+            });
+          }
+        } catch (err) {
+          // Silently ignore - user might have been deleted
+        }
         try { io.to('admins').emit('presence:update', { userId: uid, online: false }); } catch { }
       } else {
         onlineUsers.set(uid, current - 1);
