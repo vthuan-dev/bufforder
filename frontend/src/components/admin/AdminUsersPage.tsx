@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Search, Plus, MoreHorizontal, Edit, Trash2, Eye, Filter } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Search, Plus, MoreHorizontal, Edit, Trash2, Eye, Filter, User, Phone, Mail, DollarSign, Shield, Target, TrendingUp, Calendar, Lock, CheckCircle2, XCircle } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { toast } from "sonner";
 import {
@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Dialog, DialogContent } from "../ui/dialog";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
@@ -64,6 +64,8 @@ export function AdminUsersPage() {
   const [createPassword, setCreatePassword] = useState("");
   const [creating, setCreating] = useState(false);
   const [createConfirmPassword, setCreateConfirmPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveTime, setSaveTime] = useState<number | null>(null);
   // Commission settings state (simplified)
   const [commissionPerOrder, setCommissionPerOrder] = useState<string>("");
   const [commissionDailyTarget, setCommissionDailyTarget] = useState<string>("");
@@ -72,7 +74,7 @@ export function AdminUsersPage() {
   const [dailyOrdersCount, setDailyOrdersCount] = useState<string>('');
 
   const mapBackendUser = (u: any): UserRow => ({
-    id: u._id,
+    id: u.id || u._id, // Support both Prisma (id) and MongoDB (_id)
     name: u.fullName || u.username || "Unknown",
     email: u.email || "",
     phone: u.phoneNumber || "",
@@ -151,6 +153,19 @@ export function AdminUsersPage() {
   };
   const handleSave = async () => {
     if (!selectedUser) return;
+    setSaving(true);
+    setSaveTime(null);
+    
+    // Start countdown from 3
+    let countdown = 3;
+    setSaveTime(countdown);
+    const countdownInterval = setInterval(() => {
+      countdown--;
+      if (countdown >= 0) {
+        setSaveTime(countdown);
+      }
+    }, 1000);
+
     try {
       const payload: any = {
         fullName: formFullName,
@@ -158,20 +173,42 @@ export function AdminUsersPage() {
         balance: Number(formBalance),
         isActive: formStatus === "Active",
       };
-      await api.adminUpdateUser(selectedUser.id, payload);
-      // Save simplified commission config
-      const commissionConfig: any = {
-        perOrderAmount: commissionPerOrder !== '' ? Number(commissionPerOrder) : null,
-        dailyTarget: commissionDailyTarget !== '' ? Number(commissionDailyTarget) : null,
-      };
-      await api.adminUpdateUserCommissionConfig(selectedUser.id, commissionConfig);
-      // refresh list and close dialog
+      
+      // Run API calls in parallel with minimum 3s delay
+      const [, ,] = await Promise.all([
+        api.adminUpdateUser(selectedUser.id, payload),
+        api.adminUpdateUserCommissionConfig(selectedUser.id, {
+          perOrderAmount: commissionPerOrder !== '' ? Number(commissionPerOrder) : null,
+          dailyTarget: commissionDailyTarget !== '' ? Number(commissionDailyTarget) : null,
+        }),
+        new Promise(resolve => setTimeout(resolve, 3000)) // Minimum 3s delay
+      ]);
+      
+      clearInterval(countdownInterval);
+      setSaveTime(0);
+      
+      // refresh list
       await loadUsers();
-      setEditDialogOpen(false);
       toast.success('User updated successfully!');
+      
+      // Auto close after success
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     } catch (e: any) {
+      clearInterval(countdownInterval);
       toast.error(e?.message || 'Failed to update user');
+    } finally {
+      setSaving(false);
     }
+  };
+
+  const handleCloseEditDialog = (open: boolean) => {
+    if (!open) {
+      // Reload page when closing modal
+      window.location.reload();
+    }
+    setEditDialogOpen(open);
   };
 
   const handleView = (user: UserRow) => {
@@ -352,218 +389,489 @@ export function AdminUsersPage() {
         </div>
       </div>
 
-      {/* Edit User Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-md max-h-[85vh]">
-          <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-          </DialogHeader>
-          <div className="max-h-[70vh] overflow-y-auto pr-1">
-            {selectedUser && (
-              <div className="space-y-4 pb-2">
-                <div>
-                  <Label>Full Name</Label>
-                  <Input value={formFullName} onChange={(e) => setFormFullName(e.target.value)} />
-                </div>
-                <div>
-                  <Label>Phone</Label>
-                  <Input value={formPhone} onChange={(e) => setFormPhone(e.target.value)} />
-                </div>
-                <div>
-                  <Label>Balance</Label>
-                  <Input type="number" value={formBalance} onChange={(e) => setFormBalance(e.target.value)} />
-                </div>
-                <div>
-                  <Label>Status</Label>
-                  <Select value={formStatus} onValueChange={(v: any) => setFormStatus(v)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Active">Active</SelectItem>
-                      <SelectItem value="Suspended">Suspended</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Commission settings - SIMPLIFIED */}
-                <div className="pt-2 border-t">
-                  <h3 className="text-gray-900 mb-2">Cài đặt hoa hồng</h3>
-                  <p className="text-xs text-gray-500 mb-3">Để trống để sử dụng giá trị mặc định theo VIP level</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label>Hoa hồng mỗi đơn ($)</Label>
-                      <Input
-                        type="number"
-                        placeholder="VD: 4.50"
-                        value={commissionPerOrder}
-                        onChange={(e) => setCommissionPerOrder(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label>Mục tiêu ngày ($)</Label>
-                      <Input
-                        type="number"
-                        placeholder="VD: 270"
-                        value={commissionDailyTarget}
-                        onChange={(e) => setCommissionDailyTarget(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Today read-only */}
-                  <div className="mt-3 bg-gray-50 rounded-lg p-3 text-sm">
-                    <p className="text-gray-700 font-medium">Hôm nay</p>
-                    <div className="grid grid-cols-2 gap-2 mt-2">
-                      <div>
-                        <span className="text-gray-500">Đã kiếm: </span>
-                        <span className="text-green-600 font-medium">${dailyEarnedSoFar || '0'}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Đơn hàng: </span>
-                        <span className="text-gray-900">{dailyOrdersCount || '0'}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-2 pt-4">
-                  <Button onClick={() => setEditDialogOpen(false)} variant="outline" className="flex-1">
-                    Cancel
-                  </Button>
-                  <Button onClick={handleSave} className="flex-1 bg-blue-600">
-                    Save Changes
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Create User Dialog */}
-      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="sm:max-w-md max-h-[85vh]">
-          <DialogHeader>
-            <DialogTitle>Add User</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
-            <div>
-              <Label>Full Name</Label>
-              <Input value={createFullName} onChange={(e) => setCreateFullName(e.target.value)} />
-            </div>
-            <div>
-              <Label>Email</Label>
-              <Input type="email" value={createEmail} onChange={(e) => setCreateEmail(e.target.value)} />
-            </div>
-            <div>
-              <Label>Phone</Label>
-              <Input value={createPhone} onChange={(e) => setCreatePhone(e.target.value)} />
-            </div>
-            <div>
-              <Label>Password</Label>
-              <Input type="password" value={createPassword} onChange={(e) => setCreatePassword(e.target.value)} />
-            </div>
-            <div>
-              <Label>Confirm Password</Label>
-              <Input type="password" value={createConfirmPassword} onChange={(e) => setCreateConfirmPassword(e.target.value)} />
-            </div>
-            <div className="flex gap-2 pt-4">
-              <Button onClick={() => setCreateDialogOpen(false)} variant="outline" className="flex-1">
-                Cancel
-              </Button>
-              <Button
-                onClick={async () => {
-                  if (!createFullName || !createEmail || !createPassword) {
-                    toast.error('Please fill required fields');
-                    return;
-                  }
-                  if (createPassword !== createConfirmPassword) {
-                    toast.error('Passwords do not match');
-                    return;
-                  }
-                  try {
-                    setCreating(true);
-                    await api.adminCreateUser({ fullName: createFullName, email: createEmail, phoneNumber: createPhone, password: createPassword });
-                    setCreateDialogOpen(false);
-                    setCreateFullName(''); setCreateEmail(''); setCreatePhone(''); setCreatePassword(''); setCreateConfirmPassword('');
-                    await loadUsers();
-                    toast.success('User created successfully!');
-                  } catch (e: any) {
-                    toast.error(e?.message || 'Failed to create user');
-                  } finally {
-                    setCreating(false);
-                  }
-                }}
-                className="flex-1 bg-blue-600"
-                disabled={creating || !createFullName || !createEmail || !createPassword || createPassword !== createConfirmPassword}
-              >
-                {creating ? 'Creating...' : 'Create User'}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* View User Dialog */}
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="sm:max-w-md max-h-[85vh]">
-          <DialogHeader>
-            <DialogTitle>User Details</DialogTitle>
-          </DialogHeader>
-          <div className="max-h-[70vh] overflow-y-auto pr-1">
-            {selectedUser && (
-              <div className="space-y-4 pb-2">
-                <div className="flex items-center gap-4 pb-4 border-b">
-                  <Avatar className="w-16 h-16">
+      {/* Edit User Dialog - Redesigned */}
+      <Dialog open={editDialogOpen} onOpenChange={handleCloseEditDialog}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] p-0 overflow-hidden [&>button]:text-white [&>button]:hover:text-white">
+          {selectedUser && (
+            <>
+              {/* Header */}
+              <div className="bg-blue-600 px-6 py-5">
+                <div className="flex items-center gap-4">
+                  <Avatar className="w-16 h-16 border-3 border-white/30 shadow-lg">
                     <AvatarImage src="" />
-                    <AvatarFallback className="bg-blue-100 text-blue-600 text-xl">
-                      {selectedUser.name.split(" ").map((n) => n[0]).join("")}
+                    <AvatarFallback className="bg-white/20 text-white text-xl font-semibold">
+                      {selectedUser.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <h3 className="text-gray-900">{selectedUser.name}</h3>
-                    <p className="text-sm text-gray-600">{selectedUser.email}</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Phone</p>
-                    <p className="text-gray-900">{selectedUser.phone}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">VIP Level</p>
-                    <Badge variant="secondary" className="bg-gradient-to-r from-purple-500 to-blue-500 text-white">
-                      {selectedUser.vipLevel}
-                    </Badge>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Balance</p>
-                    <p className="text-gray-900">${selectedUser.balance.toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Status</p>
-                    <Badge
-                      variant="secondary"
-                      className={
-                        selectedUser.status === "Active"
-                          ? "bg-green-100 text-green-700"
-                          : selectedUser.status === "Pending"
-                            ? "bg-orange-100 text-orange-700"
-                            : "bg-red-100 text-red-700"
-                      }
-                    >
-                      {selectedUser.status}
-                    </Badge>
-                  </div>
-                  <div className="col-span-2">
-                    <p className="text-sm text-gray-600 mb-1">Join Date</p>
-                    <p className="text-gray-900">{selectedUser.joinDate}</p>
+                  <div className="flex-1">
+                    <h2 className="text-white text-lg font-semibold">{selectedUser.name}</h2>
+                    <p className="text-white/80 text-sm">{selectedUser.email}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge className="bg-white/20 text-white text-xs border-0">
+                        {selectedUser.vipLevel.toUpperCase()}
+                      </Badge>
+                      <Badge className={`text-xs border-0 ${selectedUser.status === 'Active' ? 'bg-green-400/30 text-green-100' : 'bg-red-400/30 text-red-100'}`}>
+                        {selectedUser.status}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
               </div>
-            )}
+
+              {/* Form Content */}
+              <div className="px-6 py-4 max-h-[55vh] overflow-y-auto">
+                {/* Personal Info Section */}
+                <div className="mb-5">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <User className="w-4 h-4 text-blue-500" />
+                    Personal Information
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <Label className="text-xs text-gray-500 mb-1 block">Full Name</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Input 
+                          value={formFullName} 
+                          onChange={(e) => setFormFullName(e.target.value)} 
+                          className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+                          placeholder="Enter full name"
+                        />
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <Label className="text-xs text-gray-500 mb-1 block">Phone Number</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Input 
+                          value={formPhone} 
+                          onChange={(e) => setFormPhone(e.target.value)} 
+                          className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+                          placeholder="Enter phone number"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Account Section */}
+                <div className="mb-5">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-purple-500" />
+                    Account Settings
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs text-gray-500 mb-1 block">Balance ($)</Label>
+                      <div className="relative">
+                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Input 
+                          type="number" 
+                          value={formBalance} 
+                          onChange={(e) => setFormBalance(e.target.value)} 
+                          className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-500 mb-1 block">Status</Label>
+                      <Select value={formStatus} onValueChange={(v: any) => setFormStatus(v)}>
+                        <SelectTrigger className="h-11 bg-gray-50 border-gray-200">
+                          <div className="flex items-center gap-2">
+                            {formStatus === 'Active' ? (
+                              <CheckCircle2 className="w-4 h-4 text-green-500" />
+                            ) : (
+                              <XCircle className="w-4 h-4 text-red-500" />
+                            )}
+                            <SelectValue />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Active">
+                            <span className="flex items-center gap-2">
+                              <CheckCircle2 className="w-4 h-4 text-green-500" />
+                              Active
+                            </span>
+                          </SelectItem>
+                          <SelectItem value="Suspended">
+                            <span className="flex items-center gap-2">
+                              <XCircle className="w-4 h-4 text-red-500" />
+                              Suspended
+                            </span>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Commission Section */}
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-green-500" />
+                    Commission Settings
+                  </h3>
+                  <p className="text-xs text-gray-400 mb-3">Leave empty to use VIP level defaults</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs text-gray-500 mb-1 block">Per Order ($)</Label>
+                      <div className="relative">
+                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Input
+                          type="number"
+                          placeholder="4.50"
+                          value={commissionPerOrder}
+                          onChange={(e) => setCommissionPerOrder(e.target.value)}
+                          className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-500 mb-1 block">Daily Target ($)</Label>
+                      <div className="relative">
+                        <Target className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Input
+                          type="number"
+                          placeholder="270"
+                          value={commissionDailyTarget}
+                          onChange={(e) => setCommissionDailyTarget(e.target.value)}
+                          className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Today Stats Card */}
+                  <div className="mt-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
+                    <p className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      Today's Performance
+                    </p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-green-600">Earned</p>
+                        <p className="text-lg font-bold text-green-700">${dailyEarnedSoFar || '0'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-green-600">Orders</p>
+                        <p className="text-lg font-bold text-green-700">{dailyOrdersCount || '0'}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="px-6 py-4 bg-gray-50 border-t flex gap-3">
+                <Button 
+                  onClick={() => handleCloseEditDialog(false)} 
+                  variant="outline" 
+                  className="flex-1 h-11" 
+                  disabled={saving}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSave} 
+                  className="flex-1 h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700" 
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Saving... {saveTime !== null && saveTime > 0 ? `${saveTime}s` : ''}
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4" />
+                      Save Changes
+                    </span>
+                  )}
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Create User Dialog - Redesigned */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] p-0 overflow-hidden [&>button]:text-white [&>button]:hover:text-white">
+          {/* Header */}
+          <div className="bg-green-600 px-6 py-5">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
+                <Plus className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h2 className="text-white text-lg font-semibold">Create New User</h2>
+                <p className="text-white/80 text-sm">Add a new user to the system</p>
+              </div>
+            </div>
           </div>
+
+          {/* Form Content */}
+          <div className="px-6 py-4 max-h-[55vh] overflow-y-auto">
+            {/* Personal Info Section */}
+            <div className="mb-5">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <User className="w-4 h-4 text-blue-500" />
+                Personal Information
+              </h3>
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs text-gray-500 mb-1 block">
+                    Full Name <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input 
+                      value={createFullName} 
+                      onChange={(e) => setCreateFullName(e.target.value)} 
+                      className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+                      placeholder="Enter full name"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500 mb-1 block">
+                    Email <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input 
+                      type="email" 
+                      value={createEmail} 
+                      onChange={(e) => setCreateEmail(e.target.value)} 
+                      className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+                      placeholder="user@example.com"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500 mb-1 block">Phone Number</Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input 
+                      value={createPhone} 
+                      onChange={(e) => setCreatePhone(e.target.value)} 
+                      className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+                      placeholder="Enter phone number"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Security Section */}
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <Lock className="w-4 h-4 text-purple-500" />
+                Security
+              </h3>
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs text-gray-500 mb-1 block">
+                    Password <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input 
+                      type="password" 
+                      value={createPassword} 
+                      onChange={(e) => setCreatePassword(e.target.value)} 
+                      className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+                      placeholder="Enter password"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500 mb-1 block">
+                    Confirm Password <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input 
+                      type="password" 
+                      value={createConfirmPassword} 
+                      onChange={(e) => setCreateConfirmPassword(e.target.value)} 
+                      className={`pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors ${
+                        createConfirmPassword && createPassword !== createConfirmPassword 
+                          ? 'border-red-300 focus:ring-red-500' 
+                          : createConfirmPassword && createPassword === createConfirmPassword
+                            ? 'border-green-300 focus:ring-green-500'
+                            : ''
+                      }`}
+                      placeholder="Confirm password"
+                    />
+                    {createConfirmPassword && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        {createPassword === createConfirmPassword ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-red-500" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {createConfirmPassword && createPassword !== createConfirmPassword && (
+                    <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer Actions */}
+          <div className="px-6 py-4 bg-gray-50 border-t flex gap-3">
+            <Button 
+              onClick={() => setCreateDialogOpen(false)} 
+              variant="outline" 
+              className="flex-1 h-11"
+              disabled={creating}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!createFullName || !createEmail || !createPassword) {
+                  toast.error('Please fill required fields');
+                  return;
+                }
+                if (createPassword !== createConfirmPassword) {
+                  toast.error('Passwords do not match');
+                  return;
+                }
+                try {
+                  setCreating(true);
+                  await api.adminCreateUser({ fullName: createFullName, email: createEmail, phoneNumber: createPhone, password: createPassword });
+                  setCreateDialogOpen(false);
+                  const createdName = createFullName;
+                  setCreateFullName(''); setCreateEmail(''); setCreatePhone(''); setCreatePassword(''); setCreateConfirmPassword('');
+                  await loadUsers();
+                  toast.success(`User "${createdName}" created successfully!`, {
+                    description: 'The new user can now login to the system.',
+                    duration: 4000,
+                  });
+                } catch (e: any) {
+                  toast.error(e?.message || 'Failed to create user');
+                } finally {
+                  setCreating(false);
+                }
+              }}
+              className="flex-1 h-11 bg-green-600 hover:bg-green-700 text-white"
+              disabled={creating || !createFullName || !createEmail || !createPassword || createPassword !== createConfirmPassword}
+            >
+              {creating ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Creating...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <Plus className="w-4 h-4" />
+                  Create User
+                </span>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* View User Dialog - Redesigned */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] p-0 overflow-hidden [&>button]:text-white [&>button]:hover:text-white">
+          {selectedUser && (
+            <>
+              {/* Header */}
+              <div className="bg-purple-600 px-6 py-6">
+                <div className="flex items-center gap-4">
+                  <Avatar className="w-20 h-20 border-4 border-white/30 shadow-xl">
+                    <AvatarImage src="" />
+                    <AvatarFallback className="bg-white/20 text-white text-2xl font-bold">
+                      {selectedUser.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <h2 className="text-white text-xl font-bold">{selectedUser.name}</h2>
+                    <p className="text-white/80 text-sm">{selectedUser.email}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge className="bg-white/20 text-white border-0 px-3">
+                        {selectedUser.vipLevel.toUpperCase()}
+                      </Badge>
+                      <Badge className={`border-0 px-3 ${selectedUser.status === 'Active' ? 'bg-green-400/30 text-green-100' : 'bg-red-400/30 text-red-100'}`}>
+                        {selectedUser.status}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Details Content */}
+              <div className="px-6 py-5">
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Phone */}
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Phone className="w-4 h-4 text-blue-500" />
+                      <span className="text-xs text-gray-500">Phone</span>
+                    </div>
+                    <p className="text-gray-900 font-medium">{selectedUser.phone || 'Not set'}</p>
+                  </div>
+
+                  {/* Balance */}
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
+                    <div className="flex items-center gap-2 mb-2">
+                      <DollarSign className="w-4 h-4 text-green-500" />
+                      <span className="text-xs text-green-600">Balance</span>
+                    </div>
+                    <p className="text-green-700 font-bold text-lg">${selectedUser.balance.toFixed(2)}</p>
+                  </div>
+
+                  {/* VIP Level */}
+                  <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl p-4 border border-purple-100">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Shield className="w-4 h-4 text-purple-500" />
+                      <span className="text-xs text-purple-600">VIP Level</span>
+                    </div>
+                    <Badge className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white border-0">
+                      {selectedUser.vipLevel.toUpperCase()}
+                    </Badge>
+                  </div>
+
+                  {/* Join Date */}
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span className="text-xs text-gray-500">Join Date</span>
+                    </div>
+                    <p className="text-gray-900 font-medium">{selectedUser.joinDate}</p>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3 mt-5">
+                  <Button 
+                    onClick={() => {
+                      setViewDialogOpen(false);
+                      handleEdit(selectedUser);
+                    }} 
+                    className="flex-1 h-11 bg-gradient-to-r from-blue-600 to-indigo-600"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit User
+                  </Button>
+                  <Button 
+                    onClick={() => setViewDialogOpen(false)} 
+                    variant="outline" 
+                    className="flex-1 h-11"
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
