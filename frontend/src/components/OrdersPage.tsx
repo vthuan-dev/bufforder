@@ -185,6 +185,12 @@ export function OrdersPage() {
       return;
     }
 
+    // Check if products loaded
+    if (loadingProducts || products.length === 0) {
+      toast.error('Products are loading. Please wait...');
+      return;
+    }
+
     setShowOrderPopup(true);
     setProgress(0);
 
@@ -206,6 +212,13 @@ export function OrdersPage() {
       if (currentStep >= 100) {
         clearInterval(interval);
         // Random select a product after loading completes
+        if (products.length === 0) {
+          console.error('[Orders] No products available');
+          toast.error('No products available. Please try again later.');
+          setShowOrderPopup(false);
+          setProgress(0);
+          return;
+        }
         const randomProduct = products[Math.floor(Math.random() * products.length)];
         setSelectedProduct(randomProduct);
         // Generate a stable order number for this popup session
@@ -226,7 +239,7 @@ export function OrdersPage() {
 
     // Check if user has enough balance
     if (availableBalance < selectedProduct.price) {
-      toast.error(`Số dư không đủ! Cần $${selectedProduct.price.toLocaleString()} nhưng bạn chỉ có $${availableBalance.toFixed(2)}. Vui lòng nạp thêm tiền.`);
+      toast.error(`Insufficient balance! Need $${selectedProduct.price.toLocaleString()} but you only have $${availableBalance.toFixed(2)}. Please top up.`);
       return;
     }
 
@@ -368,11 +381,11 @@ export function OrdersPage() {
       <div className="px-4 pt-4">
         <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 rounded-2xl p-4 shadow-inner">
           <motion.button
-            whileHover={(!showOrderPopup && !submitting) ? { scale: 1.02 } : {}}
-            whileTap={(!showOrderPopup && !submitting) ? { scale: 0.98 } : {}}
+            whileHover={(!showOrderPopup && !submitting && !loadingProducts) ? { scale: 1.02 } : {}}
+            whileTap={(!showOrderPopup && !submitting && !loadingProducts) ? { scale: 0.98 } : {}}
             onClick={handleTakeOrder}
-            disabled={showOrderPopup || submitting}
-            className={`w-full py-3 rounded-xl shadow-lg transition-all relative overflow-hidden group ${showOrderPopup || submitting
+            disabled={showOrderPopup || submitting || loadingProducts}
+            className={`w-full py-3 rounded-xl shadow-lg transition-all relative overflow-hidden group ${showOrderPopup || submitting || loadingProducts
               ? 'bg-gray-400 cursor-not-allowed opacity-50'
               : 'bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 text-white hover:shadow-blue-500/50'
               }`}
@@ -381,12 +394,12 @@ export function OrdersPage() {
             <div className="relative z-10 flex items-center justify-center gap-2">
               <Package className="w-5 h-5" strokeWidth={2.5} />
               <span className="text-base">
-                {showOrderPopup || submitting ? 'Processing...' : 'Submit'}
+                {loadingProducts ? 'Loading...' : (showOrderPopup || submitting ? 'Processing...' : 'Submit')}
               </span>
             </div>
           </motion.button>
           <p className="text-center text-xs text-gray-500 mt-2">
-            Nhấn vào nút để đặt hàng ngay bây giờ
+            Click the button to place an order now
           </p>
         </div>
       </div>
@@ -398,8 +411,8 @@ export function OrdersPage() {
           <div className="bg-white rounded-lg p-2 shadow-sm border border-gray-100 flex items-center gap-2">
             <img src={imgEarned} alt="Earned" className="w-10 h-10 object-contain" />
             <div>
-              <p className="text-[9px] text-gray-500 leading-tight">Hoa hồng kiếm được</p>
-              <p className="text-xs font-semibold text-red-500">{dailyCommission.toFixed(2)} đô la</p>
+              <p className="text-[9px] text-gray-500 leading-tight">Commission Earned</p>
+              <p className="text-xs font-semibold text-red-500">{dailyCommission.toFixed(2)} USD</p>
             </div>
           </div>
 
@@ -407,8 +420,8 @@ export function OrdersPage() {
           <div className="bg-white rounded-lg p-2 shadow-sm border border-gray-100 flex items-center gap-2">
             <img src={imgAvailable} alt="Available" className="w-10 h-10 object-contain" />
             <div>
-              <p className="text-[9px] text-gray-500 leading-tight">Số dư khả dụng</p>
-              <p className="text-xs font-semibold text-red-500">{availableBalance.toFixed(2)} đô la</p>
+              <p className="text-[9px] text-gray-500 leading-tight">Available Balance</p>
+              <p className="text-xs font-semibold text-red-500">{availableBalance.toFixed(2)} USD</p>
             </div>
           </div>
 
@@ -416,7 +429,7 @@ export function OrdersPage() {
           <div className="bg-white rounded-lg p-2 shadow-sm border border-gray-100 flex items-center gap-2">
             <img src={imgToday} alt="Today" className="w-10 h-10 object-contain" />
             <div>
-              <p className="text-[9px] text-gray-500 leading-tight">Nhiệm vụ hôm nay</p>
+              <p className="text-[9px] text-gray-500 leading-tight">Today's Tasks</p>
               <p className="text-xs font-semibold text-red-500">{todaysTask.toFixed(2)}</p>
             </div>
           </div>
@@ -425,7 +438,7 @@ export function OrdersPage() {
           <div className="bg-white rounded-lg p-2 shadow-sm border border-gray-100 flex items-center gap-2">
             <img src={imgCompleted} alt="Completed" className="w-10 h-10 object-contain" />
             <div>
-              <p className="text-[9px] text-gray-500 leading-tight">Hoàn thành hôm nay</p>
+              <p className="text-[9px] text-gray-500 leading-tight">Completed Today</p>
               <p className="text-xs font-semibold text-red-500">{completedToday}</p>
             </div>
           </div>
@@ -434,7 +447,7 @@ export function OrdersPage() {
         {/* Progress Bar - More Compact */}
         <div className="bg-white rounded-lg p-2 mt-2 shadow-sm border border-gray-100">
           <div className="flex justify-between items-center mb-1">
-            <p className="text-[10px] text-gray-600">Đơn hàng đã nhận</p>
+            <p className="text-[10px] text-gray-600">Orders Received</p>
             <p className="text-[10px] font-semibold text-red-500">{ordersReceived} / {totalOrdersLimit}</p>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-1">
@@ -448,7 +461,7 @@ export function OrdersPage() {
 
       {/* Products List */}
       <div className="px-4 pb-4">
-        <p className="text-sm font-medium text-gray-700 mb-3">Sản phẩm có sẵn</p>
+        <p className="text-sm font-medium text-gray-700 mb-3">Available Products</p>
         <div className="grid grid-cols-2 gap-2">
           {products.map((product, index) => (
             <motion.div
@@ -754,7 +767,7 @@ export function OrdersPage() {
                         disabled={submitting}
                         className={`flex-1 py-3 rounded-xl text-white text-sm ${submitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600'}`}
                       >
-                        {submitting ? 'Đang xử lý...' : 'Xác nhận đặt hàng'}
+                        {submitting ? 'Processing...' : 'Confirm Order'}
                       </motion.button>
                     </div>
                   </div>
