@@ -68,8 +68,18 @@ async function request(endpoint: string, options: RequestOptions = {}) {
       const res = await fetch(url, config);
       clearTimeout(timeoutId);
 
+      // Parse response body first to get error message
+      const data = await res.json().catch(() => ({}));
+
       if (res.status === 401) {
-        // Session expired
+        // Check if this is a login attempt (has error message from backend)
+        const backendMessage = data?.message || data?.error;
+        if (backendMessage) {
+          // This is a failed login attempt, show backend message
+          throw new Error(backendMessage);
+        }
+
+        // Session expired - clear tokens and redirect
         if (typeof localStorage !== 'undefined') {
           localStorage.removeItem('token');
           localStorage.removeItem('adminToken');
@@ -89,12 +99,11 @@ async function request(endpoint: string, options: RequestOptions = {}) {
           }
         }
 
-        throw new Error('Phiên làm việc hết hạn. Vui lòng đăng nhập lại.');
+        throw new Error('Session expired. Please log in again.');
       }
 
-      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const message = (data && (data.message || data.error)) || `Yêu cầu thất bại (Mã lỗi: ${res.status})`;
+        const message = (data && (data.message || data.error)) || `Request failed (Error code: ${res.status})`;
         throw new Error(message);
       }
       
@@ -108,7 +117,7 @@ async function request(endpoint: string, options: RequestOptions = {}) {
     } catch (error: any) {
       clearTimeout(timeoutId);
       if (error.name === 'AbortError') {
-        throw new Error('Kết nối quá hạn. Vui lòng kiểm tra lại đường truyền mạng.');
+        throw new Error('Connection timeout. Please check your network.');
       }
       throw error;
     }

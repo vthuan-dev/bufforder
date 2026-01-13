@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ArrowLeft, DollarSign, Copy, Check } from "lucide-react";
 import { motion } from "motion/react";
+import { toast } from "sonner";
 import api from "../services/api";
 
 interface TopUpPageProps {
@@ -38,18 +39,24 @@ export function TopUpPage({ onBack }: TopUpPageProps) {
   const handleTopUp = async () => {
     const parsed = parseFloat(amount);
     if (!amount || parsed <= 0) {
-      alert("Please enter a valid amount");
+      toast.error("Please enter a valid amount");
       return;
     }
     try {
       const res = await api.deposit(parsed);
       if (res?.success) {
-        alert("Deposit request submitted! Please wait for admin approval.");
+        toast.success("Deposit request submitted! Please wait for admin approval.");
         setAmount("");
         setSelectedAmount(null);
+        // Refresh pending deposits
+        try {
+          const reqs = await api.getDepositRequests();
+          const list = (reqs?.data?.requests || []).filter((r: any) => r.status === 'pending');
+          setPendingDeposits(list);
+        } catch {}
       }
     } catch (e: any) {
-      alert(e?.message || "Failed to submit deposit request");
+      toast.error(e?.message || "Failed to submit deposit request");
     }
   };
 
