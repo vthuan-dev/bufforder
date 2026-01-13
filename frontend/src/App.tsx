@@ -442,7 +442,7 @@ export default function App() {
     return (
       <ErrorBoundary name="Admin Panel">
         {adminModeContent}
-        <Toaster position="top-right" />
+        <Toaster position="top-right" style={{ zIndex: 9999 }} />
       </ErrorBoundary>
     );
   }
@@ -459,6 +459,7 @@ export default function App() {
         {renderContent()}
         <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
       </div>
+      <Toaster position="top-center" style={{ zIndex: 9999 }} />
     </div>
   );
 }

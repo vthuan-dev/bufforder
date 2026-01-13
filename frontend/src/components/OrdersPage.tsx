@@ -231,7 +231,15 @@ export function OrdersPage() {
   };
 
   const handleConfirmOrder = async () => {
-    if (!selectedProduct) return;
+    console.log('[Orders] handleConfirmOrder called');
+    console.log('[Orders] selectedProduct:', selectedProduct);
+    console.log('[Orders] submitting:', submitting);
+    console.log('[Orders] availableBalance:', availableBalance);
+    
+    if (!selectedProduct) {
+      console.error('[Orders] No selected product');
+      return;
+    }
     if (submitting) {
       console.warn('[Orders] Confirm blocked: already submitting');
       return;
@@ -239,6 +247,7 @@ export function OrdersPage() {
 
     // Check if user has enough balance
     if (availableBalance < selectedProduct.price) {
+      console.error('[Orders] Insufficient balance:', availableBalance, '<', selectedProduct.price);
       toast.error(`Insufficient balance! Need $${selectedProduct.price.toLocaleString()} but you only have $${availableBalance.toFixed(2)}. Please top up.`);
       return;
     }
@@ -254,6 +263,12 @@ export function OrdersPage() {
     try {
       setSubmitting(true);
       console.log('[Orders] Submitting order with key:', clientRequestId);
+      console.log('[Orders] Product data:', {
+        id: selectedProduct.id,
+        name: selectedProduct.name,
+        price: selectedProduct.price,
+        brand: selectedProduct.brand,
+      });
 
       // Take order -> create a pending order only; admin will update status later
       const takeRes = await api.userOrderTake({
