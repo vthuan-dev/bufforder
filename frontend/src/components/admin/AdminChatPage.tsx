@@ -589,7 +589,10 @@ export function AdminChatPage() {
                     <div className="flex items-center gap-2 text-xs text-gray-400">
                       <span>IP: {selectedThread.userIp}</span>
                       {userLocation && (
-                        <span className="flex items-center gap-1">
+                        <span 
+                          className="flex items-center gap-1 cursor-help"
+                          title="Data retrieved from ip-api.com and securely processed through our server"
+                        >
                           <MapPin className="w-3 h-3" />
                           {userLocation}
                         </span>
