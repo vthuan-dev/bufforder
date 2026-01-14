@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Send, Paperclip, MoreVertical, User, Clock, Trash2, Ban, MessageSquare, X } from "lucide-react";
+import { Search, Send, Paperclip, MoreVertical, User, Clock, Trash2, Ban, MessageSquare, X, MapPin } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import {
@@ -58,6 +58,7 @@ export function AdminChatPage() {
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isUserBlocked, setIsUserBlocked] = useState(false);
+  const [userLocation, setUserLocation] = useState<string>("");
   const socketRef = useRef<Socket | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const selectedThreadIdRef = useRef<string | null>(null);
@@ -69,6 +70,43 @@ export function AdminChatPage() {
   const partnerTypingRef = useRef<boolean>(false);
   const typingTimerRef = useRef<number | null>(null);
   const isWindowFocusedRef = useRef<boolean>(typeof document !== 'undefined' ? !document.hidden : true);
+  const locationCacheRef = useRef<Record<string, string>>({});
+
+  // Fetch location from IP
+  const fetchLocationFromIp = async (ip: string) => {
+    if (!ip || ip === '::1' || ip === '127.0.0.1') {
+      setUserLocation('Local');
+      return;
+    }
+    // Check cache first
+    if (locationCacheRef.current[ip]) {
+      setUserLocation(locationCacheRef.current[ip]);
+      return;
+    }
+    try {
+      const res = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,regionName,city`);
+      const data = await res.json();
+      if (data.status === 'success') {
+        const location = [data.city, data.regionName, data.country].filter(Boolean).join(', ');
+        locationCacheRef.current[ip] = location;
+        setUserLocation(location);
+      } else {
+        setUserLocation('Unknown');
+      }
+    } catch {
+      setUserLocation('Unknown');
+    }
+  };
+
+  // Fetch location when selected thread changes
+  useEffect(() => {
+    if (selectedThread?.userIp) {
+      fetchLocationFromIp(selectedThread.userIp);
+    } else {
+      setUserLocation('');
+    }
+  }, [selectedThread?.userIp]);
+
   // Restore sound preference
   useEffect(() => {
     try {
@@ -546,7 +584,15 @@ export function AdminChatPage() {
                   </div>
                   <p className="text-sm text-gray-500">{typingHeader ? 'Typing…' : selectedThread.user.email}</p>
                   {selectedThread.userIp && (
-                    <p className="text-xs text-gray-400">IP: {selectedThread.userIp}</p>
+                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                      <span>IP: {selectedThread.userIp}</span>
+                      {userLocation && (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          {userLocation}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
