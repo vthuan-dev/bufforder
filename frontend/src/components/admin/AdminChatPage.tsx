@@ -84,16 +84,18 @@ export function AdminChatPage() {
       return;
     }
     try {
-      const res = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,regionName,city`);
+      // Use ipapi.co which supports HTTPS and CORS
+      const res = await fetch(`https://ipapi.co/${ip}/json/`);
       const data = await res.json();
-      if (data.status === 'success') {
-        const location = [data.city, data.regionName, data.country].filter(Boolean).join(', ');
+      if (!data.error) {
+        const location = [data.city, data.region, data.country_name].filter(Boolean).join(', ');
         locationCacheRef.current[ip] = location;
         setUserLocation(location);
       } else {
         setUserLocation('Unknown');
       }
-    } catch {
+    } catch (err) {
+      console.error('Failed to fetch location:', err);
       setUserLocation('Unknown');
     }
   };
