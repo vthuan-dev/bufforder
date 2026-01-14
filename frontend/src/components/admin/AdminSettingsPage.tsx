@@ -9,6 +9,7 @@ import { Separator } from "../ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { toast } from "sonner";
 import api from "../../services/api";
+const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:5000';
 
 export function AdminSettingsPage() {
   const [profileLoading, setProfileLoading] = useState(true);
@@ -47,7 +48,7 @@ export function AdminSettingsPage() {
       setProfileSaving(true);
       const res = await api.adminUploadAvatar(file);
       if (res.success) {
-        // Add timestamp to bust cache
+        // Add timestamp to bust cache and prepend API_BASE
         const avatarWithCache = `${res.data.avatarUrl}?t=${Date.now()}`;
         setProfile(prev => ({ ...prev, avatar: avatarWithCache }));
         toast.success("Avatar updated successfully!");
