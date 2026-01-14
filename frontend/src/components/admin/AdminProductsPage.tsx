@@ -272,7 +272,7 @@ export function AdminProductsPage() {
             {/* Filters & Search */}
             <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
                 <div className="flex flex-col sm:flex-row gap-4">
-                    <div className="flex-1 relative">
+                    <div className="flex-[4] relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input
                             type="text"
@@ -283,7 +283,7 @@ export function AdminProductsPage() {
                         />
                     </div>
                     <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                        <SelectTrigger className="w-full sm:w-40">
+                        <SelectTrigger className="w-full sm:w-36">
                             <Filter className="w-4 h-4 mr-2" />
                             <SelectValue placeholder="Category" />
                         </SelectTrigger>
@@ -295,7 +295,7 @@ export function AdminProductsPage() {
                         </SelectContent>
                     </Select>
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-full sm:w-32">
+                        <SelectTrigger className="w-full sm:w-28">
                             <SelectValue placeholder="Status" />
                         </SelectTrigger>
                         <SelectContent>

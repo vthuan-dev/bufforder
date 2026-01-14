@@ -8,72 +8,68 @@ datasource db {
 }
 
 model User {
-  id                String    @id @default(cuid())
-  phoneNumber       String    @unique
-  fullName          String
-  email             String?   @unique
-  password          String
-  vipLevel          String    @default("vip-0")
-  totalDeposited    Float     @default(0)
-  balance           Float     @default(0)
-  freezeBalance     Float     @default(0)
-  commission        Float     @default(0)
-  isActive          Boolean   @default(true)
-  lastSeenAt        DateTime?
-  inviteCodeUsed    String?
-  
-  commissionConfig  Json?     @default("{\"perOrderAmount\": null, \"dailyTarget\": null, \"baseRate\": null, \"dailyProfitMode\": \"fixed\"}")
-  dailyEarnings     Json?     @default("{\"dateKey\": null, \"totalCommission\": 0, \"ordersCount\": 0, \"mode\": \"fixed\", \"targetTotal\": 0}")
-
-  addresses         Address[]
-  bankCards         BankCard[]
-  orders            Order[]
-  depositRequests   DepositRequest[] @relation("UserDeposits")
+  id                 String              @id @default(cuid())
+  phoneNumber        String              @unique(map: "User_phoneNumber_key")
+  fullName           String
+  email              String?             @unique(map: "User_email_key")
+  password           String
+  vipLevel           String              @default("vip-0")
+  totalDeposited     Float               @default(0)
+  balance            Float               @default(0)
+  freezeBalance      Float               @default(0)
+  commission         Float               @default(0)
+  isActive           Boolean             @default(true)
+  lastSeenAt         DateTime?
+  inviteCodeUsed     String?
+  commissionConfig   String?             @db.LongText
+  dailyEarnings      String?             @db.LongText
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  addresses          Address[]
+  bankCards          BankCard[]
+  chatThreads        ChatThread[]
+  depositRequests    DepositRequest[]    @relation("UserDeposits")
+  orders             Order[]
   withdrawalRequests WithdrawalRequest[]
-  chatThreads       ChatThread[]
 
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-
-  @@index([phoneNumber])
-  @@index([fullName])
+  @@index([fullName], map: "User_fullName_idx")
+  @@index([phoneNumber], map: "User_phoneNumber_idx")
   @@map("user")
 }
 
 model Address {
-  id            String  @id @default(cuid())
-  userId        String
-  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  fullName      String
-  phoneNumber   String
-  addressLine1  String
-  city          String
-  postalCode    String
-  isDefault     Boolean @default(false)
+  id           String  @id @default(cuid())
+  userId       String
+  fullName     String
+  phoneNumber  String
+  addressLine1 String
+  city         String
+  postalCode   String
+  isDefault    Boolean @default(false)
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
+  @@index([userId], map: "Address_userId_idx")
   @@map("address")
 }
 
 model BankCard {
-  id            String  @id @default(cuid())
-  userId        String
-  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bankName      String
-  cardNumber    String
-  accountName   String
-  isDefault     Boolean @default(false)
+  id          String  @id @default(cuid())
+  userId      String
+  bankName    String
+  cardNumber  String
+  accountName String
+  isDefault   Boolean @default(false)
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
+  @@index([userId], map: "BankCard_userId_idx")
   @@map("bankcard")
 }
 
 model Order {
   id               String    @id @default(cuid())
   userId           String
-  user             User      @relation(fields: [userId], references: [id])
   clientRequestId  String?
-  orderNumber      String    @unique
+  orderNumber      String    @unique(map: "Order_orderNumber_key")
   productId        Int
   productName      String
   productPrice     Float
@@ -85,57 +81,55 @@ model Order {
   status           String    @default("pending")
   completedAt      DateTime?
   orderDate        DateTime  @default(now())
-
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
+  user             User      @relation(fields: [userId], references: [id])
 
-  @@unique([userId, clientRequestId])
-  @@index([userId, orderDate])
-  @@index([status])
+  @@unique([userId, clientRequestId], map: "Order_userId_clientRequestId_key")
+  @@index([status], map: "Order_status_idx")
+  @@index([userId, orderDate], map: "Order_userId_orderDate_idx")
   @@map("order")
 }
 
 model Admin {
-  id            String    @id @default(cuid())
-  username      String    @unique
-  fullName      String?   @default("")
-  email         String    @unique
-  phoneNumber   String?   @default("")
-  password      String
-  role          String    @default("admin")
-  isActive      Boolean   @default(true)
-  lastLogin     DateTime?
-
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  username    String    @unique(map: "Admin_username_key")
+  fullName    String?   @default("")
+  email       String    @unique(map: "Admin_email_key")
+  phoneNumber String?   @default("")
+  password    String
+  role        String    @default("admin")
+  isActive    Boolean   @default(true)
+  avatar      String?   @default("") @db.Text
+  lastLogin   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@map("admin")
 }
 
 model ChatThread {
-  id               String        @id @default(cuid())
-  userId           String
-  user             User          @relation(fields: [userId], references: [id])
-  userIp           String?       @default("")
-  lastMessageAt    DateTime      @default(now())
-  lastMessageText  String?       @db.Text
-  unreadForAdmin   Int           @default(0)
-  unreadForUser    Int           @default(0)
-  status           String        @default("open")
-  messages         ChatMessage[]
+  id              String        @id @default(cuid())
+  userId          String
+  userIp          String?       @default("")
+  lastMessageAt   DateTime      @default(now())
+  lastMessageText String?       @db.Text
+  unreadForAdmin  Int           @default(0)
+  unreadForUser   Int           @default(0)
+  status          String        @default("open")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  messages        ChatMessage[]
+  user            User          @relation(fields: [userId], references: [id])
 
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-
-  @@index([userId, lastMessageAt])
-  @@index([lastMessageAt])
+  @@index([lastMessageAt], map: "ChatThread_lastMessageAt_idx")
+  @@index([userId, lastMessageAt], map: "ChatThread_userId_lastMessageAt_idx")
   @@map("chatthread")
 }
 
 model ChatMessage {
   id                String     @id @default(cuid())
   threadId          String
-  thread            ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
   senderType        String
   senderId          String
   text              String?    @default("") @db.Text
@@ -146,18 +140,17 @@ model ChatMessage {
   deletedForUserAt  DateTime?
   isDeletedForAdmin Boolean    @default(false)
   deletedForAdminAt DateTime?
-
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
+  thread            ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
 
-  @@index([threadId])
+  @@index([threadId], map: "ChatMessage_threadId_idx")
   @@map("chatmessage")
 }
 
 model DepositRequest {
   id              String    @id @default(cuid())
   userId          String
-  user            User      @relation("UserDeposits", fields: [userId], references: [id])
   amount          Float
   status          String    @default("pending")
   requestDate     DateTime  @default(now())
@@ -165,19 +158,18 @@ model DepositRequest {
   approvedAt      DateTime?
   rejectionReason String?   @db.Text
   notes           String?   @db.Text
-
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  user            User      @relation("UserDeposits", fields: [userId], references: [id])
 
-  @@index([userId, status])
-  @@index([status, requestDate])
+  @@index([status, requestDate], map: "DepositRequest_status_requestDate_idx")
+  @@index([userId, status], map: "DepositRequest_userId_status_idx")
   @@map("depositrequest")
 }
 
 model WithdrawalRequest {
   id              String    @id @default(cuid())
   userId          String
-  user            User      @relation(fields: [userId], references: [id])
   amount          Float
   bankCardId      String
   status          String    @default("pending")
@@ -186,28 +178,27 @@ model WithdrawalRequest {
   rejectionReason String?   @db.Text
   notes           String?   @db.Text
   requestDate     DateTime  @default(now())
-
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  user            User      @relation(fields: [userId], references: [id])
 
-  @@index([userId, status])
-  @@index([status, requestDate])
+  @@index([status, requestDate], map: "WithdrawalRequest_status_requestDate_idx")
+  @@index([userId, status], map: "WithdrawalRequest_userId_status_idx")
   @@map("withdrawalrequest")
 }
 
 model Product {
-  id          Int       @id @default(autoincrement())
-  name        String
-  brand       String
-  category    String
-  price       Float
-  image       String?   @db.Text
-  isActive    Boolean   @default(true)
-  
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id        Int      @id @default(autoincrement())
+  name      String
+  brand     String
+  category  String
+  price     Float
+  image     String?  @db.Text
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@index([category])
-  @@index([isActive])
+  @@index([category], map: "Product_category_idx")
+  @@index([isActive], map: "Product_isActive_idx")
   @@map("product")
 }

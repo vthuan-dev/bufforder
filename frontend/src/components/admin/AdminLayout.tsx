@@ -49,53 +49,61 @@ const baseMenuItems = [
   { id: "settings", icon: Settings, label: "Settings" },
 ] as const;
 
+const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:5000';
+
 export function AdminLayout({ children, currentPage, onNavigate, onLogout }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [chatUnread, setChatUnread] = useState<number>(0);
+  const [adminData, setAdminData] = useState<any>(null);
   const socketInitialized = useRef(false);
 
-  // ⚡ Initialize global admin socket ONCE
   useEffect(() => {
-    // Fetch unread count only once
+    const data = localStorage.getItem('adminData');
+    if (data) {
+      setAdminData(JSON.parse(data));
+    }
+
+    // Initialize socket and fetch unread count
     if (!socketInitialized.current) {
       socketInitialized.current = true;
-      (async () => {
+
+      const initData = async () => {
         try {
+          // Fetch initial unread count
           const res = await api.adminChatListThreads({ page: 1, limit: 100 });
           const total = (res?.data?.threads || []).reduce((sum: number, t: any) => sum + (t.unreadForAdmin || 0), 0);
           setChatUnread(total);
-        } catch { }
-      })();
-    }
 
-    try {
-      const token = typeof localStorage !== 'undefined' ? localStorage.getItem('adminToken') : null;
-      if (!token) return;
+          // Initialize socket
+          const token = localStorage.getItem('adminToken');
+          if (token) {
+            let s = getAdminSocket();
+            if (!s || !s.connected) {
+              s = initAdminSocket(token);
+              console.log('[AdminLayout] Initialized global admin socket');
+            }
 
-      // ⚡ Prevent duplicate socket connections - check global socket state
-      const existingSocket = getAdminSocket();
-      if (existingSocket?.connected) {
-        console.log('[AdminLayout] Admin socket already connected, skipping');
-        const handler = () => setChatUnread((u) => u + 1);
-        existingSocket.off('chat:threadUpdated', handler);
-        existingSocket.on('chat:threadUpdated', handler);
-        return () => {
-          existingSocket.off('chat:threadUpdated', handler);
-        };
-      }
+            const handler = () => {
+              // Re-fetch count when message received
+              api.adminChatListThreads({ page: 1, limit: 100 }).then(r => {
+                const updatedTotal = (r?.data?.threads || []).reduce((sum: number, t: any) => sum + (t.unreadForAdmin || 0), 0);
+                setChatUnread(updatedTotal);
+              });
+            };
 
-      const s = initAdminSocket(token);
-      console.log('[AdminLayout] Created global admin socket');
-
-      const handler = () => setChatUnread((u) => u + 1);
-      s.on('chat:threadUpdated', handler);
-
-      return () => {
-        s.off('chat:threadUpdated', handler);
-        // Don't disconnect on unmount - keep socket alive for other admin pages
+            s.on('chat:threadUpdated', handler);
+            return () => {
+              s.off('chat:threadUpdated', handler);
+            };
+          }
+        } catch (err) {
+          console.error('[AdminLayout] Init error:', err);
+        }
       };
-    } catch { }
+
+      initData();
+    }
   }, []);
 
   // Listen to broadcast from Chat page for recalculated totals
@@ -104,8 +112,18 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
       const n = Number(e?.detail || 0);
       if (!isNaN(n)) setChatUnread(n);
     };
+
+    const profileHandler = (e: any) => {
+      if (e.detail) setAdminData(e.detail);
+    };
+
     window.addEventListener('chatUnreadUpdated', handler as any);
-    return () => window.removeEventListener('chatUnreadUpdated', handler as any);
+    window.addEventListener('adminDataUpdated', profileHandler as any);
+
+    return () => {
+      window.removeEventListener('chatUnreadUpdated', handler as any);
+      window.removeEventListener('adminDataUpdated', profileHandler as any);
+    };
   }, []);
 
   return (
@@ -176,13 +194,19 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
           {/* Admin Profile */}
           <div className="p-4 border-t border-gray-200 flex-shrink-0">
             <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
-              <Avatar className="w-10 h-10">
-                <AvatarImage src="" />
-                <AvatarFallback className="bg-blue-600 text-white">AD</AvatarFallback>
+              <Avatar className="w-10 h-10 border">
+                <AvatarImage src={adminData?.avatar ? `${API_BASE}${adminData.avatar}` : ""} />
+                <AvatarFallback className="bg-blue-600 text-white">
+                  {adminData?.fullName ? adminData.fullName.charAt(0).toUpperCase() : "AD"}
+                </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-900 truncate">Admin User</p>
-                <p className="text-xs text-gray-500">admin@ashford.com</p>
+                <p className="text-sm text-gray-900 truncate font-medium">
+                  {adminData?.fullName || "Admin User"}
+                </p>
+                <p className="text-xs text-gray-500 truncate">
+                  {adminData?.email || "admin@example.com"}
+                </p>
               </div>
             </div>
           </div>
@@ -276,10 +300,10 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg">
-                    <Avatar className="w-8 h-8">
-                      <AvatarImage src="" />
+                    <Avatar className="w-8 h-8 border">
+                      <AvatarImage src={adminData?.avatar ? `${API_BASE}${adminData.avatar}` : ""} />
                       <AvatarFallback className="bg-blue-600 text-white text-xs">
-                        AD
+                        {adminData?.fullName ? adminData.fullName.charAt(0).toUpperCase() : "AD"}
                       </AvatarFallback>
                     </Avatar>
                     <ChevronDown className="w-4 h-4 text-gray-600 hidden sm:block" />
@@ -288,11 +312,11 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onNavigate('settings')}>
                     <User className="w-4 h-4 mr-2" />
                     Profile
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onNavigate('settings')}>
                     <Settings className="w-4 h-4 mr-2" />
                     Settings
                   </DropdownMenuItem>

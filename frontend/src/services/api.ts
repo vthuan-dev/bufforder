@@ -54,13 +54,19 @@ async function request(endpoint: string, options: RequestOptions = {}) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
+  const headers: Record<string, string> = {
+    ...(options.headers || {}),
+  };
+
+  // ⚡ Only set JSON content type if not sending FormData
+  if (!(options.body instanceof FormData) && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
+
   const config: RequestInit = {
     ...options,
     signal: controller.signal,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
+    headers,
   };
 
   const requestPromise = (async () => {
@@ -592,6 +598,12 @@ export default {
   adminUpdateProfile(data: { fullName?: string; email?: string; phoneNumber?: string }) {
     const headers: Record<string, string> = { 'Content-Type': 'application/json', ...adminTokenHeader() } as Record<string, string>;
     return request('/admin/profile', { method: 'PATCH', headers, body: JSON.stringify(data) });
+  },
+  adminUploadAvatar(file: File) {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
+    return request('/admin/upload-avatar', { method: 'POST', headers, body: formData });
   },
   adminChangePassword(currentPassword: string, newPassword: string) {
     const headers: Record<string, string> = { 'Content-Type': 'application/json', ...adminTokenHeader() } as Record<string, string>;

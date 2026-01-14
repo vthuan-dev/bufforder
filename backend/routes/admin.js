@@ -127,7 +127,15 @@ router.get('/profile', verifyAdminToken, async (req, res) => {
 
     res.json({
       success: true,
-      data: { id: admin.id, username: admin.username, email: admin.email, fullName: admin.fullName || '', phoneNumber: admin.phoneNumber || '', isActive: admin.isActive }
+      data: {
+        id: admin.id,
+        username: admin.username,
+        email: admin.email,
+        fullName: admin.fullName || '',
+        phoneNumber: admin.phoneNumber || '',
+        isActive: admin.isActive,
+        avatar: admin.avatar || ''
+      }
     });
   } catch (error) {
     console.error('Admin profile error:', error);
@@ -152,7 +160,15 @@ router.patch('/profile', verifyAdminToken, async (req, res) => {
     res.json({
       success: true,
       message: 'Profile updated successfully',
-      data: { id: admin.id, username: admin.username, email: admin.email, fullName: admin.fullName, phoneNumber: admin.phoneNumber, isActive: admin.isActive }
+      data: {
+        id: admin.id,
+        username: admin.username,
+        email: admin.email,
+        fullName: admin.fullName,
+        phoneNumber: admin.phoneNumber,
+        isActive: admin.isActive,
+        avatar: admin.avatar || ''
+      }
     });
   } catch (error) {
     console.error('Update admin profile error:', error);
@@ -187,6 +203,28 @@ router.post('/change-password', verifyAdminToken, async (req, res) => {
   } catch (error) {
     console.error('Change password error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Upload admin avatar
+router.post('/upload-avatar', verifyAdminToken, productUpload.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No avatar file provided' });
+    }
+
+    const avatarUrl = `/uploads/products/${req.file.filename}`;
+
+    // Update admin profile with new avatar
+    await prisma.admin.update({
+      where: { id: req.adminId },
+      data: { avatar: avatarUrl }
+    });
+
+    res.json({ success: true, data: { avatarUrl } });
+  } catch (error) {
+    console.error('Upload avatar error:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error' });
   }
 });
 
@@ -933,9 +971,9 @@ router.get('/products', verifyAdminToken, async (req, res) => {
 
     if (q) {
       where.OR = [
-        { name: { contains: q, mode: 'insensitive' } },
-        { brand: { contains: q, mode: 'insensitive' } },
-        { category: { contains: q, mode: 'insensitive' } }
+        { name: { contains: q } },
+        { brand: { contains: q } },
+        { category: { contains: q } }
       ];
     }
     if (category !== 'all') where.category = category;

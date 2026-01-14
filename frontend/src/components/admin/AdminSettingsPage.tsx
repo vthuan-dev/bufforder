@@ -9,10 +9,12 @@ import { Separator } from "../ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { toast } from "sonner";
 import api from "../../services/api";
+const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:5000';
 
 export function AdminSettingsPage() {
   const [profileLoading, setProfileLoading] = useState(true);
-  const [profile, setProfile] = useState({ fullName: '', email: '', phoneNumber: '' });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profile, setProfile] = useState({ fullName: '', email: '', phoneNumber: '', avatar: '' });
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [depositAlerts, setDepositAlerts] = useState(true);
@@ -24,23 +26,78 @@ export function AdminSettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [passwordErrors, setPasswordErrors] = useState<{[key: string]: string}>({});
+  const [passwordErrors, setPasswordErrors] = useState<{ [key: string]: string }>({});
 
-  const handleSave = () => {
-    (async () => {
-      try {
-        const res = await api.adminUpdateProfile({
-          fullName: profile.fullName,
-          email: profile.email,
-          phoneNumber: profile.phoneNumber,
-        });
-        if (res.success) {
-          toast.success("Settings saved successfully!");
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate size (2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image size must be less than 2MB");
+      return;
+    }
+
+    try {
+      setProfileSaving(true);
+      const res = await api.adminUploadAvatar(file);
+      if (res.success) {
+        setProfile(prev => ({ ...prev, avatar: res.data.avatarUrl }));
+        toast.success("Avatar updated successfully!");
+
+        // Update local storage/context if needed
+        const adminDataStr = localStorage.getItem('adminData');
+        if (adminDataStr) {
+          const adminData = JSON.parse(adminDataStr);
+          adminData.avatar = res.data.avatarUrl;
+          localStorage.setItem('adminData', JSON.stringify(adminData));
+
+          // Trigger event for AdminLayout to update
+          window.dispatchEvent(new CustomEvent('adminDataUpdated', { detail: adminData }));
         }
-      } catch (e: any) {
-        toast.error(e?.message || 'Failed to save settings');
       }
-    })();
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to upload avatar");
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      setProfileSaving(true);
+      const res = await api.adminUpdateProfile({
+        fullName: profile.fullName,
+        email: profile.email,
+        phoneNumber: profile.phoneNumber,
+      });
+      if (res.success) {
+        toast.success("Settings saved successfully!");
+
+        // Update local storage/context
+        const adminDataStr = localStorage.getItem('adminData');
+        if (adminDataStr) {
+          const adminData = JSON.parse(adminDataStr);
+          adminData.fullName = profile.fullName;
+          adminData.email = profile.email;
+          adminData.phoneNumber = profile.phoneNumber;
+          localStorage.setItem('adminData', JSON.stringify(adminData));
+
+          // Trigger event for AdminLayout to update
+          window.dispatchEvent(new CustomEvent('adminDataUpdated', { detail: adminData }));
+        }
+      }
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to save settings');
+    } finally {
+      setProfileSaving(false);
+    }
   };
 
   // Load profile on mount
@@ -53,7 +110,8 @@ export function AdminSettingsPage() {
           setProfile({
             fullName: res.data.fullName || '',
             email: res.data.email || '',
-            phoneNumber: res.data.phoneNumber || ''
+            phoneNumber: res.data.phoneNumber || '',
+            avatar: res.data.avatar || ''
           });
         }
       } catch (e) {
@@ -65,28 +123,28 @@ export function AdminSettingsPage() {
   }, []);
 
   const validatePassword = () => {
-    const errors: {[key: string]: string} = {};
-    
+    const errors: { [key: string]: string } = {};
+
     if (!currentPassword) {
       errors.currentPassword = "Current password is required";
     }
-    
+
     if (!newPassword) {
       errors.newPassword = "New password is required";
     } else if (newPassword.length < 6) {
       errors.newPassword = "Password must be at least 6 characters long";
     }
-    
+
     if (!confirmPassword) {
       errors.confirmPassword = "Please confirm your new password";
     } else if (newPassword !== confirmPassword) {
       errors.confirmPassword = "Passwords do not match";
     }
-    
+
     if (currentPassword && newPassword && currentPassword === newPassword) {
       errors.newPassword = "New password must be different from current password";
     }
-    
+
     setPasswordErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -100,7 +158,7 @@ export function AdminSettingsPage() {
     try {
       setIsChangingPassword(true);
       const response = await api.adminChangePassword(currentPassword, newPassword);
-      
+
       if (response.success) {
         toast.success("Password changed successfully!");
         // Clear form
@@ -142,7 +200,7 @@ export function AdminSettingsPage() {
             <Lock className="w-4 h-4 mr-2" />
             Security
           </TabsTrigger>
-          
+
         </TabsList>
 
         {/* Profile Tab */}
@@ -157,12 +215,29 @@ export function AdminSettingsPage() {
 
             {/* Avatar */}
             <div className="flex items-center gap-4">
-              <Avatar className="w-20 h-20">
-                <AvatarImage src="" />
-                <AvatarFallback className="bg-blue-600 text-white text-2xl">AD</AvatarFallback>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                className="hidden"
+              />
+              <Avatar className="w-20 h-20 border">
+                <AvatarImage src={profile.avatar ? `${API_BASE}${profile.avatar}` : ""} />
+                <AvatarFallback className="bg-blue-600 text-white text-2xl">
+                  {profile.fullName ? profile.fullName.charAt(0).toUpperCase() : "AD"}
+                </AvatarFallback>
               </Avatar>
               <div>
-                <Button variant="outline" size="sm">Change Avatar</Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAvatarClick}
+                  disabled={profileSaving}
+                >
+                  {profileSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  Change Avatar
+                </Button>
                 <p className="text-xs text-gray-500 mt-2">JPG, GIF or PNG. Max size of 2MB</p>
               </div>
             </div>
@@ -176,7 +251,7 @@ export function AdminSettingsPage() {
                 <Input
                   value={profile.fullName}
                   onChange={(e) => setProfile((p) => ({ ...p, fullName: e.target.value }))}
-                  disabled={profileLoading}
+                  disabled={profileLoading || profileSaving}
                 />
               </div>
               <div>
@@ -185,7 +260,7 @@ export function AdminSettingsPage() {
                   type="email"
                   value={profile.email}
                   onChange={(e) => setProfile((p) => ({ ...p, email: e.target.value }))}
-                  disabled={profileLoading}
+                  disabled={profileLoading || profileSaving}
                 />
               </div>
               <div>
@@ -193,7 +268,7 @@ export function AdminSettingsPage() {
                 <Input
                   value={profile.phoneNumber}
                   onChange={(e) => setProfile((p) => ({ ...p, phoneNumber: e.target.value }))}
-                  disabled={profileLoading}
+                  disabled={profileLoading || profileSaving}
                 />
               </div>
               <div>
@@ -205,9 +280,18 @@ export function AdminSettingsPage() {
             <Separator />
 
             <div className="flex justify-end">
-              <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700" disabled={profileLoading}>
-                <Save className="w-4 h-4 mr-2" />
-                {profileLoading ? 'Loading...' : 'Save Changes'}
+              <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 transition-all" disabled={profileLoading || profileSaving}>
+                {profileSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    {profileLoading ? 'Loading...' : 'Save Changes'}
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -229,8 +313,8 @@ export function AdminSettingsPage() {
               <div className="grid grid-cols-1 gap-4">
                 <div>
                   <Label>Current Password</Label>
-                  <Input 
-                    type="password" 
+                  <Input
+                    type="password"
                     placeholder="Enter current password"
                     value={currentPassword}
                     onChange={(e) => {
@@ -248,8 +332,8 @@ export function AdminSettingsPage() {
                 </div>
                 <div>
                   <Label>New Password</Label>
-                  <Input 
-                    type="password" 
+                  <Input
+                    type="password"
                     placeholder="Enter new password"
                     value={newPassword}
                     onChange={(e) => {
@@ -270,13 +354,12 @@ export function AdminSettingsPage() {
                         {[1, 2, 3, 4].map((level) => (
                           <div
                             key={level}
-                            className={`h-1 w-full rounded ${
-                              newPassword.length >= level * 2
-                                ? newPassword.length >= 8
-                                  ? "bg-green-500"
-                                  : "bg-yellow-500"
-                                : "bg-gray-200"
-                            }`}
+                            className={`h-1 w-full rounded ${newPassword.length >= level * 2
+                              ? newPassword.length >= 8
+                                ? "bg-green-500"
+                                : "bg-yellow-500"
+                              : "bg-gray-200"
+                              }`}
                           />
                         ))}
                       </div>
@@ -284,16 +367,16 @@ export function AdminSettingsPage() {
                         {newPassword.length < 6
                           ? "Too short"
                           : newPassword.length < 8
-                          ? "Weak"
-                          : "Strong"}
+                            ? "Weak"
+                            : "Strong"}
                       </p>
                     </div>
                   )}
                 </div>
                 <div>
                   <Label>Confirm New Password</Label>
-                  <Input 
-                    type="password" 
+                  <Input
+                    type="password"
                     placeholder="Confirm new password"
                     value={confirmPassword}
                     onChange={(e) => {
@@ -337,8 +420,8 @@ export function AdminSettingsPage() {
             <Separator />
 
             <div className="flex justify-end">
-              <Button 
-                onClick={handleChangePassword} 
+              <Button
+                onClick={handleChangePassword}
                 className="bg-blue-600 hover:bg-blue-700"
                 disabled={isChangingPassword}
               >
@@ -358,7 +441,7 @@ export function AdminSettingsPage() {
           </div>
         </TabsContent>
 
-        
+
       </Tabs>
     </div>
   );
