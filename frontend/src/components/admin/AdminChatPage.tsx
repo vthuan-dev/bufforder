@@ -262,7 +262,7 @@ export function AdminChatPage() {
   const loadThreads = async (updatedThreadId?: string) => {
     const res = await api.adminChatListThreads({ page: 1, limit: 50 });
     const list = (res?.data?.threads || []).map((t: any) => ({
-      id: t._id,
+      id: t.id || t._id,
       user: { name: t.userId?.fullName || t.userId?.phoneNumber || 'User', email: t.userId?.email || '' },
       lastMessage: t.lastMessageText || '',
       timestamp: t.lastMessageAt ? new Date(t.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
@@ -293,7 +293,7 @@ export function AdminChatPage() {
   const loadMessages = async (threadId: string) => {
     const res = await api.adminChatListMessages(threadId);
     const list: Message[] = (res?.data?.messages || []).map((m: any) => ({
-      id: m._id,
+      id: m.id || m._id,
       sender: m.senderType === 'admin' ? 'admin' : 'user',
       text: m.text || '',
       imageUrl: m.imageUrl ? (String(m.imageUrl).startsWith('/') ? `${API_BASE}${m.imageUrl}` : m.imageUrl) : undefined,
