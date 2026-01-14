@@ -424,8 +424,18 @@ export default function App() {
       s.emit('chat:typing', { threadId, typing });
     };
 
+    // Listen for join thread request from HelpPage
+    const handleJoinThread = (event: any) => {
+      const { threadId } = event.detail;
+      if (threadId) {
+        console.log('[App] Joining thread room:', threadId);
+        s.emit('chat:joinThread', threadId);
+      }
+    };
+
     window.addEventListener('client:emitMessage', handleEmitMessage);
     window.addEventListener('client:emitTyping', handleEmitTyping);
+    window.addEventListener('client:joinThread', handleJoinThread);
     return () => {
       console.log('[App] Disconnecting socket due to auth change/cleanup');
       s.disconnect();
@@ -434,6 +444,7 @@ export default function App() {
       window.removeEventListener('blur', onBlur);
       window.removeEventListener('client:emitMessage', handleEmitMessage);
       window.removeEventListener('client:emitTyping', handleEmitTyping);
+      window.removeEventListener('client:joinThread', handleJoinThread);
     };
   }, [isAdminMode, isAuthenticated]); // Removed activeTab to prevent reconnecting on every tab change
 

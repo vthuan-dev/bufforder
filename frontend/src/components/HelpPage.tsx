@@ -62,7 +62,7 @@ export function HelpPage() {
             const list = await api.chatListMessages(threadId);
             threadIdRef.current = threadId;
             const arr: Message[] = (list?.data?.messages || []).map((m: any) => ({
-              id: m._id,
+              id: m._id || m.id,
               text: m.text || '',
               imageUrl: m.imageUrl ? (m.imageUrl.startsWith('/') ? `${API_BASE}${m.imageUrl}` : m.imageUrl) : undefined,
               isUser: m.senderType === 'user',
@@ -72,6 +72,8 @@ export function HelpPage() {
             console.log('[client] Loaded', arr.length, 'messages from saved threadId:', threadId);
             // Mark as active thread
             try { localStorage.setItem('client:activeThreadId', String(threadId)); } catch { }
+            // Join thread room via App.tsx global socket
+            try { window.dispatchEvent(new CustomEvent('client:joinThread', { detail: { threadId } })); } catch { }
           } catch (err) {
             console.error('[client] Failed to load saved thread:', err);
             // saved id invalid -> clear it
@@ -91,7 +93,7 @@ export function HelpPage() {
           threadIdRef.current = threadId;
           const list = await api.chatListMessages(threadId);
           const arr: Message[] = (list?.data?.messages || []).map((m: any) => ({
-            id: m._id,
+            id: m._id || m.id,
             text: m.text || '',
             imageUrl: m.imageUrl ? (m.imageUrl.startsWith('/') ? `${API_BASE}${m.imageUrl}` : m.imageUrl) : undefined,
             isUser: m.senderType === 'user',
@@ -102,6 +104,8 @@ export function HelpPage() {
             localStorage.setItem('client:threadId', String(threadId)); 
             localStorage.setItem('client:activeThreadId', String(threadId));
           } catch { }
+          // Join thread room via App.tsx global socket
+          try { window.dispatchEvent(new CustomEvent('client:joinThread', { detail: { threadId } })); } catch { }
           console.log('[client] Created new thread:', threadId, 'with', arr.length, 'messages');
         }
       } catch (err) {
