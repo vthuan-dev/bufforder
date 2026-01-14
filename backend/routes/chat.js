@@ -292,6 +292,76 @@ router.delete('/admin/threads/:id', verifyAdmin, async (req, res) => {
   }
 });
 
+// Admin: block/unblock user from chat
+router.post('/admin/threads/:id/block', verifyAdmin, async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const thread = await prisma.chatThread.findUnique({ 
+      where: { id: req.params.id },
+      include: { user: { select: { id: true, fullName: true, isChatBlocked: true } } }
+    });
+    if (!thread) return res.status(404).json({ success: false, message: 'Thread not found' });
+
+    const newBlockedStatus = !thread.user.isChatBlocked;
+    
+    await prisma.user.update({
+      where: { id: thread.userId },
+      data: { 
+        isChatBlocked: newBlockedStatus,
+        chatBlockedAt: newBlockedStatus ? new Date() : null,
+        chatBlockedReason: newBlockedStatus ? (reason || 'Blocked by admin') : null
+      }
+    });
+
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user:${thread.userId}`).emit('chat:blocked', { blocked: newBlockedStatus });
+      }
+    } catch { }
+
+    res.json({ 
+      success: true, 
+      data: { 
+        blocked: newBlockedStatus,
+        userId: thread.userId,
+        userName: thread.user.fullName
+      }
+    });
+  } catch (e) {
+    console.error('admin block user error', e);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Admin: get thread details with user block status
+router.get('/admin/threads/:id', verifyAdmin, async (req, res) => {
+  try {
+    const thread = await prisma.chatThread.findUnique({
+      where: { id: req.params.id },
+      include: { 
+        user: { 
+          select: { 
+            id: true, 
+            fullName: true, 
+            email: true, 
+            phoneNumber: true, 
+            isChatBlocked: true,
+            chatBlockedAt: true,
+            chatBlockedReason: true
+          } 
+        }
+      }
+    });
+    if (!thread) return res.status(404).json({ success: false, message: 'Thread not found' });
+
+    res.json({ success: true, data: { thread } });
+  } catch (e) {
+    console.error('admin get thread error', e);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // Admin: get user by phone
 router.get('/admin/users/by-phone/:phone', verifyAdmin, async (req, res) => {
   try {

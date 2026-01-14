@@ -228,7 +228,7 @@ router.post('/take', authenticateToken, async (req, res) => {
     const recentDuplicate = await prisma.order.findFirst({
       where: {
         userId,
-        productId: randomProduct.id,
+        productId: parseInt(randomProduct.id),
         orderDate: { gte: fiveMinutesAgo }
       }
     });
@@ -265,7 +265,7 @@ router.post('/take', authenticateToken, async (req, res) => {
           userId,
           clientRequestId: clientRequestId || undefined,
           orderNumber: generateOrderNumber(),
-          productId: randomProduct.id,
+          productId: parseInt(randomProduct.id),
           productName: randomProduct.name,
           productPrice: randomProduct.price,
           commissionRate: commissionPerOrder,
@@ -288,7 +288,7 @@ router.post('/take', authenticateToken, async (req, res) => {
         data: {
           balance: { increment: creditedCommission },
           commission: { increment: commissionAmount },
-          dailyEarnings: dailyEarnings
+          dailyEarnings: JSON.stringify(dailyEarnings)
         }
       });
 
@@ -303,6 +303,25 @@ router.post('/take', authenticateToken, async (req, res) => {
       }
     });
 
+    // 🔔 Emit new order notification to admins
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to('admins').emit('order:new', {
+          orderId: result.newOrder.id,
+          orderNumber: result.newOrder.orderNumber,
+          userId: userId,
+          userName: user.fullName || user.username,
+          productName: randomProduct.name,
+          productPrice: randomProduct.price,
+          createdAt: result.newOrder.orderDate
+        });
+        console.log('[Orders] Emitted order:new to admins');
+      }
+    } catch (emitErr) {
+      console.error('[Orders] Failed to emit order:new:', emitErr);
+    }
+
     res.json({
       success: true,
       data: {
@@ -316,7 +335,7 @@ router.post('/take', authenticateToken, async (req, res) => {
           commissionAmount,
           commissionPerOrder,
           brand: randomProduct.brand,
-          productId: randomProduct.id,
+          productId: parseInt(randomProduct.id),
           category: randomProduct.category,
           image: randomProduct.image
         },

@@ -1,6 +1,6 @@
-import { Home, FileText, ShoppingBag, HelpCircle, User } from "lucide-react";
 import { motion } from "motion/react";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { TABS_CONFIG, getEnabledTabs } from "../config/tabs.config";
 
 interface BottomNavProps {
   activeTab: string;
@@ -35,13 +35,8 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
     }
   };
 
-  const tabs = [
-    { id: 'home', label: 'Home', icon: Home },
-    { id: 'record', label: 'Record', icon: FileText },
-    { id: 'orders', label: 'Orders', icon: ShoppingBag },
-    { id: 'help', label: 'Help', icon: HelpCircle },
-    { id: 'my', label: 'My', icon: User },
-  ];
+  // Get tabs from config - easy to change in tabs.config.ts
+  const tabs = getEnabledTabs(TABS_CONFIG);
 
   return (
     <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 z-50">

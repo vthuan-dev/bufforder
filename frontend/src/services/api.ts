@@ -433,6 +433,18 @@ export default {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
     return request(`/chat/admin/threads/${threadId}/read`, { method: 'POST', headers });
   },
+  adminChatDeleteThread(threadId: string) {
+    const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
+    return request(`/chat/admin/threads/${threadId}`, { method: 'DELETE', headers });
+  },
+  adminChatBlockUser(threadId: string, reason?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json', ...adminTokenHeader() } as Record<string, string>;
+    return request(`/chat/admin/threads/${threadId}/block`, { method: 'POST', headers, body: JSON.stringify({ reason }) });
+  },
+  adminChatGetThread(threadId: string) {
+    const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
+    return request(`/chat/admin/threads/${threadId}`, { headers });
+  },
 
   // =====================
   // ADMIN API ENDPOINTS

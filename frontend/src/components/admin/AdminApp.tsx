@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { AdminLoginPage } from "./AdminLoginPage";
 import { AdminLayout } from "./AdminLayout";
 import { AdminDashboard } from "./AdminDashboard";
@@ -86,12 +86,5 @@ function AdminRoutes() {
 }
 
 export function AdminApp() {
-  return (
-    <BrowserRouter basename="">
-      <Routes>
-        <Route path="/admin/*" element={<AdminRoutes />} />
-        <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
-      </Routes>
-    </BrowserRouter>
-  );
+  return <AdminRoutes />;
 }

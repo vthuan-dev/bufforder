@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState, useRef } from "react";
+import { ReactNode, useEffect, useState, useRef, useCallback } from "react";
 import {
   LayoutDashboard,
   Users,
@@ -30,6 +30,29 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import api from "../../services/api";
 import { getAdminSocket, initAdminSocket } from "./adminSocket";
+import { toast } from "sonner";
+
+// Order notification interface
+interface OrderNotification {
+  id: string;
+  orderId: number;
+  orderNumber: string;
+  userName: string;
+  productName: string;
+  productPrice: number;
+  createdAt: Date;
+  isRead: boolean;
+}
+
+// Deposit notification interface
+interface DepositNotification {
+  id: string;
+  requestId: number;
+  userName: string;
+  amount: number;
+  createdAt: Date;
+  isRead: boolean;
+}
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -51,12 +74,241 @@ const baseMenuItems = [
 
 const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:5000';
 
+// Helper function to format time ago
+function formatTimeAgo(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - new Date(date).getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+
+  if (diffSec < 60) return 'Just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHour < 24) return `${diffHour}h ago`;
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return new Date(date).toLocaleDateString();
+}
+
 export function AdminLayout({ children, currentPage, onNavigate, onLogout }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [chatUnread, setChatUnread] = useState<number>(0);
   const [adminData, setAdminData] = useState<any>(null);
   const socketInitialized = useRef(false);
+  
+  // 🔔 Order notifications state
+  const [orderNotifications, setOrderNotifications] = useState<OrderNotification[]>(() => {
+    try {
+      const saved = localStorage.getItem('admin:orderNotifications');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  
+  // 💰 Deposit notifications state
+  const [depositNotifications, setDepositNotifications] = useState<DepositNotification[]>(() => {
+    try {
+      const saved = localStorage.getItem('admin:depositNotifications');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  
+  const orderAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // 🔊 Global play sound function - attached to window so socket handler can call it
+  useEffect(() => {
+    (window as any).__playOrderSound = () => {
+      console.log('[AdminLayout] 🔊 __playOrderSound called from window');
+      const audioSrc = new URL('../../assets/sound/noti.mp3', import.meta.url).href;
+      const audio = new Audio(audioSrc);
+      audio.volume = 1;
+      audio.play();
+    };
+    return () => {
+      delete (window as any).__playOrderSound;
+    };
+  }, []);
+  
+  // 🔊 Simple function to play sound - called directly when needed
+  const playOrderNotificationSound = () => {
+    console.log('[AdminLayout] 🔊 playOrderNotificationSound called');
+    try {
+      // Use the audio ref directly - NO CONDITIONS, always try to play
+      const audio = orderAudioRef.current;
+      if (audio) {
+        console.log('[AdminLayout] 🔊 Playing audio...');
+        audio.currentTime = 0;
+        audio.volume = 1;
+        audio.play().then(() => {
+          console.log('[AdminLayout] ✅ Audio played successfully!');
+        }).catch(e => {
+          console.log('[AdminLayout] ❌ Audio play failed:', e);
+        });
+      } else {
+        console.log('[AdminLayout] ❌ No audio ref found');
+      }
+    } catch (e) {
+      console.log('[AdminLayout] ❌ Sound error:', e);
+    }
+  };
+  
+  // Sound enabled state (requires user interaction first)
+  const [orderSoundEnabled, setOrderSoundEnabled] = useState(() => {
+    try {
+      return localStorage.getItem('admin:orderSoundEnabled') === '1';
+    } catch { return false; }
+  });
+  // Use ref to avoid stale closure in socket handler
+  const orderSoundEnabledRef = useRef(orderSoundEnabled);
+  useEffect(() => { orderSoundEnabledRef.current = orderSoundEnabled; }, [orderSoundEnabled]);
+  
+  // Count unread order notifications
+  const unreadOrderCount = orderNotifications.filter(n => !n.isRead).length;
+  
+  // Count unread deposit notifications
+  const unreadDepositCount = depositNotifications.filter(n => !n.isRead).length;
+  
+  // Total unread notifications
+  const totalUnreadCount = unreadOrderCount + unreadDepositCount;
+
+  // Play notification sound with multiple fallback strategies
+  const playOrderSound = useCallback(async () => {
+    console.log('[AdminLayout] playOrderSound called, enabled:', orderSoundEnabledRef.current);
+    
+    try {
+      // Check if sound is enabled (user has clicked to enable) - use REF to avoid stale closure
+      if (!orderSoundEnabledRef.current) {
+        console.log('[AdminLayout] Order sound not enabled yet - user needs to click Enable Sound');
+        return;
+      }
+
+      const soundDisabled = localStorage.getItem('admin:soundEnabled') === '0';
+      if (soundDisabled) {
+        console.log('[AdminLayout] Sound disabled by preference');
+        return;
+      }
+
+      console.log('[AdminLayout] Attempting to play sound...');
+
+      const playStrategies = [
+        // Strategy 1: Use existing audio element
+        async () => {
+          console.log('[AdminLayout] Trying strategy 1: existing audio element');
+          const a = orderAudioRef.current;
+          if (a) {
+            a.currentTime = 0;
+            a.volume = 1;
+            await a.play();
+            return true;
+          }
+          return false;
+        },
+        // Strategy 2: Create new audio element
+        async () => {
+          console.log('[AdminLayout] Trying strategy 2: new Audio()');
+          const audio = new Audio(new URL('../../assets/sound/noti.mp3', import.meta.url).toString());
+          audio.volume = 1;
+          await audio.play();
+          return true;
+        },
+        // Strategy 3: Use Web Audio API
+        async () => {
+          console.log('[AdminLayout] Trying strategy 3: Web Audio API');
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+          }
+          const response = await fetch(new URL('../../assets/sound/noti.mp3', import.meta.url).toString());
+          const arrayBuffer = await response.arrayBuffer();
+          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+          const source = audioContext.createBufferSource();
+          source.buffer = audioBuffer;
+          source.connect(audioContext.destination);
+          source.start(0);
+          return true;
+        }
+      ];
+
+      // Try each strategy until one succeeds
+      for (const strategy of playStrategies) {
+        try {
+          const success = await strategy();
+          if (success) {
+            console.log('[AdminLayout] ✅ Order sound played successfully');
+            return;
+          }
+        } catch (error) {
+          console.warn('[AdminLayout] Sound strategy failed:', error);
+        }
+      }
+
+      console.error('[AdminLayout] ❌ All sound strategies failed');
+    } catch (err) {
+      console.error('[AdminLayout] Sound error:', err);
+    }
+  }, []); // No dependencies - uses ref
+
+  // Enable sound (requires user click)
+  const enableOrderSound = useCallback(async () => {
+    try {
+      // Update both state and ref
+      setOrderSoundEnabled(true);
+      orderSoundEnabledRef.current = true;
+      localStorage.setItem('admin:orderSoundEnabled', '1');
+      
+      console.log('[AdminLayout] Enabling order sound...');
+      
+      // Play a test sound to confirm it works
+      const audio = new Audio(new URL('../../assets/sound/noti.mp3', import.meta.url).toString());
+      audio.volume = 0.5;
+      await audio.play();
+      
+      console.log('[AdminLayout] ✅ Order sound enabled and test played');
+      toast.success('🔔 Order notifications enabled!', { duration: 2000 });
+    } catch (err) {
+      console.error('[AdminLayout] Enable sound failed:', err);
+      toast.error('Failed to enable sound. Please try again.');
+    }
+  }, []);
+
+  // Mark all order notifications as read
+  const markAllOrdersRead = useCallback(() => {
+    setOrderNotifications(prev => {
+      const updated = prev.map(n => ({ ...n, isRead: true }));
+      try { localStorage.setItem('admin:orderNotifications', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  }, []);
+
+  // Clear all order notifications
+  const clearOrderNotifications = useCallback(() => {
+    setOrderNotifications([]);
+    try { localStorage.removeItem('admin:orderNotifications'); } catch {}
+  }, []);
+
+  // Mark all notifications as read (both order and deposit)
+  const markAllNotificationsRead = useCallback(() => {
+    setOrderNotifications(prev => {
+      const updated = prev.map(n => ({ ...n, isRead: true }));
+      try { localStorage.setItem('admin:orderNotifications', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+    setDepositNotifications(prev => {
+      const updated = prev.map(n => ({ ...n, isRead: true }));
+      try { localStorage.setItem('admin:depositNotifications', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  }, []);
+
+  // Clear all notifications (both order and deposit)
+  const clearAllNotifications = useCallback(() => {
+    setOrderNotifications([]);
+    setDepositNotifications([]);
+    try { 
+      localStorage.removeItem('admin:orderNotifications'); 
+      localStorage.removeItem('admin:depositNotifications'); 
+    } catch {}
+  }, []);
 
   useEffect(() => {
     const data = localStorage.getItem('adminData');
@@ -83,18 +335,106 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
               s = initAdminSocket(token);
               console.log('[AdminLayout] Initialized global admin socket');
             }
+            
+            console.log('[AdminLayout] 🔌 Socket connected:', s.connected, 'id:', s.id);
 
-            const handler = () => {
+            // Chat thread updated handler - play sound if not on chat page
+            const chatHandler = (data: any) => {
+              console.log('[AdminLayout] 💬 Received chat:threadUpdated:', data);
+              
               // Re-fetch count when message received
               api.adminChatListThreads({ page: 1, limit: 100 }).then(r => {
                 const updatedTotal = (r?.data?.threads || []).reduce((sum: number, t: any) => sum + (t.unreadForAdmin || 0), 0);
                 setChatUnread(updatedTotal);
               });
+
+              // 🔊 Play sound if admin is NOT on chat page
+              const currentPage = window.location.pathname;
+              const isOnChatPage = currentPage.includes('/admin/chat');
+              console.log('[AdminLayout] 💬 Current page:', currentPage, 'isOnChatPage:', isOnChatPage);
+              
+              if (!isOnChatPage) {
+                try {
+                  const audioSrc = new URL('../../assets/sound/noti.mp3', import.meta.url).href;
+                  const audio = new Audio(audioSrc);
+                  audio.volume = 1;
+                  audio.play();
+                  console.log('[AdminLayout] 🔊 Chat notification sound played!');
+                } catch (e) {
+                  console.error('[AdminLayout] ❌ Chat sound error:', e);
+                }
+
+                // Show toast notification
+                toast.info('💬 New Message!', {
+                  description: 'You have a new chat message',
+                  duration: 3000,
+                  action: {
+                    label: 'View',
+                    onClick: () => onNavigate('chat')
+                  }
+                });
+              }
             };
 
-            s.on('chat:threadUpdated', handler);
+            // 🔔 New order handler
+            const orderHandler = (data: any) => {
+              console.log('[AdminLayout] 🛒 Received order:new:', data);
+              
+              const newNotification: OrderNotification = {
+                id: `order-${data.orderId}-${Date.now()}`,
+                orderId: data.orderId,
+                orderNumber: data.orderNumber,
+                userName: data.userName || 'Unknown',
+                productName: data.productName,
+                productPrice: data.productPrice,
+                createdAt: new Date(data.createdAt),
+                isRead: false
+              };
+
+              setOrderNotifications(prev => {
+                const updated = [newNotification, ...prev].slice(0, 50); // Keep max 50
+                try { localStorage.setItem('admin:orderNotifications', JSON.stringify(updated)); } catch {}
+                return updated;
+              });
+
+              // 🔊 Play sound - read directly from localStorage
+              (async () => {
+                try {
+                  const soundEnabled = localStorage.getItem('admin:orderSoundEnabled') === '1';
+                  const soundDisabled = localStorage.getItem('admin:soundEnabled') === '0';
+                  console.log('[AdminLayout] 🔊 Sound check:', { soundEnabled, soundDisabled });
+                  
+                  if (soundEnabled && !soundDisabled) {
+                    console.log('[AdminLayout] 🔊 Playing order sound...');
+                    const audio = new Audio(new URL('../../assets/sound/noti.mp3', import.meta.url).toString());
+                    audio.volume = 1;
+                    await audio.play();
+                    console.log('[AdminLayout] ✅ Order sound played!');
+                  }
+                } catch (err) {
+                  console.error('[AdminLayout] ❌ Sound error:', err);
+                }
+              })();
+
+              // Show toast
+              toast.success('🛒 New Order!', {
+                description: `${data.userName} ordered ${data.productName} - $${data.productPrice}`,
+                duration: 5000,
+                action: {
+                  label: 'View',
+                  onClick: () => onNavigate('orders')
+                }
+              });
+            };
+
+            s.on('chat:threadUpdated', chatHandler);
+            s.on('order:new', orderHandler);
+            
+            console.log('[AdminLayout] ✅ Registered listeners for chat:threadUpdated and order:new');
+            
             return () => {
-              s.off('chat:threadUpdated', handler);
+              s.off('chat:threadUpdated', chatHandler);
+              s.off('order:new', orderHandler);
             };
           }
         } catch (err) {
@@ -104,6 +444,113 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
 
       initData();
     }
+  }, [onNavigate]); // Removed playOrderSound - it uses ref now
+
+  // 🔔 Separate effect for order:new listener - ensures it's always registered
+  useEffect(() => {
+    const setupOrderListener = () => {
+      const s = getAdminSocket();
+      if (!s) {
+        console.log('[AdminLayout] No socket available for order listener');
+        return;
+      }
+
+      const orderHandler = async (data: any) => {
+        console.log('[AdminLayout] 🛒 ORDER:NEW EVENT RECEIVED:', data);
+        
+        const newNotification: OrderNotification = {
+          id: `order-${data.orderId}-${Date.now()}`,
+          orderId: data.orderId,
+          orderNumber: data.orderNumber,
+          userName: data.userName || 'Unknown',
+          productName: data.productName,
+          productPrice: data.productPrice,
+          createdAt: new Date(data.createdAt),
+          isRead: false
+        };
+
+        setOrderNotifications(prev => {
+          const updated = [newNotification, ...prev].slice(0, 50);
+          try { localStorage.setItem('admin:orderNotifications', JSON.stringify(updated)); } catch {}
+          return updated;
+        });
+
+        // 🔊 Play sound using global function
+        if ((window as any).__playOrderSound) {
+          (window as any).__playOrderSound();
+        }
+
+        // Show toast
+        toast.success('🛒 New Order!', {
+          description: `${data.userName} ordered ${data.productName} - $${data.productPrice}`,
+          duration: 5000
+        });
+      };
+
+      // Remove any existing listener first, then add new one
+      s.off('order:new');
+      s.on('order:new', orderHandler);
+      console.log('[AdminLayout] 🔔 Order listener registered on socket');
+
+      // 💰 Deposit handler
+      const depositHandler = (data: any) => {
+        console.log('[AdminLayout] 💰 Received deposit:new:', data);
+
+        // Create notification
+        const newNotification: DepositNotification = {
+          id: `deposit-${data.requestId}-${Date.now()}`,
+          requestId: data.requestId,
+          userName: data.userName || 'Unknown',
+          amount: data.amount,
+          createdAt: new Date(data.createdAt || Date.now()),
+          isRead: false
+        };
+
+        setDepositNotifications(prev => {
+          const updated = [newNotification, ...prev].slice(0, 50); // Keep max 50
+          try { localStorage.setItem('admin:depositNotifications', JSON.stringify(updated)); } catch {}
+          return updated;
+        });
+
+        // Play sound directly
+        try {
+          const audioSrc = new URL('../../assets/sound/noti.mp3', import.meta.url).href;
+          const audio = new Audio(audioSrc);
+          audio.volume = 1;
+          audio.play();
+        } catch (e) { /* ignore */ }
+
+        // Show toast
+        toast.success('💰 New Deposit Request!', {
+          description: `${data.userName} requested $${data.amount} deposit`,
+          duration: 5000,
+          action: {
+            label: 'View',
+            onClick: () => onNavigate('deposits')
+          }
+        });
+      };
+
+      s.off('deposit:new');
+      s.on('deposit:new', depositHandler);
+      console.log('[AdminLayout] 💰 Deposit listener registered on socket');
+
+      return () => {
+        s.off('order:new', orderHandler);
+        s.off('deposit:new', depositHandler);
+      };
+    };
+
+    // Setup immediately and also after a delay (in case socket connects later)
+    const cleanup1 = setupOrderListener();
+    const timeoutId = setTimeout(() => {
+      setupOrderListener();
+    }, 2000);
+
+    return () => {
+      cleanup1?.();
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   // Listen to broadcast from Chat page for recalculated totals
@@ -117,17 +564,32 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
       if (e.detail) setAdminData(e.detail);
     };
 
+    // 🔊 Listen for order sound event
+    const soundHandler = () => {
+      console.log('[AdminLayout] 🔊 Received admin:playOrderSound event');
+      playOrderNotificationSound();
+    };
+
     window.addEventListener('chatUnreadUpdated', handler as any);
     window.addEventListener('adminDataUpdated', profileHandler as any);
+    window.addEventListener('admin:playOrderSound', soundHandler);
 
     return () => {
       window.removeEventListener('chatUnreadUpdated', handler as any);
       window.removeEventListener('adminDataUpdated', profileHandler as any);
+      window.removeEventListener('admin:playOrderSound', soundHandler);
     };
   }, []);
 
   return (
     <div className="h-screen bg-gray-50 flex overflow-hidden">
+      {/* 🔔 Hidden audio for order notifications */}
+      <audio 
+        ref={orderAudioRef} 
+        src={new URL('../../assets/sound/noti.mp3', import.meta.url).toString()} 
+        preload="auto" 
+      />
+      
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div
@@ -241,6 +703,18 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
 
             {/* Right: Dark Mode, Notifications, Profile */}
             <div className="flex items-center gap-2 lg:gap-3">
+              {/* Enable Sound Button - shows only if not enabled */}
+              {!orderSoundEnabled && (
+                <button
+                  onClick={enableOrderSound}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded-lg text-xs font-medium transition-colors"
+                  title="Click to enable order notification sounds"
+                >
+                  <Bell className="w-4 h-4" />
+                  <span className="hidden sm:inline">Enable Sound</span>
+                </button>
+              )}
+
               {/* Dark Mode Toggle */}
               <button
                 onClick={() => setDarkMode(!darkMode)}
@@ -254,45 +728,125 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
                 <DropdownMenuTrigger asChild>
                   <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
                     <Bell className="w-5 h-5" />
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+                    {totalUnreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-medium px-1">
+                        {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
+                      </span>
+                    )}
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-80">
                   <DropdownMenuLabel className="flex items-center justify-between">
                     <span>Notifications</span>
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-600 text-xs">3 new</Badge>
+                    {totalUnreadCount > 0 && (
+                      <Badge variant="secondary" className="bg-red-100 text-red-600 text-xs">
+                        {totalUnreadCount} new
+                      </Badge>
+                    )}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <div className="max-h-[300px] overflow-y-auto">
-                    <DropdownMenuItem className="flex flex-col items-start gap-1 py-3 cursor-pointer">
-                      <div className="flex items-center gap-2 w-full">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />
-                        <span className="font-medium text-sm">New deposit request</span>
+                  <div className="max-h-[350px] overflow-y-auto">
+                    {orderNotifications.length === 0 && depositNotifications.length === 0 ? (
+                      <div className="py-8 text-center text-gray-500 text-sm">
+                        No notifications yet
                       </div>
-                      <p className="text-xs text-gray-500 pl-4">User John Doe requested $500 deposit</p>
-                      <span className="text-xs text-gray-400 pl-4">2 minutes ago</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="flex flex-col items-start gap-1 py-3 cursor-pointer">
-                      <div className="flex items-center gap-2 w-full">
-                        <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0" />
-                        <span className="font-medium text-sm">New user registered</span>
-                      </div>
-                      <p className="text-xs text-gray-500 pl-4">Jane Smith joined the platform</p>
-                      <span className="text-xs text-gray-400 pl-4">15 minutes ago</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="flex flex-col items-start gap-1 py-3 cursor-pointer">
-                      <div className="flex items-center gap-2 w-full">
-                        <div className="w-2 h-2 bg-orange-500 rounded-full flex-shrink-0" />
-                        <span className="font-medium text-sm">Withdrawal pending</span>
-                      </div>
-                      <p className="text-xs text-gray-500 pl-4">Mike Johnson requested $200 withdrawal</p>
-                      <span className="text-xs text-gray-400 pl-4">1 hour ago</span>
-                    </DropdownMenuItem>
+                    ) : (
+                      <>
+                        {/* Order Notifications */}
+                        {orderNotifications.length > 0 && (
+                          <>
+                            <div className="px-2 py-1 text-xs font-medium text-gray-400 uppercase tracking-wide">
+                              Orders ({unreadOrderCount} new)
+                            </div>
+                            {orderNotifications.slice(0, 5).map((notification) => (
+                              <DropdownMenuItem 
+                                key={notification.id}
+                                className="flex flex-col items-start gap-1 py-3 cursor-pointer"
+                                onClick={() => onNavigate('orders')}
+                              >
+                                <div className="flex items-center gap-2 w-full">
+                                  {!notification.isRead && (
+                                    <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />
+                                  )}
+                                  <ShoppingBag className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                                  <span className={`font-medium text-sm ${notification.isRead ? 'text-gray-600' : 'text-gray-900'}`}>
+                                    New Order #{notification.orderNumber}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-gray-500 pl-6">
+                                  {notification.userName} - {notification.productName}
+                                </p>
+                                <div className="flex items-center justify-between w-full pl-6">
+                                  <span className="text-xs text-green-600 font-medium">
+                                    ${notification.productPrice.toLocaleString()}
+                                  </span>
+                                  <span className="text-xs text-gray-400">
+                                    {formatTimeAgo(notification.createdAt)}
+                                  </span>
+                                </div>
+                              </DropdownMenuItem>
+                            ))}
+                          </>
+                        )}
+                        
+                        {/* Deposit Notifications */}
+                        {depositNotifications.length > 0 && (
+                          <>
+                            <div className="px-2 py-1 text-xs font-medium text-gray-400 uppercase tracking-wide mt-2">
+                              Deposits ({unreadDepositCount} new)
+                            </div>
+                            {depositNotifications.slice(0, 5).map((notification) => (
+                              <DropdownMenuItem 
+                                key={notification.id}
+                                className="flex flex-col items-start gap-1 py-3 cursor-pointer"
+                                onClick={() => onNavigate('deposits')}
+                              >
+                                <div className="flex items-center gap-2 w-full">
+                                  {!notification.isRead && (
+                                    <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />
+                                  )}
+                                  <ArrowDownCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                  <span className={`font-medium text-sm ${notification.isRead ? 'text-gray-600' : 'text-gray-900'}`}>
+                                    New Deposit Request
+                                  </span>
+                                </div>
+                                <p className="text-xs text-gray-500 pl-6">
+                                  {notification.userName}
+                                </p>
+                                <div className="flex items-center justify-between w-full pl-6">
+                                  <span className="text-xs text-green-600 font-medium">
+                                    ${notification.amount.toLocaleString()}
+                                  </span>
+                                  <span className="text-xs text-gray-400">
+                                    {formatTimeAgo(notification.createdAt)}
+                                  </span>
+                                </div>
+                              </DropdownMenuItem>
+                            ))}
+                          </>
+                        )}
+                      </>
+                    )}
                   </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="justify-center text-blue-600 cursor-pointer">
-                    View all notifications
-                  </DropdownMenuItem>
+                  {(orderNotifications.length > 0 || depositNotifications.length > 0) && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <div className="flex gap-2 p-2">
+                        <button 
+                          onClick={markAllNotificationsRead}
+                          className="flex-1 text-xs text-blue-600 hover:text-blue-700 py-1"
+                        >
+                          Mark all read
+                        </button>
+                        <button 
+                          onClick={clearAllNotifications}
+                          className="flex-1 text-xs text-gray-500 hover:text-gray-700 py-1"
+                        >
+                          Clear all
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
 

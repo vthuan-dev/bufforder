@@ -19,6 +19,9 @@ model User {
   freezeBalance      Float               @default(0)
   commission         Float               @default(0)
   isActive           Boolean             @default(true)
+  isChatBlocked      Boolean             @default(false)
+  chatBlockedAt      DateTime?
+  chatBlockedReason  String?             @db.Text
   lastSeenAt         DateTime?
   inviteCodeUsed     String?
   commissionConfig   String?             @db.LongText

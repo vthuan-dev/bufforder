@@ -64,7 +64,7 @@ export function HelpPage() {
             const arr: Message[] = (list?.data?.messages || []).map((m: any) => ({
               id: m._id || m.id,
               text: m.text || '',
-              imageUrl: m.imageUrl ? (m.imageUrl.startsWith('/') ? `${API_BASE}${m.imageUrl}` : m.imageUrl) : undefined,
+              imageUrl: m.imageUrl ? (String(m.imageUrl).startsWith('/') ? `${API_BASE}${m.imageUrl}` : m.imageUrl) : undefined,
               isUser: m.senderType === 'user',
               timestamp: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             }));
@@ -95,7 +95,7 @@ export function HelpPage() {
           const arr: Message[] = (list?.data?.messages || []).map((m: any) => ({
             id: m._id || m.id,
             text: m.text || '',
-            imageUrl: m.imageUrl ? (m.imageUrl.startsWith('/') ? `${API_BASE}${m.imageUrl}` : m.imageUrl) : undefined,
+            imageUrl: m.imageUrl ? (String(m.imageUrl).startsWith('/') ? `${API_BASE}${m.imageUrl}` : m.imageUrl) : undefined,
             isUser: m.senderType === 'user',
             timestamp: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           }));
@@ -130,13 +130,13 @@ export function HelpPage() {
       setMessages(prev => {
         const exists = prev.some(m => {
           if (m.id === newMessage.id) return true;
-          if (m.id.startsWith('temp-') && m.text === newMessage.text && m.isUser === newMessage.isUser) return true;
+          if (String(m.id).startsWith('temp-') && m.text === newMessage.text && m.isUser === newMessage.isUser) return true;
           return false;
         });
 
         if (exists) {
           return prev.map(m => {
-            if (m.id.startsWith('temp-') && m.text === newMessage.text && m.isUser === newMessage.isUser) {
+            if (String(m.id).startsWith('temp-') && m.text === newMessage.text && m.isUser === newMessage.isUser) {
               return newMessage;
             }
             return m;
@@ -170,7 +170,7 @@ export function HelpPage() {
           const arr: Message[] = (list?.data?.messages || []).map((m: any) => ({
             id: m._id,
             text: m.text || '',
-            imageUrl: m.imageUrl ? (m.imageUrl.startsWith('/') ? `${API_BASE}${m.imageUrl}` : m.imageUrl) : undefined,
+            imageUrl: m.imageUrl ? (String(m.imageUrl).startsWith('/') ? `${API_BASE}${m.imageUrl}` : m.imageUrl) : undefined,
             isUser: m.senderType === 'user',
             timestamp: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           }));
@@ -360,20 +360,12 @@ export function HelpPage() {
   return (
     <div className="pb-16 h-screen flex flex-col bg-gradient-to-b from-purple-50 via-blue-50 to-pink-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3 shadow-sm">
-        <div className="flex items-center gap-3">
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5 text-gray-700" />
-          </motion.button>
-
+      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-3 shadow-sm z-20">
+        <div className="flex items-center gap-3 max-w-md mx-auto">
           <div className="relative">
             <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
               <span className="text-blue-600">A</span>
             </div>
-            {/* Online indicator */}
             <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
           </div>
 
@@ -384,26 +376,22 @@ export function HelpPage() {
               <span>Online • Reply in ~1 min</span>
             </div>
           </div>
-          <button onClick={enableSound} className="ml-auto px-3 py-1.5 text-xs rounded-full bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200">
-            {soundEnabled ? 'Test sound' : 'Enable & test sound'}
-          </button>
         </div>
       </div>
 
-      {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6">
-        <div className="space-y-4 max-w-2xl mx-auto">
+      {/* Chat Messages - Scrollable area */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
+        <div className="space-y-4 max-w-md mx-auto">
           <AnimatePresence>
             {messages.map((message, index) => (
               <motion.div
-                key={message.id}
+                key={`${message.id}-${index}`}
                 initial={{ opacity: 0, y: 20, scale: 0.9 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
                 className={`flex ${message.isUser ? 'justify-end' : 'justify-start'} items-end gap-2`}
               >
-                {/* Bot Avatar */}
                 {!message.isUser && (
                   <motion.div
                     initial={{ scale: 0 }}
@@ -438,8 +426,7 @@ export function HelpPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.3 }}
-                    className={`text-xs mt-1 px-2 ${message.isUser ? 'text-gray-600' : 'text-gray-500'
-                      }`}
+                    className={`text-xs mt-1 px-2 ${message.isUser ? 'text-gray-600' : 'text-gray-500'}`}
                   >
                     {message.timestamp}
                   </motion.p>
@@ -464,7 +451,7 @@ export function HelpPage() {
                   <div className="flex gap-1">
                     {[0, 1, 2].map((i) => (
                       <motion.div
-                        key={i}
+                        key={`typing-dot-${i}`}
                         animate={{ y: [0, -8, 0] }}
                         transition={{
                           duration: 0.6,
@@ -491,7 +478,7 @@ export function HelpPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="px-4 pb-2"
+            className="flex-shrink-0 w-full max-w-md mx-auto px-4 pb-2"
           >
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
               {quickReplies.map((reply, index) => (
@@ -514,31 +501,31 @@ export function HelpPage() {
       </AnimatePresence>
 
       {/* Input Area */}
-      <div className="bg-white/80 backdrop-blur-lg border-t border-gray-200 px-4 py-4">
-        <div className="flex items-center gap-2 max-w-2xl mx-auto">
+      <div className="flex-shrink-0 bg-white border-t border-gray-200 px-4 py-3">
+        <div className="flex items-center gap-2 max-w-md mx-auto">
           <motion.button
             whileTap={{ scale: 0.9 }}
-            className="p-3 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
             onClick={handlePickImage}
           >
             <Paperclip className="w-5 h-5 text-gray-600" />
           </motion.button>
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
 
-          <div className="flex-1 relative">
+          <div className="flex-1">
             <input
               type="text"
               value={inputMessage}
               onChange={(e) => handleInputChange(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
               placeholder="Type your message..."
-              className="w-full bg-gray-100 hover:bg-gray-150 focus:bg-white rounded-full px-6 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all border border-transparent focus:border-purple-300"
+              className="w-full bg-gray-100 rounded-full px-5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:bg-white transition-all"
             />
           </div>
 
           <motion.button
             whileTap={{ scale: 0.9 }}
-            className="p-3 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
           >
             <Smile className="w-5 h-5 text-gray-600" />
           </motion.button>
@@ -548,7 +535,7 @@ export function HelpPage() {
             whileTap={{ scale: 0.95 }}
             onClick={() => handleSendMessage()}
             disabled={!inputMessage.trim()}
-            className="bg-gradient-to-r from-purple-500 via-blue-500 to-indigo-500 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-gradient-to-r from-purple-500 via-blue-500 to-indigo-500 text-white p-2.5 rounded-full shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="w-5 h-5" />
           </motion.button>

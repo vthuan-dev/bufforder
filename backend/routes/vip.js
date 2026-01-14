@@ -139,6 +139,23 @@ router.post('/deposit', verifyToken, async (req, res) => {
       }
     });
 
+    // 🔔 Emit new deposit notification to admins
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to('admins').emit('deposit:new', {
+          requestId: depositRequest.id,
+          userId: req.userId,
+          userName: user.fullName || user.username,
+          amount: depositRequest.amount,
+          createdAt: depositRequest.requestDate
+        });
+        console.log('[VIP] Emitted deposit:new to admins');
+      }
+    } catch (emitErr) {
+      console.error('[VIP] Failed to emit deposit:new:', emitErr);
+    }
+
     res.json({
       success: true,
       message: 'Deposit request submitted successfully. Please wait for admin approval.',

@@ -1,15 +1,22 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Send, Paperclip, MoreVertical, User, Clock } from "lucide-react";
+import { Search, Send, Paperclip, MoreVertical, User, Clock, Trash2, Ban, MessageSquare, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
-import { ScrollArea } from "../ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 import api from "../../services/api";
 import { getAdminSocket } from "./adminSocket";
 import { io, Socket } from "socket.io-client";
+import { toast } from "sonner";
 
 interface ChatThread {
   id: string;
-  user: { name: string; email: string; avatar?: string };
+  user: { name: string; email: string; avatar?: string; isChatBlocked?: boolean };
   lastMessage: string;
   timestamp: string;
   unread: number;
@@ -27,6 +34,18 @@ interface Message {
   isRead: boolean;
 }
 
+// Quick reply templates
+const QUICK_REPLIES = [
+  "Hello! How can I help you today?",
+  "Thank you for contacting us. Please wait a moment.",
+  "Your order is being processed. We'll update you soon.",
+  "Could you please provide more details?",
+  "Is there anything else I can help you with?",
+  "Thank you for your patience!",
+  "Your issue has been resolved. Please check now.",
+  "We apologize for the inconvenience.",
+];
+
 const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:5000';
 
 export function AdminChatPage() {
@@ -36,6 +55,9 @@ export function AdminChatPage() {
   const [messageInput, setMessageInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [typingHeader, setTypingHeader] = useState<boolean>(false);
+  const [showQuickReplies, setShowQuickReplies] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isUserBlocked, setIsUserBlocked] = useState(false);
   const socketRef = useRef<Socket | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const selectedThreadIdRef = useRef<string | null>(null);
@@ -47,7 +69,6 @@ export function AdminChatPage() {
   const partnerTypingRef = useRef<boolean>(false);
   const typingTimerRef = useRef<number | null>(null);
   const isWindowFocusedRef = useRef<boolean>(typeof document !== 'undefined' ? !document.hidden : true);
-
   // Restore sound preference
   useEffect(() => {
     try {
@@ -364,6 +385,48 @@ export function AdminChatPage() {
     }
   };
 
+  // Delete thread handler
+  const handleDeleteThread = async () => {
+    if (!selectedThread) return;
+    try {
+      await api.adminChatDeleteThread(selectedThread.id);
+      toast.success('Thread deleted successfully');
+      setThreads(prev => prev.filter(t => t.id !== selectedThread.id));
+      setSelectedThread(null);
+      setMessages([]);
+      setShowDeleteConfirm(false);
+    } catch (err) {
+      toast.error('Failed to delete thread');
+    }
+  };
+
+  // Block/Unblock user handler
+  const handleBlockUser = async () => {
+    if (!selectedThread) return;
+    try {
+      const res = await api.adminChatBlockUser(selectedThread.id);
+      const blocked = res?.data?.blocked;
+      setIsUserBlocked(blocked);
+      setSelectedThread(prev => prev ? { ...prev, user: { ...prev.user, isChatBlocked: blocked } } : null);
+      toast.success(blocked ? 'User blocked from chat' : 'User unblocked');
+    } catch (err) {
+      toast.error('Failed to update block status');
+    }
+  };
+
+  // Quick reply handler
+  const handleQuickReply = (text: string) => {
+    setMessageInput(text);
+    setShowQuickReplies(false);
+  };
+
+  // Check block status when thread changes
+  useEffect(() => {
+    if (selectedThread?.user?.isChatBlocked !== undefined) {
+      setIsUserBlocked(selectedThread.user.isChatBlocked);
+    }
+  }, [selectedThread]);
+
   const totalUnread = threads.reduce((sum, thread) => sum + (thread.unread || 0), 0);
   // Broadcast unread to layout
   useEffect(() => {
@@ -384,9 +447,6 @@ export function AdminChatPage() {
           <p className="text-gray-600">Manage customer support conversations</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={enableSound} className="px-3 py-2 text-sm rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200">
-            {soundEnabled ? 'Test sound' : 'Enable & test sound'}
-          </button>
           <Badge variant="secondary" className="bg-red-100 text-red-700 px-4 py-2">
             {totalUnread} Unread
           </Badge>
@@ -478,17 +538,92 @@ export function AdminChatPage() {
                   )}
                 </div>
                 <div>
-                  <p className="text-gray-900">{selectedThread.user.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-gray-900">{selectedThread.user.name}</p>
+                    {isUserBlocked && (
+                      <Badge variant="secondary" className="bg-red-100 text-red-600 text-xs">Blocked</Badge>
+                    )}
+                  </div>
                   <p className="text-sm text-gray-500">{typingHeader ? 'Typing…' : selectedThread.user.email}</p>
                   {selectedThread.userIp && (
                     <p className="text-xs text-gray-400">IP: {selectedThread.userIp}</p>
                   )}
                 </div>
               </div>
-              <button className="p-2 hover:bg-gray-100 rounded-lg">
-                <MoreVertical className="w-5 h-5 text-gray-600" />
-              </button>
+              
+              {/* Actions Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="p-2 hover:bg-gray-100 rounded-lg">
+                    <MoreVertical className="w-5 h-5 text-gray-600" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => setShowQuickReplies(true)}>
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    Quick Replies
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleBlockUser} className={isUserBlocked ? "text-green-600" : "text-orange-600"}>
+                    <Ban className="w-4 h-4 mr-2" />
+                    {isUserBlocked ? 'Unblock User' : 'Block User'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowDeleteConfirm(true)} className="text-red-600">
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Thread
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
+
+            {/* Quick Replies Panel */}
+            {showQuickReplies && (
+              <div className="absolute top-16 right-4 z-20 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-72">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700">Quick Replies</span>
+                  <button onClick={() => setShowQuickReplies(false)} className="p-1 hover:bg-gray-100 rounded">
+                    <X className="w-4 h-4 text-gray-500" />
+                  </button>
+                </div>
+                <div className="space-y-1 max-h-60 overflow-y-auto">
+                  {QUICK_REPLIES.map((reply, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleQuickReply(reply)}
+                      className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 rounded-lg transition-colors"
+                    >
+                      {reply}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && (
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-30">
+                <div className="bg-white rounded-xl p-6 w-80 shadow-xl">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Thread?</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    This will permanently delete all messages in this conversation. This action cannot be undone.
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleDeleteThread}
+                      className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Messages */}
             <div

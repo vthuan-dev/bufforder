@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState, lazy, Suspense, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useState, lazy, Suspense, useCallback, useMemo } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { BottomNav } from './components/BottomNav';
 import { Toaster } from './components/ui/sonner';
 import { io, Socket } from 'socket.io-client';
@@ -14,7 +15,7 @@ const RegisterPage = lazy(() => import('./components/RegisterPage').then(module 
 const AdminApp = lazy(() => import('./components/admin/AdminApp').then(module => ({ default: module.AdminApp })));
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 
-// Optimized loading component - minimal, fast render
+// Optimized loading component
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[400px] bg-gray-50">
     <div className="flex flex-col items-center gap-3">
@@ -24,213 +25,44 @@ const PageLoader = () => (
   </div>
 );
 
-export default function App() {
-  // Debug: Unique identifier to ensure new code is running
-  console.log('🚀 App.tsx loaded - Version 2.0 - Sound fix applied');
+const bannerImage = 'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=800&q=80';
 
-  const [activeTab, setActiveTab] = useState('home');
-  // Check for existing token on initial load for session persistence
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    try {
-      const token = localStorage.getItem('token');
-      return !!token; // true if token exists
-    } catch {
-      return false;
-    }
-  });
-  const [authView, setAuthView] = useState<'login' | 'register'>('login');
-  const [isAdminMode, setIsAdminMode] = useState(false);
-  const bannerImage = 'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=800&q=80';
+// Client App with routing
+function ClientApp() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const clientSocketRef = useRef<Socket | null>(null);
   const clientAudioRef = useRef<HTMLAudioElement | null>(null);
   const focusRef = useRef<boolean>(typeof document !== 'undefined' ? !document.hidden : true);
+  
+  // Get active tab from current path
+  const activeTab = useMemo(() => {
+    const path = location.pathname.replace('/', '') || 'home';
+    return ['home', 'orders', 'record', 'help', 'my'].includes(path) ? path : 'home';
+  }, [location.pathname]);
+  
   const activeTabRef = useRef<string>(activeTab);
+  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
 
-  // Keep activeTabRef in sync
-  useEffect(() => {
-    activeTabRef.current = activeTab;
-  }, [activeTab]);
-
-  // All hooks must be called before any conditional returns
-  const handleLogin = useCallback(() => {
-    setIsAuthenticated(true);
-  }, []);
-
-  const handleRegister = useCallback(() => {
-    setIsAuthenticated(true);
-  }, []);
-
-  // Preload critical components on hover/focus for instant navigation
-  const preloadComponent = useCallback((tab: string) => {
-    if (tab === 'help') {
-      import('./components/HelpPage').then(module => module.HelpPage);
-    } else if (tab === 'my') {
-      import('./components/MyPage').then(module => module.MyPage);
-    } else if (tab === 'orders') {
-      import('./components/OrdersPage').then(module => module.OrdersPage);
-    }
-  }, []);
-
-  // Memoized tab change handler with instant transition
+  // Handle tab change - navigate to route
   const handleTabChange = useCallback((tab: string) => {
-    console.log('[App] Tab change requested:', tab, '→ from:', activeTab);
-    // Instant tab switch without waiting for component load
-    setActiveTab(tab);
-    try { localStorage.setItem('client:activeBottomTab', tab); } catch { }
+    console.log('[ClientApp] Navigating to:', tab);
+    navigate(`/${tab}`);
     if (tab === 'help') {
-      try { localStorage.setItem('client:helpUnread', '0'); window.dispatchEvent(new CustomEvent('client:chatUnreadUpdated', { detail: 0 })); } catch { }
+      try { 
+        localStorage.setItem('client:helpUnread', '0'); 
+        window.dispatchEvent(new CustomEvent('client:chatUnreadUpdated', { detail: 0 })); 
+      } catch { }
     }
-  }, [activeTab]);
+  }, [navigate]);
 
-  // Memoized content renderer for better performance
-  const renderContent = useCallback(() => {
-    console.log('[App] Rendering content for tab:', activeTab);
-    const content = (() => {
-      switch (activeTab) {
-        case 'home':
-          return <HomePage bannerImage={bannerImage} />;
-        case 'orders':
-          return <OrdersPage />;
-        case 'record':
-          return <RecordPage />;
-        case 'help':
-          return <HelpPage />;
-        case 'my':
-          return <MyPage />;
-        default:
-          return <HomePage bannerImage={bannerImage} />;
-      }
-    })();
-
-    return (
-      <Suspense fallback={<PageLoader />}>
-        {content}
-      </Suspense>
-    );
-  }, [activeTab, bannerImage]);
-
-  // Memoized admin mode
-  const adminModeContent = useMemo(() => (
-    <Suspense fallback={<PageLoader />}>
-      <AdminApp />
-    </Suspense>
-  ), []);
-
-  // Memoized auth screens
-  const authContent = useMemo(() => {
-    if (authView === 'login') {
-      return (
-        <Suspense fallback={<PageLoader />}>
-          <LoginPage
-            onLogin={handleLogin}
-            onSwitchToRegister={() => setAuthView('register')}
-            onSwitchToAdmin={() => setIsAdminMode(true)}
-          />
-        </Suspense>
-      );
-    } else {
-      return (
-        <Suspense fallback={<PageLoader />}>
-          <RegisterPage
-            onRegister={handleRegister}
-            onSwitchToLogin={() => setAuthView('login')}
-          />
-        </Suspense>
-      );
-    }
-  }, [authView, handleLogin, handleRegister]);
-
-  // Admin mode: auto-enable when visiting /admin
+  // Socket connection for chat notifications
   useEffect(() => {
-    if (window.location.pathname.startsWith('/admin')) {
-      setIsAdminMode(true);
-    }
-  }, []);
-
-  // Validate token on mount - if expired, logout
-  useEffect(() => {
-    const validateSession = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
-      try {
-        // Use a lightweight API call to validate token
-        const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
-        const res = await fetch(`${API_BASE}/api/orders/stats`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (res.status === 401 || res.status === 403) {
-          // Token expired or invalid - logout
-          console.log('[Session] Token expired, logging out');
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          setIsAuthenticated(false);
-        }
-      } catch (e) {
-        // Network error - keep session (user might be offline)
-        console.log('[Session] Validation failed, keeping session:', e);
-      }
-    };
-
-    validateSession();
-  }, []);
-
-  // Global audio play listener to debug
-  useEffect(() => {
-    console.log('🔧 Setting up global audio play listener');
-
-    const handleAudioPlay = (event: any) => {
-      console.log('🔊 AUDIO PLAY DETECTED:', {
-        target: event.target,
-        src: event.target?.src,
-        currentTime: event.target?.currentTime,
-        volume: event.target?.volume,
-        stack: new Error().stack
-      });
-
-      // Check if this is our expected audio element
-      const isOurAudio = event.target === clientAudioRef.current;
-      console.log('🔊 Is this our audio element?', isOurAudio);
-
-      if (!isOurAudio) {
-        console.log('⚠️ UNEXPECTED AUDIO PLAY - NOT OUR AUDIO ELEMENT!');
-        console.log('🔊 Unexpected audio src:', event.target?.src);
-        console.log('🔊 Our audio src:', clientAudioRef.current?.src);
-
-        // Try to stop the unexpected audio
-        try {
-          event.target.pause();
-          console.log('🛑 Attempted to pause unexpected audio');
-        } catch (err) {
-          console.log('❌ Failed to pause unexpected audio:', err);
-        }
-      }
-    };
-
-    // Listen for all audio play events
-    document.addEventListener('play', handleAudioPlay, true);
-
-    return () => {
-      document.removeEventListener('play', handleAudioPlay, true);
-    };
-  }, []);
-
-  // Global client chat notifications (works when not on Help tab)
-  useEffect(() => {
-    if (isAdminMode || !isAuthenticated) return;
-    
-    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
+    const token = localStorage.getItem('token');
     if (!token) return;
     
-    // ⚡ Prevent duplicate socket connections - check both ref and connected state
+    if (clientSocketRef.current?.connected) return;
     if (clientSocketRef.current) {
-      if (clientSocketRef.current.connected) {
-        console.log('[App] Socket already connected, skipping');
-        return;
-      }
-      // Socket exists but disconnected - clean up first
-      console.log('[App] Socket exists but disconnected, cleaning up');
       clientSocketRef.current.disconnect();
       clientSocketRef.current = null;
     }
@@ -243,40 +75,25 @@ export default function App() {
       reconnectionDelay: 1000
     });
     clientSocketRef.current = s;
-    console.log('[App] Created new socket connection');
     
     const onVis = () => { focusRef.current = !document.hidden; };
-    const onFocus = () => { focusRef.current = true; };
-    const onBlur = () => { focusRef.current = false; };
     document.addEventListener('visibilitychange', onVis);
-    window.addEventListener('focus', onFocus);
-    window.addEventListener('blur', onBlur);
+    
     const play = () => {
-      console.log('[App] 🎵 play() function called - Version 2.0');
       try {
-        const pref = localStorage.getItem('client:soundEnabled') === '1';
-        if (!pref) {
-          console.log('[App] Sound disabled by preference');
-          return;
-        }
+        if (localStorage.getItem('client:soundEnabled') !== '1') return;
       } catch { }
       const a = clientAudioRef.current;
       if (a) {
-        console.log('[App] 🎵 PLAYING SOUND via clientAudioRef - THIS IS THE ONLY PLACE THAT SHOULD PLAY SOUND - Version 2.0');
         a.currentTime = 0;
         a.volume = 1;
-        a.play().catch((err) => {
-          console.error('[App] Audio play failed:', err);
-        });
-      } else {
-        console.log('[App] No audio element found');
+        a.play().catch(() => {});
       }
     };
+
     s.on('chat:threadUpdated', (evt: any) => {
-      // Suppress sound only when: user is on Help tab, tab focused, and
-      // currently viewing the same thread as the event threadId
       const isHelpActive = activeTabRef.current === 'help';
-      const isFocused = !(focusRef.current && !document.hidden);
+      const isFocused = focusRef.current && !document.hidden;
       let isSameActiveThread = false;
       try {
         const activeThreadId = localStorage.getItem('client:activeThreadId');
@@ -284,193 +101,183 @@ export default function App() {
           isSameActiveThread = String(activeThreadId) === String(evt.threadId);
         }
       } catch { }
-      // Play when shouldPlay is false (user not actively viewing same thread in Help and focused)
-      const shouldPlay = (!isHelpActive && (!isFocused && isSameActiveThread));
-      console.log('shouldPlay', shouldPlay);
-      if (shouldPlay == true) {
-        console.log('🎵 Playing sound - shouldPlay is false');
+      if (!isHelpActive || !isFocused || !isSameActiveThread) {
         play();
-      } else {
-        console.log('🔇 Not playing sound - shouldPlay is true');
-        // Debug: check if there are other audio elements
-        const allAudio = document.querySelectorAll('audio');
-        console.log('[App] Found audio elements:', allAudio.length);
-        allAudio.forEach((audio, index) => {
-          console.log(`[App] Audio ${index}:`, {
-            src: audio.src,
-            currentTime: audio.currentTime,
-            paused: audio.paused,
-            volume: audio.volume
-          });
-        });
-
-        // Check if any audio is currently playing
-        const playingAudio = Array.from(allAudio).filter(audio => !audio.paused);
-        if (playingAudio.length > 0) {
-          console.log('⚠️ WARNING: Found playing audio elements:', playingAudio.length);
-          playingAudio.forEach((audio, index) => {
-            console.log(`[App] Playing Audio ${index}:`, {
-              src: audio.src,
-              currentTime: audio.currentTime,
-              volume: audio.volume
-            });
-          });
-        }
-
-        // Force pause all audio elements when shouldPlay is true
-        allAudio.forEach((audio, index) => {
-          if (!audio.paused) {
-            console.log(`🛑 Force pausing audio ${index} because shouldPlay is true`);
-            audio.pause();
-          }
-        });
-
-        // Additional check: if we still hear sound, there might be another source
-        setTimeout(() => {
-          const stillPlaying = Array.from(document.querySelectorAll('audio')).filter(audio => !audio.paused);
-          if (stillPlaying.length > 0) {
-            console.log('🚨 CRITICAL: Audio still playing after force pause!', stillPlaying.length);
-            stillPlaying.forEach((audio, index) => {
-              console.log(`[App] Still playing Audio ${index}:`, {
-                src: audio.src,
-                currentTime: audio.currentTime,
-                volume: audio.volume
-              });
-              // Force stop
-              audio.pause();
-              audio.currentTime = 0;
-            });
-          }
-        }, 100);
       }
     });
 
-    // Handle chat messages and forward to HelpPage
     s.on('chat:message', (msg: any) => {
-      console.log('[App] Received chat:message:', msg);
-      // Forward to HelpPage via custom event
-      try {
-        window.dispatchEvent(new CustomEvent('client:chatMessage', { detail: msg }));
-      } catch { }
-
-      // Debug: check if this message should trigger sound
-      const isHelpActive = activeTabRef.current === 'help';
-      const isFocused = focusRef.current && !document.hidden;
-      let isSameActiveThread = false;
-      try {
-        const activeThreadId = localStorage.getItem('client:activeThreadId');
-        if (activeThreadId && msg?.threadId) {
-          isSameActiveThread = String(activeThreadId) === String(msg.threadId);
-        }
-      } catch { }
-      const shouldPlayForMessage = (!isHelpActive || !isFocused && isSameActiveThread);
-      console.log('[App] chat:message shouldPlay:', shouldPlayForMessage, {
-        isHelpActive,
-        isFocused,
-        isSameActiveThread,
-        msgThreadId: msg.threadId,
-        activeThreadId: localStorage.getItem('client:activeThreadId')
-      });
-
-      // Force pause all audio elements when shouldPlay is true for chat:message
-      if (!shouldPlayForMessage) {
-        const allAudio = document.querySelectorAll('audio');
-        allAudio.forEach((audio, index) => {
-          if (!audio.paused) {
-            console.log(`🛑 Force pausing audio ${index} because chat:message shouldPlay is true`);
-            audio.pause();
-          }
-        });
-
-        // Additional check: if we still hear sound, there might be another source
-        setTimeout(() => {
-          const stillPlaying = Array.from(document.querySelectorAll('audio')).filter(audio => !audio.paused);
-          if (stillPlaying.length > 0) {
-            console.log('🚨 CRITICAL: Audio still playing after chat:message force pause!', stillPlaying.length);
-            stillPlaying.forEach((audio, index) => {
-              console.log(`[App] Still playing Audio ${index}:`, {
-                src: audio.src,
-                currentTime: audio.currentTime,
-                volume: audio.volume
-              });
-              // Force stop
-              audio.pause();
-              audio.currentTime = 0;
-            });
-          }
-        }, 100);
-      }
+      window.dispatchEvent(new CustomEvent('client:chatMessage', { detail: msg }));
     });
 
-    // Handle typing events and forward to HelpPage
     s.on('chat:typing', (evt: any) => {
-      console.log('[App] Received chat:typing:', evt);
-      // Forward to HelpPage via custom event
-      try {
-        window.dispatchEvent(new CustomEvent('client:chatTyping', { detail: evt }));
-      } catch { }
+      window.dispatchEvent(new CustomEvent('client:chatTyping', { detail: evt }));
     });
 
-    // Listen for events from HelpPage and emit to server
     const handleEmitMessage = (event: any) => {
       const { threadId, text } = event.detail;
-      console.log('[App] Emitting chat:send:', { threadId, text });
       s.emit('chat:send', { threadId, text });
     };
-
     const handleEmitTyping = (event: any) => {
       const { threadId, typing } = event.detail;
-      console.log('[App] Emitting chat:typing:', { threadId, typing });
       s.emit('chat:typing', { threadId, typing });
     };
-
-    // Listen for join thread request from HelpPage
     const handleJoinThread = (event: any) => {
       const { threadId } = event.detail;
-      if (threadId) {
-        console.log('[App] Joining thread room:', threadId);
-        s.emit('chat:joinThread', threadId);
-      }
+      if (threadId) s.emit('chat:joinThread', threadId);
     };
 
     window.addEventListener('client:emitMessage', handleEmitMessage);
     window.addEventListener('client:emitTyping', handleEmitTyping);
     window.addEventListener('client:joinThread', handleJoinThread);
+    
     return () => {
-      console.log('[App] Disconnecting socket due to auth change/cleanup');
       s.disconnect();
       document.removeEventListener('visibilitychange', onVis);
-      window.removeEventListener('focus', onFocus);
-      window.removeEventListener('blur', onBlur);
       window.removeEventListener('client:emitMessage', handleEmitMessage);
       window.removeEventListener('client:emitTyping', handleEmitTyping);
       window.removeEventListener('client:joinThread', handleJoinThread);
     };
-  }, [isAdminMode, isAuthenticated]); // Removed activeTab to prevent reconnecting on every tab change
-
-  // Admin Mode
-  if (isAdminMode) {
-    return (
-      <ErrorBoundary name="Admin Panel">
-        {adminModeContent}
-        <Toaster position="top-right" style={{ zIndex: 9999 }} />
-      </ErrorBoundary>
-    );
-  }
-
-  // Show auth screens if not authenticated
-  if (!isAuthenticated) {
-    return authContent;
-  }
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-md mx-auto bg-white min-h-screen shadow-2xl relative">
         <audio ref={clientAudioRef} src={new URL('./assets/sound/noti.mp3', import.meta.url).toString()} preload="auto" />
-        {renderContent()}
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/home" element={<HomePage bannerImage={bannerImage} />} />
+            <Route path="/orders" element={<OrdersPage />} />
+            <Route path="/record" element={<RecordPage />} />
+            <Route path="/help" element={<HelpPage />} />
+            <Route path="/my" element={<MyPage />} />
+            <Route path="/" element={<Navigate to="/home" replace />} />
+          </Routes>
+        </Suspense>
         <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
       </div>
       <Toaster position="top-center" style={{ zIndex: 9999 }} />
     </div>
+  );
+}
+
+// Auth wrapper component
+function AuthWrapper({ children }: { children: React.ReactNode }) {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    try { return !!localStorage.getItem('token'); } catch { return false; }
+  });
+  const [authView, setAuthView] = useState<'login' | 'register'>('login');
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogin = useCallback(() => {
+    setIsAuthenticated(true);
+    navigate('/home');
+  }, [navigate]);
+
+  const handleRegister = useCallback(() => {
+    setIsAuthenticated(true);
+    navigate('/home');
+  }, [navigate]);
+
+  // Validate token on mount
+  useEffect(() => {
+    const validateSession = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      try {
+        const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
+        const res = await fetch(`${API_BASE}/api/orders/stats`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setIsAuthenticated(false);
+        }
+      } catch { }
+    };
+    validateSession();
+  }, []);
+
+  // Listen for logout events
+  useEffect(() => {
+    const handleLogout = () => setIsAuthenticated(false);
+    window.addEventListener('client:logout', handleLogout);
+    return () => window.removeEventListener('client:logout', handleLogout);
+  }, []);
+
+  // Check if on login/register route
+  if (location.pathname === '/login' || location.pathname === '/register') {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        {location.pathname === '/login' ? (
+          <LoginPage
+            onLogin={handleLogin}
+            onSwitchToRegister={() => navigate('/register')}
+            onSwitchToAdmin={() => navigate('/admin')}
+          />
+        ) : (
+          <RegisterPage
+            onRegister={handleRegister}
+            onSwitchToLogin={() => navigate('/login')}
+          />
+        )}
+      </Suspense>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        {authView === 'login' ? (
+          <LoginPage
+            onLogin={handleLogin}
+            onSwitchToRegister={() => setAuthView('register')}
+            onSwitchToAdmin={() => navigate('/admin')}
+          />
+        ) : (
+          <RegisterPage
+            onRegister={handleRegister}
+            onSwitchToLogin={() => setAuthView('login')}
+          />
+        )}
+      </Suspense>
+    );
+  }
+
+  return <>{children}</>;
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <ErrorBoundary name="App">
+        <Routes>
+          {/* Admin routes */}
+          <Route path="/admin/*" element={
+            <Suspense fallback={<PageLoader />}>
+              <AdminApp />
+              <Toaster position="top-right" style={{ zIndex: 9999 }} />
+            </Suspense>
+          } />
+          
+          {/* Auth routes */}
+          <Route path="/login" element={
+            <AuthWrapper><Navigate to="/home" replace /></AuthWrapper>
+          } />
+          <Route path="/register" element={
+            <AuthWrapper><Navigate to="/home" replace /></AuthWrapper>
+          } />
+          
+          {/* Client routes - protected */}
+          <Route path="/*" element={
+            <AuthWrapper>
+              <ClientApp />
+            </AuthWrapper>
+          } />
+        </Routes>
+      </ErrorBoundary>
+    </BrowserRouter>
   );
 }

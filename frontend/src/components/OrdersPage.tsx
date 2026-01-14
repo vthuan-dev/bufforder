@@ -282,6 +282,15 @@ export function OrdersPage() {
 
       console.log('[Orders] Order submitted successfully');
 
+      // Add delay for better UX (looks more professional)
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Show success toast
+      toast.success('Order placed successfully! 🎉', {
+        description: `Commission: +$${takeRes?.data?.selectedProduct?.commissionAmount?.toFixed(2) || '0.00'}`,
+        duration: 3000,
+      });
+
       // Update UI: count order grabbed; commission updates when admin delivers
       setOrdersReceived((prev) => prev + 1);
 
@@ -771,18 +780,27 @@ export function OrdersPage() {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={handleCancelQueue}
-                        className="flex-1 py-3 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm"
+                        disabled={submitting}
+                        className={`flex-1 py-3 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm ${submitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         Later
                       </motion.button>
                       <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
+                        whileHover={!submitting ? { scale: 1.02 } : {}}
+                        whileTap={!submitting ? { scale: 0.98 } : {}}
                         onClick={handleConfirmOrder}
                         disabled={submitting}
-                        className={`flex-1 py-3 rounded-xl text-white text-sm ${submitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600'}`}
+                        className={`flex-1 py-3 rounded-xl text-white text-sm flex items-center justify-center gap-2 ${submitting ? 'bg-blue-500 cursor-wait' : 'bg-blue-600'}`}
                       >
-                        {submitting ? 'Processing...' : 'Confirm Order'}
+                        {submitting ? (
+                          <>
+                            <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Processing...
+                          </>
+                        ) : 'Confirm Order'}
                       </motion.button>
                     </div>
                   </div>

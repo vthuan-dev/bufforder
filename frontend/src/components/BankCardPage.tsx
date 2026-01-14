@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ArrowLeft, CreditCard, Plus, Trash2, Check } from "lucide-react";
+import { ArrowLeft, CreditCard, Plus, Trash2, Check, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import api from "../services/api";
 
@@ -15,9 +15,39 @@ interface BankCardPageProps {
   onBack: () => void;
 }
 
+// Toast notification component
+function Toast({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 3000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -50, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -20, scale: 0.9 }}
+      className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl shadow-lg flex items-center gap-3 ${
+        type === 'success' 
+          ? 'bg-green-500 text-white' 
+          : 'bg-red-500 text-white'
+      }`}
+    >
+      {type === 'success' ? (
+        <CheckCircle className="w-5 h-5" />
+      ) : (
+        <XCircle className="w-5 h-5" />
+      )}
+      <span className="text-sm font-medium">{message}</span>
+    </motion.div>
+  );
+}
+
 export function BankCardPage({ onBack }: BankCardPageProps) {
   const [cards, setCards] = useState<BankCard[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [newCard, setNewCard] = useState({
     bankName: '',
     cardNumber: '',
@@ -42,9 +72,10 @@ export function BankCardPage({ onBack }: BankCardPageProps) {
 
   const handleAddCard = async () => {
     if (!newCard.bankName || !newCard.cardNumber || !newCard.holderName) {
-      alert("Please fill in all fields");
+      setToast({ message: 'Please fill in all fields', type: 'error' });
       return;
     }
+    setIsLoading(true);
     try {
       await api.addBankCard({
         bankName: newCard.bankName,
@@ -63,8 +94,11 @@ export function BankCardPage({ onBack }: BankCardPageProps) {
       setCards(list);
       setNewCard({ bankName: '', cardNumber: '', holderName: '' });
       setShowAddForm(false);
+      setToast({ message: 'Card added successfully!', type: 'success' });
     } catch (e: any) {
-      alert(e?.message || 'Failed to add card');
+      setToast({ message: e?.message || 'Failed to add card', type: 'error' });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -73,8 +107,9 @@ export function BankCardPage({ onBack }: BankCardPageProps) {
     try {
       await api.deleteBankCard(id);
       setCards(cards.filter(card => card.id !== id));
+      setToast({ message: 'Card deleted successfully!', type: 'success' });
     } catch (e: any) {
-      alert(e?.message || 'Failed to delete card');
+      setToast({ message: e?.message || 'Failed to delete card', type: 'error' });
     }
   };
 
@@ -87,6 +122,17 @@ export function BankCardPage({ onBack }: BankCardPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <Toast 
+            message={toast.message} 
+            type={toast.type} 
+            onClose={() => setToast(null)} 
+          />
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="bg-blue-600 text-white px-5 py-4 sticky top-0 z-10">
         <div className="max-w-md mx-auto flex items-center gap-3">
@@ -164,17 +210,26 @@ export function BankCardPage({ onBack }: BankCardPageProps) {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setShowAddForm(false)}
-                  className="px-8 py-3.5 bg-white border-2 border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors"
+                  disabled={isLoading}
+                  className="px-8 py-3.5 bg-white border-2 border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: isLoading ? 1 : 1.02 }}
+                  whileTap={{ scale: isLoading ? 1 : 0.95 }}
                   onClick={handleAddCard}
-                  className="flex-1 py-3.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg"
+                  disabled={isLoading}
+                  className="flex-1 py-3.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  Add Card
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Adding...</span>
+                    </>
+                  ) : (
+                    'Add Card'
+                  )}
                 </motion.button>
               </div>
             </motion.div>
