@@ -47,32 +47,79 @@ export function AdminDashboard() {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      
-      // Load all dashboard data in parallel
-      const [statsResponse, revenueResponse, userGrowthResponse, recentUsersResponse] = await Promise.all([
+
+      // Load all dashboard data in parallel with individual error handling
+      // This prevents one failed API from crashing the entire dashboard
+      const results = await Promise.allSettled([
         api.adminGetDashboardStats(),
         api.adminGetWeeklyRevenue(),
         api.adminGetUserGrowth(),
         api.adminGetRecentUsers()
       ]);
 
-      if (statsResponse.success) {
-        setStats(statsResponse.data);
+      // Handle stats
+      if (results[0].status === 'fulfilled' && results[0].value?.success) {
+        setStats(results[0].value.data);
+      } else {
+        console.warn('Failed to load dashboard stats:', results[0].status === 'rejected' ? results[0].reason : 'API returned unsuccessful');
+        // Set default stats to prevent null reference errors
+        setStats({
+          totalUsers: 0,
+          activeUsers: 0,
+          pendingDeposits: 0,
+          todayDeposits: 0,
+          todayAmount: 0,
+          todayCommission: 0,
+          totalUsersTrend: 0,
+          activeUsersTrend: 0,
+          todayDepositsTrend: 0,
+          todayAmountTrend: 0,
+          todayCommissionTrend: 0
+        });
       }
-      
-      if (revenueResponse.success) {
-        setRevenueData(revenueResponse.data);
+
+      // Handle revenue data
+      if (results[1].status === 'fulfilled' && results[1].value?.success) {
+        setRevenueData(results[1].value.data || []);
+      } else {
+        console.warn('Failed to load weekly revenue:', results[1].status === 'rejected' ? results[1].reason : 'API returned unsuccessful');
+        setRevenueData([]);
       }
-      
-      if (userGrowthResponse.success) {
-        setUserGrowthData(userGrowthResponse.data);
+
+      // Handle user growth data
+      if (results[2].status === 'fulfilled' && results[2].value?.success) {
+        setUserGrowthData(results[2].value.data || []);
+      } else {
+        console.warn('Failed to load user growth:', results[2].status === 'rejected' ? results[2].reason : 'API returned unsuccessful');
+        setUserGrowthData([]);
       }
-      
-      if (recentUsersResponse.success) {
-        setRecentUsers(recentUsersResponse.data);
+
+      // Handle recent users
+      if (results[3].status === 'fulfilled' && results[3].value?.success) {
+        setRecentUsers(results[3].value.data || []);
+      } else {
+        console.warn('Failed to load recent users:', results[3].status === 'rejected' ? results[3].reason : 'API returned unsuccessful');
+        setRecentUsers([]);
       }
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
+      console.error('Critical error loading dashboard data:', error);
+      // Set all defaults to prevent crashes
+      setStats({
+        totalUsers: 0,
+        activeUsers: 0,
+        pendingDeposits: 0,
+        todayDeposits: 0,
+        todayAmount: 0,
+        todayCommission: 0,
+        totalUsersTrend: 0,
+        activeUsersTrend: 0,
+        todayDepositsTrend: 0,
+        todayAmountTrend: 0,
+        todayCommissionTrend: 0
+      });
+      setRevenueData([]);
+      setUserGrowthData([]);
+      setRecentUsers([]);
     } finally {
       setLoading(false);
     }
