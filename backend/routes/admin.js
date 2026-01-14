@@ -42,6 +42,9 @@ try {
 
 const router = express.Router();
 
+// IP Location cache (in-memory)
+const ipLocationCache = new Map();
+
 // Helper: format date in Vietnam time
 function formatDateVN(date) {
   try {
@@ -76,6 +79,34 @@ const verifyAdminToken = (req, res, next) => {
     return res.status(401).json({ success: false, message: 'Invalid admin token' });
   }
 };
+
+// IP Location lookup (proxy to avoid CORS)
+router.get('/ip-location/:ip', verifyAdminToken, async (req, res) => {
+  try {
+    const { ip } = req.params;
+    if (!ip || ip === '::1' || ip === '127.0.0.1') {
+      return res.json({ success: true, data: { status: 'success', city: 'Local', regionName: '', country: '' } });
+    }
+    
+    // Check cache first (cache for 1 hour)
+    const cached = ipLocationCache.get(ip);
+    if (cached && Date.now() - cached.timestamp < 3600000) {
+      return res.json({ success: true, data: cached.data });
+    }
+    
+    // Fetch from ip-api.com
+    const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,regionName,city`);
+    const data = await response.json();
+    
+    // Cache the result
+    ipLocationCache.set(ip, { data, timestamp: Date.now() });
+    
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('IP location error:', error);
+    res.json({ success: true, data: { status: 'fail' } });
+  }
+});
 
 // Admin login
 router.post('/login', async (req, res) => {

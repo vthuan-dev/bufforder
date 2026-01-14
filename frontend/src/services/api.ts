@@ -179,6 +179,12 @@ export default {
       cacheTTL: 60000 // ⚡ Cache 1 minute
     });
   },
+  
+  // IP Location lookup
+  getIpLocation(ip: string) {
+    const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
+    return request(`/admin/ip-location/${ip}`, { headers, useCache: true, cacheTTL: 3600000 });
+  },
 
   adminDeleteUser(id: string) {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;

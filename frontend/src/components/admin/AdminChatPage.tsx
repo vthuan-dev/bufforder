@@ -72,7 +72,7 @@ export function AdminChatPage() {
   const isWindowFocusedRef = useRef<boolean>(typeof document !== 'undefined' ? !document.hidden : true);
   const locationCacheRef = useRef<Record<string, string>>({});
 
-  // Fetch location from IP
+  // Fetch location from IP via backend proxy
   const fetchLocationFromIp = async (ip: string) => {
     if (!ip || ip === '::1' || ip === '127.0.0.1') {
       setUserLocation('Local');
@@ -84,11 +84,11 @@ export function AdminChatPage() {
       return;
     }
     try {
-      // Use ipapi.co which supports HTTPS and CORS
-      const res = await fetch(`https://ipapi.co/${ip}/json/`);
-      const data = await res.json();
-      if (!data.error) {
-        const location = [data.city, data.region, data.country_name].filter(Boolean).join(', ');
+      // Use backend proxy to avoid CORS
+      const res = await api.getIpLocation(ip);
+      const data = res?.data;
+      if (data?.status === 'success') {
+        const location = [data.city, data.regionName, data.country].filter(Boolean).join(', ');
         locationCacheRef.current[ip] = location;
         setUserLocation(location);
       } else {
