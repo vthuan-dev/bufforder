@@ -5,7 +5,7 @@ const API_BASE_URL = `${API_BASE}/api`;
 const responseCache = new Map<string, { data: any; timestamp: number; ttl: number }>();
 const pendingRequests = new Map<string, Promise<any>>();
 
-type RequestOptions = Omit<RequestInit, 'cache'> & { 
+type RequestOptions = Omit<RequestInit, 'cache'> & {
   headers?: Record<string, string>;
   useCache?: boolean;
   cacheTTL?: number;
@@ -19,12 +19,12 @@ function getCacheKey(endpoint: string, options: RequestOptions): string {
 function getCached(key: string): any | null {
   const cached = responseCache.get(key);
   if (!cached) return null;
-  
+
   if (Date.now() - cached.timestamp < cached.ttl) {
     console.log(`[Cache Hit] ${key}`);
     return cached.data;
   }
-  
+
   responseCache.delete(key);
   return null;
 }
@@ -37,13 +37,13 @@ function setCache(key: string, data: any, ttl: number): void {
 async function request(endpoint: string, options: RequestOptions = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
   const cacheKey = getCacheKey(endpoint, options);
-  
+
   // ⚡ Check cache for GET requests
   if ((options.method === 'GET' || !options.method) && options.useCache !== false) {
     const cached = getCached(cacheKey);
     if (cached) return cached;
   }
-  
+
   // ⚡ Request deduplication
   if (pendingRequests.has(cacheKey)) {
     console.log(`[Dedup] ${endpoint}`);
@@ -72,31 +72,43 @@ async function request(endpoint: string, options: RequestOptions = {}) {
       const data = await res.json().catch(() => ({}));
 
       if (res.status === 401) {
-        // Check if this is a login attempt (has error message from backend)
+        // Check if this is a login attempt (has error message from backend like "Invalid credentials")
         const backendMessage = data?.message || data?.error;
-        if (backendMessage) {
+        const isLoginEndpoint = endpoint.includes('/login');
+
+        if (isLoginEndpoint && backendMessage) {
           // This is a failed login attempt, show backend message
           throw new Error(backendMessage);
         }
 
-        // Session expired - clear tokens and redirect
+        // Session expired - clear ALL tokens, data and cache
         if (typeof localStorage !== 'undefined') {
           localStorage.removeItem('token');
           localStorage.removeItem('adminToken');
+          localStorage.removeItem('adminData');
         }
+
+        // Clear response cache to prevent stale data
+        responseCache.clear();
+        pendingRequests.clear();
 
         // Check if we are in admin mode or regular mode
         const isAdmin = window.location.pathname.startsWith('/admin');
 
         // Only redirect if not already on a login page to avoid infinite loops
-        const isLoginPage = window.location.pathname === '/login' || window.location.pathname === '/admin' || (isAdmin && window.location.pathname.includes('login'));
+        const isLoginPage = window.location.pathname === '/login' ||
+          window.location.pathname === '/admin/login' ||
+          window.location.pathname === '/admin';
 
         if (!isLoginPage) {
+          // Use replace to prevent back button issues
           if (isAdmin) {
-            window.location.href = '/admin'; // This usually renders the admin login if not logged in
+            window.location.replace('/admin/login');
           } else {
-            window.location.href = '/login';
+            window.location.replace('/login');
           }
+          // Return early to prevent further execution
+          return { success: false, message: 'Session expired' };
         }
 
         throw new Error('Session expired. Please log in again.');
@@ -106,13 +118,13 @@ async function request(endpoint: string, options: RequestOptions = {}) {
         const message = (data && (data.message || data.error)) || `Request failed (Error code: ${res.status})`;
         throw new Error(message);
       }
-      
+
       // ⚡ Cache successful GET responses
       if ((options.method === 'GET' || !options.method) && options.useCache !== false) {
         const ttl = options.cacheTTL || 30000; // Default 30s
         setCache(cacheKey, data, ttl);
       }
-      
+
       return data;
     } catch (error: any) {
       clearTimeout(timeoutId);
@@ -122,10 +134,10 @@ async function request(endpoint: string, options: RequestOptions = {}) {
       throw error;
     }
   })();
-  
+
   // Store pending request
   pendingRequests.set(cacheKey, requestPromise);
-  
+
   try {
     return await requestPromise;
   } finally {
@@ -144,7 +156,7 @@ export default {
     responseCache.clear();
     console.log('[Cache] Cleared all cache');
   },
-  
+
   // ----- Admin -----
   adminLogin(username: string, password: string) {
     return request('/admin/login', {
@@ -155,7 +167,7 @@ export default {
   },
   adminProfile() {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
-    return request('/admin/profile', { 
+    return request('/admin/profile', {
       headers,
       useCache: true,
       cacheTTL: 60000 // ⚡ Cache 1 minute
@@ -423,7 +435,7 @@ export default {
   // Admin - Dashboard Tab
   adminGetDashboardStats() {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
-    return request('/admin/dashboard/stats', { 
+    return request('/admin/dashboard/stats', {
       headers,
       useCache: true,
       cacheTTL: 30000 // ⚡ Cache 30 seconds
@@ -431,7 +443,7 @@ export default {
   },
   adminGetWeeklyRevenue() {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
-    return request('/admin/dashboard/weekly-revenue', { 
+    return request('/admin/dashboard/weekly-revenue', {
       headers,
       useCache: true,
       cacheTTL: 60000 // ⚡ Cache 1 minute
@@ -439,7 +451,7 @@ export default {
   },
   adminGetUserGrowth() {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
-    return request('/admin/dashboard/user-growth', { 
+    return request('/admin/dashboard/user-growth', {
       headers,
       useCache: true,
       cacheTTL: 60000 // ⚡ Cache 1 minute
@@ -447,7 +459,7 @@ export default {
   },
   adminGetRecentUsers() {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
-    return request('/admin/dashboard/recent-users', { 
+    return request('/admin/dashboard/recent-users', {
       headers,
       useCache: true,
       cacheTTL: 30000 // ⚡ Cache 30 seconds
@@ -540,7 +552,7 @@ export default {
   },
   adminGetOrderStats() {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
-    return request('/admin/orders/stats', { 
+    return request('/admin/orders/stats', {
       headers,
       useCache: true,
       cacheTTL: 30000 // ⚡ Cache 30 seconds
@@ -630,6 +642,27 @@ export default {
   adminDeleteProduct(id: number) {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
     return request(`/admin/products/${id}`, { method: 'DELETE', headers });
+  },
+  async adminUploadProductImage(file: File) {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const token = localStorage.getItem('adminToken');
+    const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:5000';
+
+    const res = await fetch(`${API_BASE}/api/admin/products/upload-image`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Upload failed');
+    }
+    return data;
   },
 
   adminGetSystemSettings() {

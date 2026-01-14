@@ -16,6 +16,7 @@ import {
   User,
   Moon,
   Sun,
+  Package,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -28,13 +29,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import api from "../../services/api";
-import { io, Socket } from "socket.io-client";
-
-// ⚡ Global admin socket - shared across all admin components
-let globalAdminSocket: Socket | null = null;
-export function getAdminSocket(): Socket | null {
-  return globalAdminSocket;
-}
+import { getAdminSocket, initAdminSocket } from "./adminSocket";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -46,6 +41,7 @@ interface AdminLayoutProps {
 const baseMenuItems = [
   { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { id: "users", icon: Users, label: "Users" },
+  { id: "products", icon: Package, label: "Products" },
   { id: "deposits", icon: ArrowDownCircle, label: "Deposits" },
   { id: "withdrawals", icon: ArrowUpCircle, label: "Withdrawals" },
   { id: "orders", icon: ShoppingBag, label: "Orders" },
@@ -69,51 +65,37 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
           const res = await api.adminChatListThreads({ page: 1, limit: 100 });
           const total = (res?.data?.threads || []).reduce((sum: number, t: any) => sum + (t.unreadForAdmin || 0), 0);
           setChatUnread(total);
-        } catch {}
+        } catch { }
       })();
     }
 
     try {
       const token = typeof localStorage !== 'undefined' ? localStorage.getItem('adminToken') : null;
       if (!token) return;
-      
+
       // ⚡ Prevent duplicate socket connections - check global socket state
-      if (globalAdminSocket) {
-        if (globalAdminSocket.connected) {
-          console.log('[AdminLayout] Admin socket already connected, skipping');
-          // Re-attach event listener for this component instance
-          const s = globalAdminSocket;
-          const handler = () => setChatUnread((u) => u + 1);
-          s.off('chat:threadUpdated', handler); // Remove old listener
-          s.on('chat:threadUpdated', handler);
-          return () => {
-            s.off('chat:threadUpdated', handler);
-          };
-        }
-        // Socket exists but disconnected - clean up
-        console.log('[AdminLayout] Admin socket disconnected, cleaning up');
-        globalAdminSocket.disconnect();
-        globalAdminSocket = null;
+      const existingSocket = getAdminSocket();
+      if (existingSocket?.connected) {
+        console.log('[AdminLayout] Admin socket already connected, skipping');
+        const handler = () => setChatUnread((u) => u + 1);
+        existingSocket.off('chat:threadUpdated', handler);
+        existingSocket.on('chat:threadUpdated', handler);
+        return () => {
+          existingSocket.off('chat:threadUpdated', handler);
+        };
       }
-      
-      const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:5000';
-      globalAdminSocket = io(API_BASE, { 
-        auth: { adminToken: token },
-        reconnection: true,
-        reconnectionAttempts: 3,
-        reconnectionDelay: 1000
-      });
+
+      const s = initAdminSocket(token);
       console.log('[AdminLayout] Created global admin socket');
-      
-      const s = globalAdminSocket;
+
       const handler = () => setChatUnread((u) => u + 1);
       s.on('chat:threadUpdated', handler);
-      
-      return () => { 
+
+      return () => {
         s.off('chat:threadUpdated', handler);
         // Don't disconnect on unmount - keep socket alive for other admin pages
       };
-    } catch {}
+    } catch { }
   }, []);
 
   // Listen to broadcast from Chat page for recalculated totals
@@ -138,9 +120,8 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 h-screen w-[280px] bg-white border-r border-gray-200 z-50 transition-transform duration-300 lg:translate-x-0 lg:sticky lg:top-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed left-0 top-0 h-screen w-[280px] bg-white border-r border-gray-200 z-50 transition-transform duration-300 lg:translate-x-0 lg:sticky lg:top-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
@@ -175,11 +156,10 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
                     setSidebarOpen(false);
                     if (item.id === 'chat') setChatUnread(0);
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                    isActive
-                      ? "bg-blue-50 text-blue-600"
-                      : "text-gray-700 hover:bg-gray-50"
-                  }`}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive
+                    ? "bg-blue-50 text-blue-600"
+                    : "text-gray-700 hover:bg-gray-50"
+                    }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span className="flex-1 text-left text-sm">{item.label}</span>
@@ -246,10 +226,51 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
               </button>
 
               {/* Notifications */}
-              <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
-                <Bell className="w-5 h-5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+                    <Bell className="w-5 h-5" />
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80">
+                  <DropdownMenuLabel className="flex items-center justify-between">
+                    <span>Notifications</span>
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-600 text-xs">3 new</Badge>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <div className="max-h-[300px] overflow-y-auto">
+                    <DropdownMenuItem className="flex flex-col items-start gap-1 py-3 cursor-pointer">
+                      <div className="flex items-center gap-2 w-full">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />
+                        <span className="font-medium text-sm">New deposit request</span>
+                      </div>
+                      <p className="text-xs text-gray-500 pl-4">User John Doe requested $500 deposit</p>
+                      <span className="text-xs text-gray-400 pl-4">2 minutes ago</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="flex flex-col items-start gap-1 py-3 cursor-pointer">
+                      <div className="flex items-center gap-2 w-full">
+                        <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0" />
+                        <span className="font-medium text-sm">New user registered</span>
+                      </div>
+                      <p className="text-xs text-gray-500 pl-4">Jane Smith joined the platform</p>
+                      <span className="text-xs text-gray-400 pl-4">15 minutes ago</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="flex flex-col items-start gap-1 py-3 cursor-pointer">
+                      <div className="flex items-center gap-2 w-full">
+                        <div className="w-2 h-2 bg-orange-500 rounded-full flex-shrink-0" />
+                        <span className="font-medium text-sm">Withdrawal pending</span>
+                      </div>
+                      <p className="text-xs text-gray-500 pl-4">Mike Johnson requested $200 withdrawal</p>
+                      <span className="text-xs text-gray-400 pl-4">1 hour ago</span>
+                    </DropdownMenuItem>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="justify-center text-blue-600 cursor-pointer">
+                    View all notifications
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               {/* Profile Dropdown */}
               <DropdownMenu>

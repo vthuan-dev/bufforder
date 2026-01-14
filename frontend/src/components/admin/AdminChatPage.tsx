@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import { ScrollArea } from "../ui/scroll-area";
 import api from "../../services/api";
-import { getAdminSocket } from "./AdminLayout";
+import { getAdminSocket } from "./adminSocket";
 import { io, Socket } from "socket.io-client";
 
 interface ChatThread {
@@ -174,7 +174,7 @@ export function AdminChatPage() {
     try {
       // ⚡ Use global admin socket from AdminLayout
       let s = getAdminSocket();
-      
+
       if (!s || !s.connected) {
         const adminToken = typeof localStorage !== 'undefined' ? localStorage.getItem('adminToken') : null;
         if (!adminToken) return;
@@ -184,7 +184,7 @@ export function AdminChatPage() {
       } else {
         console.log('[AdminChatPage] Using global admin socket');
       }
-      
+
       socketRef.current = s;
       s.on('connect', () => { });
       s.on('chat:message', (msg: any) => {
@@ -419,8 +419,8 @@ export function AdminChatPage() {
                   key={thread.id}
                   onClick={() => setSelectedThread(thread)}
                   className={`w-full p-3 rounded-lg text-left transition-colors mb-1 ${selectedThread?.id === thread.id
-                      ? "bg-blue-50 border border-blue-200"
-                      : "hover:bg-gray-50 border border-transparent"
+                    ? "bg-blue-50 border border-blue-200"
+                    : "hover:bg-gray-50 border border-transparent"
                     }`}
                 >
                   <div className="flex items-start gap-3">

@@ -6,6 +6,39 @@ const { getVipLevelByAmount } = require('../config/vipLevels');
 const config = require('../config');
 const { hashPassword, comparePassword, excludeFromUser, parseJsonField } = require('../lib/utils');
 const { getDashboardStats } = require('../lib/optimized-queries'); // ⚡ Optimized queries
+const path = require('path');
+const fs = require('fs');
+
+// Setup multer for product image uploads
+let productUpload;
+try {
+  const multer = require('multer');
+  const uploadDir = path.join(__dirname, '..', 'uploads', 'products');
+  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+  const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, uploadDir),
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      cb(null, `product-${Date.now()}${ext}`);
+    }
+  });
+
+  productUpload = multer({
+    storage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+      if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.'));
+      }
+    }
+  });
+} catch (e) {
+  productUpload = { single: () => (req, res, next) => next() };
+}
 
 const router = express.Router();
 
@@ -344,7 +377,7 @@ router.get('/dashboard/stats', verifyAdminToken, async (req, res) => {
   try {
     // ⚡ Cache dashboard stats for 30 seconds
     const stats = await cached('admin:dashboard:stats', () => getDashboardStats(), 30);
-    
+
     res.json({
       success: true,
       data: stats
@@ -716,7 +749,7 @@ router.get('/orders/:id', verifyAdminToken, async (req, res) => {
         order: {
           id: order.id,
           orderId: orderId,
-          user: { 
+          user: {
             name: order.user?.fullName || 'Unknown',
             email: order.user?.email || '',
             phoneNumber: order.user?.phoneNumber || '',
@@ -769,12 +802,12 @@ router.patch('/orders/:id/status', verifyAdminToken, async (req, res) => {
     }
 
     if (!allowedTransitions[oldStatus]?.includes(newStatus)) {
-      const allowedList = allowedTransitions[oldStatus]?.length > 0 
-        ? allowedTransitions[oldStatus].join(', ') 
+      const allowedList = allowedTransitions[oldStatus]?.length > 0
+        ? allowedTransitions[oldStatus].join(', ')
         : 'none (final state)';
-      return res.status(400).json({ 
-        success: false, 
-        message: `Cannot change status from "${oldStatus}" to "${newStatus}". Allowed transitions: ${allowedList}` 
+      return res.status(400).json({
+        success: false,
+        message: `Cannot change status from "${oldStatus}" to "${newStatus}". Allowed transitions: ${allowedList}`
       });
     }
 
@@ -814,13 +847,13 @@ router.get('/dashboard/weekly-revenue', verifyAdminToken, async (req, res) => {
       const sevenDaysAgo = new Date(today);
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
       sevenDaysAgo.setHours(0, 0, 0, 0);
-      
+
       // Single query for all 7 days
       const orders = await prisma.order.findMany({
         where: { orderDate: { gte: sevenDaysAgo } },
         select: { orderDate: true, productPrice: true }
       });
-      
+
       // Group by day
       const dayMap = {};
       for (let i = 6; i >= 0; i--) {
@@ -830,17 +863,17 @@ router.get('/dashboard/weekly-revenue', verifyAdminToken, async (req, res) => {
         const dateKey = date.toISOString().split('T')[0];
         dayMap[dateKey] = { name: dayName, value: 0 };
       }
-      
+
       orders.forEach(order => {
         const dateKey = order.orderDate.toISOString().split('T')[0];
         if (dayMap[dateKey]) {
           dayMap[dateKey].value += order.productPrice || 0;
         }
       });
-      
+
       return Object.values(dayMap);
     }, 60); // Cache 1 minute
-    
+
     res.json({ success: true, data: weeklyData });
   } catch (error) {
     console.error('Get weekly revenue error:', error);
@@ -856,13 +889,13 @@ router.get('/dashboard/user-growth', verifyAdminToken, async (req, res) => {
       const sevenDaysAgo = new Date(today);
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
       sevenDaysAgo.setHours(0, 0, 0, 0);
-      
+
       // Single query for all 7 days
       const users = await prisma.user.findMany({
         where: { createdAt: { gte: sevenDaysAgo } },
         select: { createdAt: true }
       });
-      
+
       // Group by day
       const dayMap = {};
       for (let i = 6; i >= 0; i--) {
@@ -872,17 +905,17 @@ router.get('/dashboard/user-growth', verifyAdminToken, async (req, res) => {
         const dateKey = date.toISOString().split('T')[0];
         dayMap[dateKey] = { name: dayName, users: 0 };
       }
-      
+
       users.forEach(user => {
         const dateKey = user.createdAt.toISOString().split('T')[0];
         if (dayMap[dateKey]) {
           dayMap[dateKey].users += 1;
         }
       });
-      
+
       return Object.values(dayMap);
     }, 60); // Cache 1 minute
-    
+
     res.json({ success: true, data: growthData });
   } catch (error) {
     console.error('Get user growth error:', error);
@@ -897,11 +930,12 @@ router.get('/products', verifyAdminToken, async (req, res) => {
   try {
     const { page = 1, limit = 20, q = '', category = 'all', isActive = 'all' } = req.query;
     const where = {};
-    
+
     if (q) {
       where.OR = [
-        { name: { contains: q } },
-        { brand: { contains: q } }
+        { name: { contains: q, mode: 'insensitive' } },
+        { brand: { contains: q, mode: 'insensitive' } },
+        { category: { contains: q, mode: 'insensitive' } }
       ];
     }
     if (category !== 'all') where.category = category;
@@ -909,7 +943,7 @@ router.get('/products', verifyAdminToken, async (req, res) => {
 
     const products = await prisma.product.findMany({
       where,
-      orderBy: { id: 'asc' },
+      orderBy: { createdAt: 'desc' },
       take: parseInt(limit),
       skip: (parseInt(page) - 1) * parseInt(limit)
     });
@@ -945,7 +979,7 @@ router.get('/products/:id', verifyAdminToken, async (req, res) => {
 router.post('/products', verifyAdminToken, async (req, res) => {
   try {
     const { name, brand, category, price, image, isActive = true } = req.body;
-    
+
     if (!name || !brand || !category || price === undefined) {
       return res.status(400).json({ success: false, message: 'name, brand, category, price are required' });
     }
@@ -965,7 +999,7 @@ router.put('/products/:id', verifyAdminToken, async (req, res) => {
   try {
     const { name, brand, category, price, image, isActive } = req.body;
     const data = {};
-    
+
     if (name !== undefined) data.name = name;
     if (brand !== undefined) data.brand = brand;
     if (category !== undefined) data.category = category;
@@ -992,6 +1026,21 @@ router.delete('/products/:id', verifyAdminToken, async (req, res) => {
   } catch (error) {
     console.error('Delete product error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Upload product image
+router.post('/products/upload-image', verifyAdminToken, productUpload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No image file provided' });
+    }
+
+    const imageUrl = `/uploads/products/${req.file.filename}`;
+    res.json({ success: true, data: { imageUrl } });
+  } catch (error) {
+    console.error('Upload product image error:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error' });
   }
 });
 

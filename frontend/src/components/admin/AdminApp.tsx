@@ -4,6 +4,7 @@ import { AdminLoginPage } from "./AdminLoginPage";
 import { AdminLayout } from "./AdminLayout";
 import { AdminDashboard } from "./AdminDashboard";
 import { AdminUsersPage } from "./AdminUsersPage";
+import { AdminProductsPage } from "./AdminProductsPage";
 import { AdminDepositsPage } from "./AdminDepositsPage";
 import { AdminWithdrawalsPage } from "./AdminWithdrawalsPage";
 import { AdminOrdersPage } from "./AdminOrdersPage";
@@ -71,6 +72,7 @@ function AdminRoutes() {
       <Routes>
         <Route path="/dashboard" element={<AdminDashboard />} />
         <Route path="/users" element={<AdminUsersPage />} />
+        <Route path="/products" element={<AdminProductsPage />} />
         <Route path="/deposits" element={<AdminDepositsPage />} />
         <Route path="/withdrawals" element={<AdminWithdrawalsPage />} />
         <Route path="/orders" element={<AdminOrdersPage />} />

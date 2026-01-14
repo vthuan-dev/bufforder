@@ -155,7 +155,7 @@ export function AdminUsersPage() {
     if (!selectedUser) return;
     setSaving(true);
     setSaveTime(null);
-    
+
     // Start countdown from 3
     let countdown = 3;
     setSaveTime(countdown);
@@ -173,7 +173,7 @@ export function AdminUsersPage() {
         balance: Number(formBalance),
         isActive: formStatus === "Active",
       };
-      
+
       // Run API calls in parallel with minimum 3s delay
       const [, ,] = await Promise.all([
         api.adminUpdateUser(selectedUser.id, payload),
@@ -183,14 +183,14 @@ export function AdminUsersPage() {
         }),
         new Promise(resolve => setTimeout(resolve, 3000)) // Minimum 3s delay
       ]);
-      
+
       clearInterval(countdownInterval);
       setSaveTime(0);
-      
+
       // refresh list
       await loadUsers();
       toast.success('User updated successfully!');
-      
+
       // Auto close after success
       setTimeout(() => {
         window.location.reload();
@@ -431,9 +431,9 @@ export function AdminUsersPage() {
                       <Label className="text-xs text-gray-500 mb-1 block">Full Name</Label>
                       <div className="relative">
                         <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <Input 
-                          value={formFullName} 
-                          onChange={(e) => setFormFullName(e.target.value)} 
+                        <Input
+                          value={formFullName}
+                          onChange={(e) => setFormFullName(e.target.value)}
                           className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
                           placeholder="Enter full name"
                         />
@@ -443,9 +443,9 @@ export function AdminUsersPage() {
                       <Label className="text-xs text-gray-500 mb-1 block">Phone Number</Label>
                       <div className="relative">
                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <Input 
-                          value={formPhone} 
-                          onChange={(e) => setFormPhone(e.target.value)} 
+                        <Input
+                          value={formPhone}
+                          onChange={(e) => setFormPhone(e.target.value)}
                           className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
                           placeholder="Enter phone number"
                         />
@@ -465,10 +465,10 @@ export function AdminUsersPage() {
                       <Label className="text-xs text-gray-500 mb-1 block">Balance ($)</Label>
                       <div className="relative">
                         <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <Input 
-                          type="number" 
-                          value={formBalance} 
-                          onChange={(e) => setFormBalance(e.target.value)} 
+                        <Input
+                          type="number"
+                          value={formBalance}
+                          onChange={(e) => setFormBalance(e.target.value)}
                           className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
                         />
                       </div>
@@ -563,17 +563,17 @@ export function AdminUsersPage() {
 
               {/* Footer Actions */}
               <div className="px-6 py-4 bg-gray-50 border-t flex gap-3">
-                <Button 
-                  onClick={() => handleCloseEditDialog(false)} 
-                  variant="outline" 
-                  className="flex-1 h-11" 
+                <Button
+                  onClick={() => handleCloseEditDialog(false)}
+                  variant="outline"
+                  className="flex-1 h-11"
                   disabled={saving}
                 >
                   Cancel
                 </Button>
-                <Button 
-                  onClick={handleSave} 
-                  className="flex-1 h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700" 
+                <Button
+                  onClick={handleSave}
+                  className="flex-1 h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                   disabled={saving}
                 >
                   {saving ? (
@@ -598,7 +598,7 @@ export function AdminUsersPage() {
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] p-0 overflow-hidden [&>button]:text-white [&>button]:hover:text-white">
           {/* Header */}
-          <div className="bg-green-600 px-6 py-5">
+          <div className="bg-blue-600 px-6 py-5">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
                 <Plus className="w-7 h-7 text-white" />
@@ -625,9 +625,9 @@ export function AdminUsersPage() {
                   </Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input 
-                      value={createFullName} 
-                      onChange={(e) => setCreateFullName(e.target.value)} 
+                    <Input
+                      value={createFullName}
+                      onChange={(e) => setCreateFullName(e.target.value)}
                       className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
                       placeholder="Enter full name"
                     />
@@ -639,10 +639,10 @@ export function AdminUsersPage() {
                   </Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input 
-                      type="email" 
-                      value={createEmail} 
-                      onChange={(e) => setCreateEmail(e.target.value)} 
+                    <Input
+                      type="email"
+                      value={createEmail}
+                      onChange={(e) => setCreateEmail(e.target.value)}
                       className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
                       placeholder="user@example.com"
                     />
@@ -652,9 +652,9 @@ export function AdminUsersPage() {
                   <Label className="text-xs text-gray-500 mb-1 block">Phone Number</Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input 
-                      value={createPhone} 
-                      onChange={(e) => setCreatePhone(e.target.value)} 
+                    <Input
+                      value={createPhone}
+                      onChange={(e) => setCreatePhone(e.target.value)}
                       className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
                       placeholder="Enter phone number"
                     />
@@ -676,10 +676,10 @@ export function AdminUsersPage() {
                   </Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input 
-                      type="password" 
-                      value={createPassword} 
-                      onChange={(e) => setCreatePassword(e.target.value)} 
+                    <Input
+                      type="password"
+                      value={createPassword}
+                      onChange={(e) => setCreatePassword(e.target.value)}
                       className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
                       placeholder="Enter password"
                     />
@@ -691,17 +691,16 @@ export function AdminUsersPage() {
                   </Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input 
-                      type="password" 
-                      value={createConfirmPassword} 
-                      onChange={(e) => setCreateConfirmPassword(e.target.value)} 
-                      className={`pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors ${
-                        createConfirmPassword && createPassword !== createConfirmPassword 
-                          ? 'border-red-300 focus:ring-red-500' 
+                    <Input
+                      type="password"
+                      value={createConfirmPassword}
+                      onChange={(e) => setCreateConfirmPassword(e.target.value)}
+                      className={`pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors ${createConfirmPassword && createPassword !== createConfirmPassword
+                          ? 'border-red-300 focus:ring-red-500'
                           : createConfirmPassword && createPassword === createConfirmPassword
                             ? 'border-green-300 focus:ring-green-500'
                             : ''
-                      }`}
+                        }`}
                       placeholder="Confirm password"
                     />
                     {createConfirmPassword && (
@@ -724,9 +723,9 @@ export function AdminUsersPage() {
 
           {/* Footer Actions */}
           <div className="px-6 py-4 bg-gray-50 border-t flex gap-3">
-            <Button 
-              onClick={() => setCreateDialogOpen(false)} 
-              variant="outline" 
+            <Button
+              onClick={() => setCreateDialogOpen(false)}
+              variant="outline"
               className="flex-1 h-11"
               disabled={creating}
             >
@@ -759,7 +758,7 @@ export function AdminUsersPage() {
                   setCreating(false);
                 }
               }}
-              className="flex-1 h-11 bg-green-600 hover:bg-green-700 text-white"
+              className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-white"
               disabled={creating || !createFullName || !createEmail || !createPassword || createPassword !== createConfirmPassword}
             >
               {creating ? (
@@ -851,19 +850,19 @@ export function AdminUsersPage() {
 
                 {/* Actions */}
                 <div className="flex gap-3 mt-5">
-                  <Button 
+                  <Button
                     onClick={() => {
                       setViewDialogOpen(false);
                       handleEdit(selectedUser);
-                    }} 
+                    }}
                     className="flex-1 h-11 bg-gradient-to-r from-blue-600 to-indigo-600"
                   >
                     <Edit className="w-4 h-4 mr-2" />
                     Edit User
                   </Button>
-                  <Button 
-                    onClick={() => setViewDialogOpen(false)} 
-                    variant="outline" 
+                  <Button
+                    onClick={() => setViewDialogOpen(false)}
+                    variant="outline"
                     className="flex-1 h-11"
                   >
                     Close
