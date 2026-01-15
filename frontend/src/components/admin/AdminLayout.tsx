@@ -92,11 +92,10 @@ function formatTimeAgo(date: Date): string {
 
 export function AdminLayout({ children, currentPage, onNavigate, onLogout }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
   const [chatUnread, setChatUnread] = useState<number>(0);
   const [adminData, setAdminData] = useState<any>(null);
   const socketInitialized = useRef(false);
-  
+
   // 🔔 Order notifications state
   const [orderNotifications, setOrderNotifications] = useState<OrderNotification[]>(() => {
     try {
@@ -104,7 +103,7 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
       return saved ? JSON.parse(saved) : [];
     } catch { return []; }
   });
-  
+
   // 💰 Deposit notifications state
   const [depositNotifications, setDepositNotifications] = useState<DepositNotification[]>(() => {
     try {
@@ -112,7 +111,7 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
       return saved ? JSON.parse(saved) : [];
     } catch { return []; }
   });
-  
+
   const orderAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // 🔊 Global play sound function - attached to window so socket handler can call it
@@ -128,7 +127,7 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
       delete (window as any).__playOrderSound;
     };
   }, []);
-  
+
   // 🔊 Simple function to play sound - called directly when needed
   const playOrderNotificationSound = () => {
     console.log('[AdminLayout] 🔊 playOrderNotificationSound called');
@@ -151,7 +150,7 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
       console.log('[AdminLayout] ❌ Sound error:', e);
     }
   };
-  
+
   // Sound enabled state (requires user interaction first)
   const [orderSoundEnabled, setOrderSoundEnabled] = useState(() => {
     try {
@@ -161,20 +160,20 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
   // Use ref to avoid stale closure in socket handler
   const orderSoundEnabledRef = useRef(orderSoundEnabled);
   useEffect(() => { orderSoundEnabledRef.current = orderSoundEnabled; }, [orderSoundEnabled]);
-  
+
   // Count unread order notifications
   const unreadOrderCount = orderNotifications.filter(n => !n.isRead).length;
-  
+
   // Count unread deposit notifications
   const unreadDepositCount = depositNotifications.filter(n => !n.isRead).length;
-  
+
   // Total unread notifications
   const totalUnreadCount = unreadOrderCount + unreadDepositCount;
 
   // Play notification sound with multiple fallback strategies
   const playOrderSound = useCallback(async () => {
     console.log('[AdminLayout] playOrderSound called, enabled:', orderSoundEnabledRef.current);
-    
+
     try {
       // Check if sound is enabled (user has clicked to enable) - use REF to avoid stale closure
       if (!orderSoundEnabledRef.current) {
@@ -255,14 +254,14 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
       setOrderSoundEnabled(true);
       orderSoundEnabledRef.current = true;
       localStorage.setItem('admin:orderSoundEnabled', '1');
-      
+
       console.log('[AdminLayout] Enabling order sound...');
-      
+
       // Play a test sound to confirm it works
       const audio = new Audio(new URL('../../assets/sound/noti.mp3', import.meta.url).toString());
       audio.volume = 0.5;
       await audio.play();
-      
+
       console.log('[AdminLayout] ✅ Order sound enabled and test played');
       toast.success('🔔 Order notifications enabled!', { duration: 2000 });
     } catch (err) {
@@ -275,7 +274,7 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
   const markAllOrdersRead = useCallback(() => {
     setOrderNotifications(prev => {
       const updated = prev.map(n => ({ ...n, isRead: true }));
-      try { localStorage.setItem('admin:orderNotifications', JSON.stringify(updated)); } catch {}
+      try { localStorage.setItem('admin:orderNotifications', JSON.stringify(updated)); } catch { }
       return updated;
     });
   }, []);
@@ -283,19 +282,19 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
   // Clear all order notifications
   const clearOrderNotifications = useCallback(() => {
     setOrderNotifications([]);
-    try { localStorage.removeItem('admin:orderNotifications'); } catch {}
+    try { localStorage.removeItem('admin:orderNotifications'); } catch { }
   }, []);
 
   // Mark all notifications as read (both order and deposit)
   const markAllNotificationsRead = useCallback(() => {
     setOrderNotifications(prev => {
       const updated = prev.map(n => ({ ...n, isRead: true }));
-      try { localStorage.setItem('admin:orderNotifications', JSON.stringify(updated)); } catch {}
+      try { localStorage.setItem('admin:orderNotifications', JSON.stringify(updated)); } catch { }
       return updated;
     });
     setDepositNotifications(prev => {
       const updated = prev.map(n => ({ ...n, isRead: true }));
-      try { localStorage.setItem('admin:depositNotifications', JSON.stringify(updated)); } catch {}
+      try { localStorage.setItem('admin:depositNotifications', JSON.stringify(updated)); } catch { }
       return updated;
     });
   }, []);
@@ -304,10 +303,10 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
   const clearAllNotifications = useCallback(() => {
     setOrderNotifications([]);
     setDepositNotifications([]);
-    try { 
-      localStorage.removeItem('admin:orderNotifications'); 
-      localStorage.removeItem('admin:depositNotifications'); 
-    } catch {}
+    try {
+      localStorage.removeItem('admin:orderNotifications');
+      localStorage.removeItem('admin:depositNotifications');
+    } catch { }
   }, []);
 
   useEffect(() => {
@@ -335,13 +334,13 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
               s = initAdminSocket(token);
               console.log('[AdminLayout] Initialized global admin socket');
             }
-            
+
             console.log('[AdminLayout] 🔌 Socket connected:', s.connected, 'id:', s.id);
 
             // Chat thread updated handler - play sound if not on chat page
             const chatHandler = (data: any) => {
               console.log('[AdminLayout] 💬 Received chat:threadUpdated:', data);
-              
+
               // Re-fetch count when message received
               api.adminChatListThreads({ page: 1, limit: 100 }).then(r => {
                 const updatedTotal = (r?.data?.threads || []).reduce((sum: number, t: any) => sum + (t.unreadForAdmin || 0), 0);
@@ -352,7 +351,7 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
               const currentPage = window.location.pathname;
               const isOnChatPage = currentPage.includes('/admin/chat');
               console.log('[AdminLayout] 💬 Current page:', currentPage, 'isOnChatPage:', isOnChatPage);
-              
+
               if (!isOnChatPage) {
                 try {
                   const audioSrc = new URL('../../assets/sound/noti.mp3', import.meta.url).href;
@@ -379,7 +378,7 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
             // 🔔 New order handler
             const orderHandler = (data: any) => {
               console.log('[AdminLayout] 🛒 Received order:new:', data);
-              
+
               const newNotification: OrderNotification = {
                 id: `order-${data.orderId}-${Date.now()}`,
                 orderId: data.orderId,
@@ -393,7 +392,7 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
 
               setOrderNotifications(prev => {
                 const updated = [newNotification, ...prev].slice(0, 50); // Keep max 50
-                try { localStorage.setItem('admin:orderNotifications', JSON.stringify(updated)); } catch {}
+                try { localStorage.setItem('admin:orderNotifications', JSON.stringify(updated)); } catch { }
                 return updated;
               });
 
@@ -403,7 +402,7 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
                   const soundEnabled = localStorage.getItem('admin:orderSoundEnabled') === '1';
                   const soundDisabled = localStorage.getItem('admin:soundEnabled') === '0';
                   console.log('[AdminLayout] 🔊 Sound check:', { soundEnabled, soundDisabled });
-                  
+
                   if (soundEnabled && !soundDisabled) {
                     console.log('[AdminLayout] 🔊 Playing order sound...');
                     const audio = new Audio(new URL('../../assets/sound/noti.mp3', import.meta.url).toString());
@@ -429,9 +428,9 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
 
             s.on('chat:threadUpdated', chatHandler);
             s.on('order:new', orderHandler);
-            
+
             console.log('[AdminLayout] ✅ Registered listeners for chat:threadUpdated and order:new');
-            
+
             return () => {
               s.off('chat:threadUpdated', chatHandler);
               s.off('order:new', orderHandler);
@@ -457,7 +456,7 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
 
       const orderHandler = async (data: any) => {
         console.log('[AdminLayout] 🛒 ORDER:NEW EVENT RECEIVED:', data);
-        
+
         const newNotification: OrderNotification = {
           id: `order-${data.orderId}-${Date.now()}`,
           orderId: data.orderId,
@@ -471,7 +470,7 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
 
         setOrderNotifications(prev => {
           const updated = [newNotification, ...prev].slice(0, 50);
-          try { localStorage.setItem('admin:orderNotifications', JSON.stringify(updated)); } catch {}
+          try { localStorage.setItem('admin:orderNotifications', JSON.stringify(updated)); } catch { }
           return updated;
         });
 
@@ -508,7 +507,7 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
 
         setDepositNotifications(prev => {
           const updated = [newNotification, ...prev].slice(0, 50); // Keep max 50
-          try { localStorage.setItem('admin:depositNotifications', JSON.stringify(updated)); } catch {}
+          try { localStorage.setItem('admin:depositNotifications', JSON.stringify(updated)); } catch { }
           return updated;
         });
 
@@ -584,12 +583,12 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
   return (
     <div className="h-screen bg-gray-50 flex overflow-hidden">
       {/* 🔔 Hidden audio for order notifications */}
-      <audio 
-        ref={orderAudioRef} 
-        src={new URL('../../assets/sound/noti.mp3', import.meta.url).toString()} 
-        preload="auto" 
+      <audio
+        ref={orderAudioRef}
+        src={new URL('../../assets/sound/noti.mp3', import.meta.url).toString()}
+        preload="auto"
       />
-      
+
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div
@@ -715,14 +714,6 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
                 </button>
               )}
 
-              {/* Dark Mode Toggle */}
-              <button
-                onClick={() => setDarkMode(!darkMode)}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-              >
-                {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-              </button>
-
               {/* Notifications */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -759,7 +750,7 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
                               Orders ({unreadOrderCount} new)
                             </div>
                             {orderNotifications.slice(0, 5).map((notification) => (
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 key={notification.id}
                                 className="flex flex-col items-start gap-1 py-3 cursor-pointer"
                                 onClick={() => onNavigate('orders')}
@@ -788,7 +779,7 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
                             ))}
                           </>
                         )}
-                        
+
                         {/* Deposit Notifications */}
                         {depositNotifications.length > 0 && (
                           <>
@@ -796,7 +787,7 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
                               Deposits ({unreadDepositCount} new)
                             </div>
                             {depositNotifications.slice(0, 5).map((notification) => (
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 key={notification.id}
                                 className="flex flex-col items-start gap-1 py-3 cursor-pointer"
                                 onClick={() => onNavigate('deposits')}
@@ -832,13 +823,13 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
                     <>
                       <DropdownMenuSeparator />
                       <div className="flex gap-2 p-2">
-                        <button 
+                        <button
                           onClick={markAllNotificationsRead}
                           className="flex-1 text-xs text-blue-600 hover:text-blue-700 py-1"
                         >
                           Mark all read
                         </button>
-                        <button 
+                        <button
                           onClick={clearAllNotifications}
                           className="flex-1 text-xs text-gray-500 hover:text-gray-700 py-1"
                         >
