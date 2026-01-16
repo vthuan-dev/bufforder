@@ -34,13 +34,13 @@ function ClientApp() {
   const clientSocketRef = useRef<Socket | null>(null);
   const clientAudioRef = useRef<HTMLAudioElement | null>(null);
   const focusRef = useRef<boolean>(typeof document !== 'undefined' ? !document.hidden : true);
-  
+
   // Get active tab from current path
   const activeTab = useMemo(() => {
     const path = location.pathname.replace('/', '') || 'home';
     return ['home', 'orders', 'record', 'help', 'my'].includes(path) ? path : 'home';
   }, [location.pathname]);
-  
+
   const activeTabRef = useRef<string>(activeTab);
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
 
@@ -49,9 +49,9 @@ function ClientApp() {
     console.log('[ClientApp] Navigating to:', tab);
     navigate(`/${tab}`);
     if (tab === 'help') {
-      try { 
-        localStorage.setItem('client:helpUnread', '0'); 
-        window.dispatchEvent(new CustomEvent('client:chatUnreadUpdated', { detail: 0 })); 
+      try {
+        localStorage.setItem('client:helpUnread', '0');
+        window.dispatchEvent(new CustomEvent('client:chatUnreadUpdated', { detail: 0 }));
       } catch { }
     }
   }, [navigate]);
@@ -60,25 +60,36 @@ function ClientApp() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
-    
+
     if (clientSocketRef.current?.connected) return;
     if (clientSocketRef.current) {
       clientSocketRef.current.disconnect();
       clientSocketRef.current = null;
     }
-    
+
     const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:5000';
-    const s = io(API_BASE, { 
+    const s = io(API_BASE, {
       auth: { token },
       reconnection: true,
       reconnectionAttempts: 3,
       reconnectionDelay: 1000
     });
     clientSocketRef.current = s;
-    
+
+    // 🔍 Debug: Log socket connection status
+    s.on('connect', () => {
+      console.log('[Socket] Connected! Socket ID:', s.id);
+    });
+    s.on('disconnect', (reason) => {
+      console.log('[Socket] Disconnected:', reason);
+    });
+    s.on('connect_error', (err) => {
+      console.log('[Socket] Connection error:', err.message);
+    });
+
     const onVis = () => { focusRef.current = !document.hidden; };
     document.addEventListener('visibilitychange', onVis);
-    
+
     const play = () => {
       try {
         if (localStorage.getItem('client:soundEnabled') !== '1') return;
@@ -87,7 +98,7 @@ function ClientApp() {
       if (a) {
         a.currentTime = 0;
         a.volume = 1;
-        a.play().catch(() => {});
+        a.play().catch(() => { });
       }
     };
 
@@ -114,6 +125,12 @@ function ClientApp() {
       window.dispatchEvent(new CustomEvent('client:chatTyping', { detail: evt }));
     });
 
+    // 🔔 Listen for real-time balance updates (when admin marks order as delivered)
+    s.on('balance:updated', (data: any) => {
+      console.log('[Socket] Received balance:updated:', data);
+      window.dispatchEvent(new CustomEvent('balance:updated', { detail: data }));
+    });
+
     const handleEmitMessage = (event: any) => {
       const { threadId, text } = event.detail;
       s.emit('chat:send', { threadId, text });
@@ -130,7 +147,7 @@ function ClientApp() {
     window.addEventListener('client:emitMessage', handleEmitMessage);
     window.addEventListener('client:emitTyping', handleEmitTyping);
     window.addEventListener('client:joinThread', handleJoinThread);
-    
+
     return () => {
       s.disconnect();
       document.removeEventListener('visibilitychange', onVis);
@@ -261,7 +278,7 @@ export default function App() {
               <Toaster position="top-right" style={{ zIndex: 9999 }} />
             </Suspense>
           } />
-          
+
           {/* Auth routes */}
           <Route path="/login" element={
             <AuthWrapper><Navigate to="/home" replace /></AuthWrapper>
@@ -269,7 +286,7 @@ export default function App() {
           <Route path="/register" element={
             <AuthWrapper><Navigate to="/home" replace /></AuthWrapper>
           } />
-          
+
           {/* Client routes - protected */}
           <Route path="/*" element={
             <AuthWrapper>

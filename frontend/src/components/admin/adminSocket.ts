@@ -25,6 +25,12 @@ export function initAdminSocket(token: string): Socket {
         reconnectionDelay: 1000
     });
 
+    // Auto-join admins room when connected
+    globalAdminSocket.on('connect', () => {
+        console.log('[adminSocket] Connected to server, joining admins room');
+        globalAdminSocket?.emit('admin:join');
+    });
+
     return globalAdminSocket;
 }
 

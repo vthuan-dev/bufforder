@@ -375,65 +375,13 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
               }
             };
 
-            // 🔔 New order handler
-            const orderHandler = (data: any) => {
-              console.log('[AdminLayout] 🛒 Received order:new:', data);
-
-              const newNotification: OrderNotification = {
-                id: `order-${data.orderId}-${Date.now()}`,
-                orderId: data.orderId,
-                orderNumber: data.orderNumber,
-                userName: data.userName || 'Unknown',
-                productName: data.productName,
-                productPrice: data.productPrice,
-                createdAt: new Date(data.createdAt),
-                isRead: false
-              };
-
-              setOrderNotifications(prev => {
-                const updated = [newNotification, ...prev].slice(0, 50); // Keep max 50
-                try { localStorage.setItem('admin:orderNotifications', JSON.stringify(updated)); } catch { }
-                return updated;
-              });
-
-              // 🔊 Play sound - read directly from localStorage
-              (async () => {
-                try {
-                  const soundEnabled = localStorage.getItem('admin:orderSoundEnabled') === '1';
-                  const soundDisabled = localStorage.getItem('admin:soundEnabled') === '0';
-                  console.log('[AdminLayout] 🔊 Sound check:', { soundEnabled, soundDisabled });
-
-                  if (soundEnabled && !soundDisabled) {
-                    console.log('[AdminLayout] 🔊 Playing order sound...');
-                    const audio = new Audio(new URL('../../assets/sound/noti.mp3', import.meta.url).toString());
-                    audio.volume = 1;
-                    await audio.play();
-                    console.log('[AdminLayout] ✅ Order sound played!');
-                  }
-                } catch (err) {
-                  console.error('[AdminLayout] ❌ Sound error:', err);
-                }
-              })();
-
-              // Show toast
-              toast.success('🛒 New Order!', {
-                description: `${data.userName} ordered ${data.productName} - $${data.productPrice}`,
-                duration: 5000,
-                action: {
-                  label: 'View',
-                  onClick: () => onNavigate('orders')
-                }
-              });
-            };
-
             s.on('chat:threadUpdated', chatHandler);
-            s.on('order:new', orderHandler);
 
-            console.log('[AdminLayout] ✅ Registered listeners for chat:threadUpdated and order:new');
+            console.log('[AdminLayout] ✅ Registered listener for chat:threadUpdated');
+            console.log('[AdminLayout] ℹ️ Order notifications are handled in separate useEffect');
 
             return () => {
               s.off('chat:threadUpdated', chatHandler);
-              s.off('order:new', orderHandler);
             };
           }
         } catch (err) {

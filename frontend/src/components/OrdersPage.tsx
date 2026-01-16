@@ -50,6 +50,7 @@ export function OrdersPage() {
   const [todaysTask, setTodaysTask] = useState<number>(0);
   const [completedToday, setCompletedToday] = useState<number>(0);
   const [totalOrdersLimit, setTotalOrdersLimit] = useState<number>(100);
+  const [dailyTarget, setDailyTarget] = useState<number>(0); // Daily commission target from VIP level
 
   // Fetch products from API
   useEffect(() => {
@@ -62,7 +63,8 @@ export function OrdersPage() {
             name: p.name,
             brand: p.brand,
             price: p.price,
-            commission: +(p.price * commissionRate).toFixed(2),
+            // Commission: price × rate × 0.9 (10% system fee deduction)
+            commission: +(p.price * commissionRate * 0.9).toFixed(2),
             image: p.image || '',
           }));
           setProducts(apiProducts);
@@ -109,6 +111,9 @@ export function OrdersPage() {
           // UI shows Earned commission = lifetime earnings today (full amount).
           const earnedToday = Number(stats.data?.dailyEarnings?.totalCommission || 0);
           setDailyCommission(isNaN(earnedToday) ? 0 : earnedToday);
+          // Get daily target from VIP level or custom config
+          const target = Number(stats.data?.dailyTarget || stats.data?.dailyEarnings?.targetTotal || 0);
+          setDailyTarget(target);
         }
       } catch { }
 
@@ -117,20 +122,21 @@ export function OrdersPage() {
         const vs = await api.vipStatus();
         const currentLevel = vs?.data?.currentLevel;
         const vipKey = normalizeVipId(currentLevel?.id || currentLevel?.name || currentLevel?.label);
+        // VIP commission rates (matching backend vipLevels.js)
         const vipCommissionRates: Record<VipThemeKey, number> = {
-          royal: 0.025,
+          royal: 0.025,  // 2.5% → thực nhận 2.25%
           ssvip: 0.022,
-          svip: 0.02,
-          vip7: 0.018,
-          vip6: 0.015,
-          vip5: 0.012,
-          vip4: 0.009,
-          vip3: 0.007,
-          vip2: 0.005,
-          vip1: 0.003,
-          vip0: 0.002,
+          svip: 0.02,    // 2.0% → thực nhận 1.80%
+          vip7: 0.018,   // 1.8% → thực nhận 1.62%
+          vip6: 0.015,   // 1.5% → thực nhận 1.35%
+          vip5: 0.012,   // 1.2% → thực nhận 1.08%
+          vip4: 0.009,   // 0.9% → thực nhận 0.81%
+          vip3: 0.007,   // 0.7% → thực nhận 0.63%
+          vip2: 0.006,   // 0.6% → thực nhận 0.54%
+          vip1: 0.005,   // 0.5% → thực nhận 0.45%
+          vip0: 0,
         };
-        setCommissionRate(vipCommissionRates[vipKey] ?? 0.002);
+        setCommissionRate(vipCommissionRates[vipKey] ?? 0);
       } catch { }
     })();
   }, []);
@@ -142,6 +148,47 @@ export function OrdersPage() {
   useEffect(() => {
     localStorage.setItem("stats:ordersReceived", String(ordersReceived));
   }, [ordersReceived]);
+
+  // 🔔 Listen for real-time balance updates (from socket)
+  useEffect(() => {
+    const handleBalanceUpdate = (e: Event) => {
+      const data = (e as CustomEvent).detail;
+      console.log('[OrdersPage] Real-time balance update:', data);
+
+      // Update balance immediately with new value
+      if (data.newBalance != null) {
+        console.log('[OrdersPage] Setting availableBalance to:', data.newBalance);
+        setAvailableBalance(Number(data.newBalance));
+      }
+
+      // Update daily commission by adding increment
+      if (data.commissionIncrement != null && data.commissionIncrement > 0) {
+        console.log('[OrdersPage] Adding to dailyCommission:', data.commissionIncrement);
+        setDailyCommission(prev => {
+          const newVal = prev + Number(data.commissionIncrement);
+          console.log('[OrdersPage] New dailyCommission:', newVal);
+          return newVal;
+        });
+      }
+
+      // Update completed today count
+      setCompletedToday(prev => prev + 1);
+      setOrdersReceived(prev => prev + 1);
+
+      // Show appropriate toast based on source
+      const isFromOrderGrab = data.source === 'order_grab';
+      if (!isFromOrderGrab) {
+        // Only show toast for admin-delivered orders (order_grab already has its own toast)
+        toast.success(`Order delivered! +$${data.commissionIncrement?.toFixed(2) || '0.00'}`, {
+          description: `New balance: $${data.newBalance?.toFixed(2)}`,
+          duration: 4000,
+        });
+      }
+    };
+
+    window.addEventListener('balance:updated', handleBalanceUpdate);
+    return () => window.removeEventListener('balance:updated', handleBalanceUpdate);
+  }, []);
 
   const carouselImages = [
     // Smartphones
@@ -191,6 +238,15 @@ export function OrdersPage() {
       return;
     }
 
+    // Check if daily target reached
+    if (dailyTarget > 0 && dailyCommission >= dailyTarget) {
+      toast.warning('Daily commission target reached! 🎯', {
+        description: `You've earned $${dailyCommission.toFixed(2)} of your $${dailyTarget} daily target. Come back tomorrow!`,
+        duration: 5000,
+      });
+      return;
+    }
+
     setShowOrderPopup(true);
     setProgress(0);
 
@@ -235,7 +291,7 @@ export function OrdersPage() {
     console.log('[Orders] selectedProduct:', selectedProduct);
     console.log('[Orders] submitting:', submitting);
     console.log('[Orders] availableBalance:', availableBalance);
-    
+
     if (!selectedProduct) {
       console.error('[Orders] No selected product');
       return;
@@ -291,23 +347,38 @@ export function OrdersPage() {
         duration: 3000,
       });
 
-      // Update UI: count order grabbed; commission updates when admin delivers
+      // ✅ OPTIMISTIC UPDATE: Update UI immediately from response
+      const commissionEarned = Number(takeRes?.data?.selectedProduct?.commissionAmount || 0);
+      const newBalance = Number(takeRes?.data?.newBalance || availableBalance);
+      const newCommission = Number(takeRes?.data?.newCommission || dailyCommission);
+
+      // Update balance and commission instantly
+      setAvailableBalance(newBalance);
+      setDailyCommission(newCommission);
+
+      console.log('[Orders] ✅ Optimistic update:', {
+        commissionEarned,
+        newBalance,
+        newCommission: newCommission
+      });
+
+      // Update UI: count order grabbed
       setOrdersReceived((prev) => prev + 1);
 
-      // Refresh stats from api to sync UI (balance, tasks, completed)
+      // Refresh full stats from API to sync everything else (tasks, limits, etc)
       try {
         const stats = await api.userOrderStats();
         if (stats.success) {
-          setAvailableBalance(stats.data.balance || 0);
+          // Only update these fields, don't overwrite balance/commission we just set
           setTodaysTask(Number(stats.data.totalDailyTasks || 0));
           setCompletedToday(Number(stats.data.completedToday || 0));
           setTotalOrdersLimit(Number(stats.data.totalDailyTasks || 0));
-          // Do not overwrite optimistic increment; keep the larger value
           const grabbed = Number(stats.data.ordersGrabbed || 0);
           setOrdersReceived((prev) => Math.max(prev, grabbed));
-          // Sync today's earned commission after take
-          const earnedToday = Number(stats.data?.dailyEarnings?.totalCommission || 0);
-          setDailyCommission(isNaN(earnedToday) ? 0 : earnedToday);
+
+          // Update daily target in case it changed
+          const target = Number(stats.data?.dailyTarget || stats.data?.dailyEarnings?.targetTotal || 0);
+          setDailyTarget(target);
         }
       } catch { }
 
@@ -401,15 +472,48 @@ export function OrdersPage() {
         </div>
       </div>
 
+      {/* Daily Target Warning Banner */}
+      {dailyTarget > 0 && dailyCommission >= dailyTarget * 0.9 && (
+        <div className="px-4 pt-4">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`rounded-xl p-3 ${dailyCommission >= dailyTarget
+              ? 'bg-red-50 border-2 border-red-200'
+              : 'bg-orange-50 border-2 border-orange-200'
+              }`}
+          >
+            <div className="flex items-start gap-2">
+              <Target className={`w-5 h-5 flex-shrink-0 mt-0.5 ${dailyCommission >= dailyTarget ? 'text-red-600' : 'text-orange-600'
+                }`} />
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm font-semibold ${dailyCommission >= dailyTarget ? 'text-red-700' : 'text-orange-700'
+                  }`}>
+                  {dailyCommission >= dailyTarget
+                    ? '🎯 Daily Target Reached!'
+                    : '⚠️ Approaching Daily Limit'}
+                </p>
+                <p className={`text-xs mt-1 ${dailyCommission >= dailyTarget ? 'text-red-600' : 'text-orange-600'
+                  }`}>
+                  {dailyCommission >= dailyTarget
+                    ? `You've earned $${dailyCommission.toFixed(2)} of your $${dailyTarget} daily target. No more commission until tomorrow! ⏰`
+                    : `You've earned $${dailyCommission.toFixed(2)} of $${dailyTarget} target. ${(dailyTarget - dailyCommission).toFixed(2)} remaining today.`}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       {/* Take Order Button - Compact */}
       <div className="px-4 pt-4">
         <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 rounded-2xl p-4 shadow-inner">
           <motion.button
-            whileHover={(!showOrderPopup && !submitting && !loadingProducts) ? { scale: 1.02 } : {}}
-            whileTap={(!showOrderPopup && !submitting && !loadingProducts) ? { scale: 0.98 } : {}}
+            whileHover={(!showOrderPopup && !submitting && !loadingProducts && !(dailyTarget > 0 && dailyCommission >= dailyTarget)) ? { scale: 1.02 } : {}}
+            whileTap={(!showOrderPopup && !submitting && !loadingProducts && !(dailyTarget > 0 && dailyCommission >= dailyTarget)) ? { scale: 0.98 } : {}}
             onClick={handleTakeOrder}
-            disabled={showOrderPopup || submitting || loadingProducts}
-            className={`w-full py-3 rounded-xl shadow-lg transition-all relative overflow-hidden group ${showOrderPopup || submitting || loadingProducts
+            disabled={showOrderPopup || submitting || loadingProducts || (dailyTarget > 0 && dailyCommission >= dailyTarget)}
+            className={`w-full py-3 rounded-xl shadow-lg transition-all relative overflow-hidden group ${showOrderPopup || submitting || loadingProducts || (dailyTarget > 0 && dailyCommission >= dailyTarget)
               ? 'bg-gray-400 cursor-not-allowed opacity-50'
               : 'bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 text-white hover:shadow-blue-500/50'
               }`}
@@ -418,7 +522,13 @@ export function OrdersPage() {
             <div className="relative z-10 flex items-center justify-center gap-2">
               <Package className="w-5 h-5" strokeWidth={2.5} />
               <span className="text-base">
-                {loadingProducts ? 'Loading...' : (showOrderPopup || submitting ? 'Processing...' : 'Submit')}
+                {loadingProducts
+                  ? 'Loading...'
+                  : (dailyTarget > 0 && dailyCommission >= dailyTarget)
+                    ? 'Target Reached'
+                    : (showOrderPopup || submitting)
+                      ? 'Processing...'
+                      : 'Submit'}
               </span>
             </div>
           </motion.button>
@@ -766,7 +876,7 @@ export function OrdersPage() {
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Commission Rate:</span>
-                        <span className="text-gray-800">{((selectedProduct.commission / selectedProduct.price) * 100).toFixed(1)}%</span>
+                        <span className="text-gray-800">{(commissionRate * 100).toFixed(1)}%</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Profit from this order:</span>

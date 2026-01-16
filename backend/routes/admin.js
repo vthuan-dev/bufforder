@@ -87,20 +87,20 @@ router.get('/ip-location/:ip', verifyAdminToken, async (req, res) => {
     if (!ip || ip === '::1' || ip === '127.0.0.1') {
       return res.json({ success: true, data: { status: 'success', city: 'Local', regionName: '', country: '' } });
     }
-    
+
     // Check cache first (cache for 1 hour)
     const cached = ipLocationCache.get(ip);
     if (cached && Date.now() - cached.timestamp < 3600000) {
       return res.json({ success: true, data: cached.data });
     }
-    
+
     // Fetch from ip-api.com
     const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,regionName,city`);
     const data = await response.json();
-    
+
     // Cache the result
     ipLocationCache.set(ip, { data, timestamp: Date.now() });
-    
+
     res.json({ success: true, data });
   } catch (error) {
     console.error('IP location error:', error);
@@ -883,16 +883,35 @@ router.patch('/orders/:id/status', verifyAdminToken, async (req, res) => {
     const data = { status: newStatus };
 
     // Handle delivered status - credit commission to user
+    let updatedUser = null;
     if (newStatus === 'delivered' && !order.completedAt) {
       data.completedAt = new Date();
       // Credit user commission
-      await prisma.user.update({
+      updatedUser = await prisma.user.update({
         where: { id: order.userId },
         data: {
           balance: { increment: order.commissionAmount },
           commission: { increment: order.commissionAmount }
         }
       });
+
+      // 🔔 Emit real-time balance update to user
+      try {
+        const io = req.app.get('io');
+        if (io) {
+          io.to(`user:${order.userId}`).emit('balance:updated', {
+            userId: order.userId,
+            newBalance: updatedUser.balance,
+            newCommission: updatedUser.commission,
+            commissionIncrement: order.commissionAmount,
+            orderId: order.id,
+            orderNumber: order.orderNumber
+          });
+          console.log('[Admin] Emitted balance:updated to user:', order.userId);
+        }
+      } catch (emitErr) {
+        console.error('[Admin] Failed to emit balance:updated:', emitErr);
+      }
     }
 
     await prisma.order.update({ where: { id: req.params.id }, data });

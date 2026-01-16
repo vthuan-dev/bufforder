@@ -1,11 +1,10 @@
 const VIP_LEVELS = [
   {
     id: 'royal-vip',
-    name: 'ROYAL VIP',
+    name: 'VIP Hoàng Gia',
     amountRequired: 320000,
-    commissionRate: 2.5, // legacy, kept for compatibility
-    dailyTarget: 1320,   // NEW: target $/day
-    commissionPerOrder: 4.00, // NEW: fixed $/order
+    commissionRate: 0.025, // 2.5% - Thực nhận: 2.25% sau khi khấu trừ 10%
+    dailyTarget: 1320,
     numberOfOrders: 330,
     gradient: 'from-purple-600 to-pink-600',
     crown: '👑',
@@ -13,11 +12,10 @@ const VIP_LEVELS = [
   },
   {
     id: 'svip',
-    name: 'SVIP',
+    name: 'SVIP (Siêu cấp)',
     amountRequired: 260000,
-    commissionRate: 2.0,
+    commissionRate: 0.02, // 2.0% - Thực nhận: 1.80%
     dailyTarget: 1120,
-    commissionPerOrder: 4.00,
     numberOfOrders: 280,
     gradient: 'from-black to-amber-600',
     crown: '👑',
@@ -25,11 +23,10 @@ const VIP_LEVELS = [
   },
   {
     id: 'vip-7',
-    name: 'VIP 7',
+    name: 'VIP 7 (Sapphire)',
     amountRequired: 200000,
-    commissionRate: 1.8,
+    commissionRate: 0.018, // 1.8% - Thực nhận: 1.62%
     dailyTarget: 1000,
-    commissionPerOrder: 4.00,
     numberOfOrders: 250,
     gradient: 'from-amber-600 to-red-600',
     crown: '👑',
@@ -37,11 +34,10 @@ const VIP_LEVELS = [
   },
   {
     id: 'vip-6',
-    name: 'VIP 6',
+    name: 'VIP 6 (Emerald)',
     amountRequired: 120000,
-    commissionRate: 1.5,
+    commissionRate: 0.015, // 1.5% - Thực nhận: 1.35%
     dailyTarget: 880,
-    commissionPerOrder: 4.00,
     numberOfOrders: 220,
     gradient: 'from-red-600 to-pink-600',
     crown: '👑',
@@ -49,11 +45,10 @@ const VIP_LEVELS = [
   },
   {
     id: 'vip-5',
-    name: 'VIP 5',
+    name: 'VIP 5 (Ruby)',
     amountRequired: 80000,
-    commissionRate: 1.2,
+    commissionRate: 0.012, // 1.2% - Thực nhận: 1.08%
     dailyTarget: 720,
-    commissionPerOrder: 4.00,
     numberOfOrders: 180,
     gradient: 'from-blue-600 to-purple-600',
     crown: '👑',
@@ -61,11 +56,10 @@ const VIP_LEVELS = [
   },
   {
     id: 'vip-4',
-    name: 'VIP 4',
+    name: 'VIP 4 (Bạch kim)',
     amountRequired: 60000,
-    commissionRate: 0.9,
+    commissionRate: 0.009, // 0.9% - Thực nhận: 0.81%
     dailyTarget: 600,
-    commissionPerOrder: 4.00,
     numberOfOrders: 150,
     gradient: 'from-green-600 to-blue-600',
     crown: '👑',
@@ -73,11 +67,10 @@ const VIP_LEVELS = [
   },
   {
     id: 'vip-3',
-    name: 'VIP 3',
+    name: 'VIP 3 (Kim cương)',
     amountRequired: 30000,
-    commissionRate: 0.7,
+    commissionRate: 0.007, // 0.7% - Thực nhận: 0.63%
     dailyTarget: 480,
-    commissionPerOrder: 4.00,
     numberOfOrders: 120,
     gradient: 'from-yellow-600 to-green-600',
     crown: '👑',
@@ -85,11 +78,10 @@ const VIP_LEVELS = [
   },
   {
     id: 'vip-2',
-    name: 'VIP 2',
+    name: 'VIP 2 (Vàng)',
     amountRequired: 10000,
-    commissionRate: 0.6,
+    commissionRate: 0.006, // 0.6% - Thực nhận: 0.54%
     dailyTarget: 400,
-    commissionPerOrder: 4.00,
     numberOfOrders: 100,
     gradient: 'from-orange-600 to-yellow-600',
     crown: '👑',
@@ -97,11 +89,10 @@ const VIP_LEVELS = [
   },
   {
     id: 'vip-1',
-    name: 'VIP 1',
+    name: 'VIP 1 (Bạc)',
     amountRequired: 5000,
-    commissionRate: 0.5,
+    commissionRate: 0.005, // 0.5% - Thực nhận: 0.45%
     dailyTarget: 270,
-    commissionPerOrder: 4.50,
     numberOfOrders: 60,
     gradient: 'from-gray-600 to-orange-600',
     crown: '👑',
@@ -113,13 +104,13 @@ const VIP_LEVELS = [
     amountRequired: 0,
     commissionRate: 0,
     dailyTarget: 0,
-    commissionPerOrder: 0,
     numberOfOrders: 0,
     gradient: 'from-gray-400 to-gray-600',
     crown: '👤',
     description: 'New member'
   }
 ];
+
 
 // Function to get VIP level based on total amount
 const getVipLevelByAmount = (totalAmount) => {

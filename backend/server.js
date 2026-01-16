@@ -189,7 +189,16 @@ io.on('connection', (socket) => {
     try { io.to('admins').emit('presence:update', { userId: uid, online: true }); } catch { }
   } else if (socket.data.role === 'admin') {
     socket.join('admins');
+    console.log('[socket] Admin joined admins room');
   }
+
+  // Handle admin:join event (in case client emits it explicitly)
+  socket.on('admin:join', () => {
+    if (socket.data.role === 'admin') {
+      socket.join('admins');
+      console.log('[socket] Admin explicitly joined admins room via admin:join event');
+    }
+  });
 
   socket.on('chat:joinThread', (threadId) => {
     if (threadId) socket.join(`thread:${threadId}`);
@@ -298,7 +307,7 @@ io.on('connection', (socket) => {
             where: { id: uid },
             select: { id: true }
           });
-          
+
           if (userExists) {
             await prisma.user.update({
               where: { id: uid },

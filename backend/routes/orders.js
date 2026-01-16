@@ -21,13 +21,14 @@ function generateOrderNumber() {
   return `ASH${timestamp.slice(-8)}${random}`;
 }
 
-// Get fixed commission per order from VIP level or user override
-function resolveCommissionPerOrder(user, vipLevel) {
+// Get commission rate from VIP level or user override
+function resolveCommissionRate(user, vipLevel) {
   const config = parseJsonField(user?.commissionConfig, {});
-  if (config.perOrderAmount != null) {
-    return Number(config.perOrderAmount);
+  // Support custom rate (as decimal, e.g., 0.015 = 1.5%)
+  if (config.commissionRate != null) {
+    return Number(config.commissionRate);
   }
-  return vipLevel?.commissionPerOrder || 0;
+  return vipLevel?.commissionRate || 0;
 }
 
 // Get daily target from VIP level or user override
@@ -73,7 +74,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
 
     // Get VIP level info
     const vipLevel = getVipLevelByAmount(user.totalDeposited);
-    const commissionPerOrder = resolveCommissionPerOrder(user, vipLevel);
+    const commissionRate = resolveCommissionRate(user, vipLevel);
     const dailyTarget = resolveDailyTarget(user, vipLevel);
     const numberOfOrders = vipLevel?.numberOfOrders || 100;
 
@@ -99,7 +100,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
         completedToday: todayOrders.length,
         ordersGrabbed: todayOrders.length,
         vipLevel: user.vipLevel,
-        commissionPerOrder,
+        commissionRate, // Percentage rate (e.g., 0.012 = 1.2%)
         dailyTarget,
         commissionConfig: parseJsonField(user.commissionConfig, {}),
         dailyEarnings: dailyEarningsToday
@@ -116,13 +117,13 @@ router.post('/take', authenticateToken, async (req, res) => {
   try {
     const userId = req.userId;
     console.log('[Orders/take] userId from token:', userId);
-    
+
     const clientProduct = req.body?.product;
     const clientRequestId = (req.headers['x-idempotency-key'] || req.body?.idempotencyKey || '').toString().trim() || null;
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     console.log('[Orders/take] user found:', user ? 'yes' : 'no');
-    
+
     if (!user) {
       console.log('[Orders/take] User not found for id:', userId);
       return res.status(404).json({ success: false, message: 'User not found' });
@@ -144,9 +145,9 @@ router.post('/take', authenticateToken, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Daily order limit reached (100 orders)' });
     }
 
-    // Get VIP level and commission per order
+    // Get VIP level and commission rate
     const vipLevel = getVipLevelByAmount(user.totalDeposited);
-    const commissionPerOrder = resolveCommissionPerOrder(user, vipLevel);
+    const commissionRate = resolveCommissionRate(user, vipLevel);
     const dailyTarget = resolveDailyTarget(user, vipLevel);
 
     // Require client to send product
@@ -177,9 +178,10 @@ router.post('/take', authenticateToken, async (req, res) => {
       };
     }
 
-    // Calculate commission with ±10% randomness
-    const randomFactor = 0.9 + Math.random() * 0.2;
-    let commissionAmount = Math.round(commissionPerOrder * randomFactor * 100) / 100;
+    // Calculate commission: price × rate × 0.9 (10% system fee deduction)
+    // Formula: Thực nhận = Giá trị đơn × Hoa hồng gốc × (9/10)
+    const productPrice = randomProduct.price;
+    let commissionAmount = Math.round(productPrice * commissionRate * 0.9 * 100) / 100;
 
     // Hard cap: don't exceed daily target
     const target = Number(dailyEarnings.targetTotal || dailyTarget);
@@ -268,7 +270,7 @@ router.post('/take', authenticateToken, async (req, res) => {
           productId: parseInt(randomProduct.id),
           productName: randomProduct.name,
           productPrice: randomProduct.price,
-          commissionRate: commissionPerOrder,
+          commissionRate: commissionRate,
           commissionAmount,
           brand: randomProduct.brand,
           category: randomProduct.category,
@@ -317,9 +319,21 @@ router.post('/take', authenticateToken, async (req, res) => {
           createdAt: result.newOrder.orderDate
         });
         console.log('[Orders] Emitted order:new to admins');
+
+        // 🔔 Emit balance update to user for real-time UI update
+        io.to(`user:${userId}`).emit('balance:updated', {
+          userId: userId,
+          newBalance: result.updatedUser.balance,
+          newCommission: result.updatedUser.commission,
+          commissionIncrement: commissionAmount,
+          orderId: result.newOrder.id,
+          orderNumber: result.newOrder.orderNumber,
+          source: 'order_grab'
+        });
+        console.log('[Orders] Emitted balance:updated to user:', userId);
       }
     } catch (emitErr) {
-      console.error('[Orders] Failed to emit order:new:', emitErr);
+      console.error('[Orders] Failed to emit:', emitErr);
     }
 
     res.json({
@@ -333,7 +347,7 @@ router.post('/take', authenticateToken, async (req, res) => {
           productName: randomProduct.name,
           productPrice: randomProduct.price,
           commissionAmount,
-          commissionPerOrder,
+          commissionRate,
           brand: randomProduct.brand,
           productId: parseInt(randomProduct.id),
           category: randomProduct.category,
