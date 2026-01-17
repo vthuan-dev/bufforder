@@ -700,7 +700,7 @@ router.patch('/users/:id/commission-config', verifyAdminToken, async (req, res) 
 
     await prisma.user.update({
       where: { id: req.params.id },
-      data: { commissionConfig: newConfig }
+      data: { commissionConfig: JSON.stringify(newConfig) }
     });
 
     res.json({ success: true, message: 'Commission config updated', data: { commissionConfig: newConfig } });
