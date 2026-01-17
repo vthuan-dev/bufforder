@@ -54,6 +54,17 @@ interface DepositNotification {
   isRead: boolean;
 }
 
+// Withdrawal notification interface
+interface WithdrawalNotification {
+  id: string;
+  requestId: string;
+  userName: string;
+  amount: number;
+  withdrawalType: string;
+  createdAt: Date;
+  isRead: boolean;
+}
+
 interface AdminLayoutProps {
   children: ReactNode;
   currentPage: string;
@@ -108,6 +119,14 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
   const [depositNotifications, setDepositNotifications] = useState<DepositNotification[]>(() => {
     try {
       const saved = localStorage.getItem('admin:depositNotifications');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+
+  // 💸 Withdrawal notifications state
+  const [withdrawalNotifications, setWithdrawalNotifications] = useState<WithdrawalNotification[]>(() => {
+    try {
+      const saved = localStorage.getItem('admin:withdrawalNotifications');
       return saved ? JSON.parse(saved) : [];
     } catch { return []; }
   });
@@ -167,8 +186,11 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
   // Count unread deposit notifications
   const unreadDepositCount = depositNotifications.filter(n => !n.isRead).length;
 
+  // Count unread withdrawal notifications
+  const unreadWithdrawalCount = withdrawalNotifications.filter(n => !n.isRead).length;
+
   // Total unread notifications
-  const totalUnreadCount = unreadOrderCount + unreadDepositCount;
+  const totalUnreadCount = unreadOrderCount + unreadDepositCount + unreadWithdrawalCount;
 
   // Play notification sound with multiple fallback strategies
   const playOrderSound = useCallback(async () => {
@@ -297,15 +319,22 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
       try { localStorage.setItem('admin:depositNotifications', JSON.stringify(updated)); } catch { }
       return updated;
     });
+    setWithdrawalNotifications(prev => {
+      const updated = prev.map(n => ({ ...n, isRead: true }));
+      try { localStorage.setItem('admin:withdrawalNotifications', JSON.stringify(updated)); } catch { }
+      return updated;
+    });
   }, []);
 
-  // Clear all notifications (both order and deposit)
+  // Clear all notifications (order, deposit, withdrawal)
   const clearAllNotifications = useCallback(() => {
     setOrderNotifications([]);
     setDepositNotifications([]);
+    setWithdrawalNotifications([]);
     try {
       localStorage.removeItem('admin:orderNotifications');
       localStorage.removeItem('admin:depositNotifications');
+      localStorage.removeItem('admin:withdrawalNotifications');
     } catch { }
   }, []);
 
@@ -482,9 +511,51 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
       s.on('deposit:new', depositHandler);
       console.log('[AdminLayout] 💰 Deposit listener registered on socket');
 
+      // 💸 Withdrawal handler
+      const withdrawalHandler = (data: any) => {
+        console.log('[AdminLayout] 💸 Received withdrawal:new:', data);
+
+        // Create notification
+        const newNotification: WithdrawalNotification = {
+          id: `withdrawal-${data.requestId}-${Date.now()}`,
+          requestId: data.requestId,
+          userName: data.userName || 'Unknown',
+          amount: data.amount,
+          withdrawalType: data.withdrawalType,
+          createdAt: new Date(data.createdAt || Date.now()),
+          isRead: false
+        };
+
+        setWithdrawalNotifications(prev => {
+          const updated = [newNotification, ...prev].slice(0, 50);
+          try { localStorage.setItem('admin:withdrawalNotifications', JSON.stringify(updated)); } catch { }
+          return updated;
+        });
+
+        // 🔊 Play sound using global function
+        if ((window as any).__playOrderSound) {
+          (window as any).__playOrderSound();
+        }
+
+        // Show toast
+        toast.success('💸 New Withdrawal Request!', {
+          description: `${data.userName} requested $${data.amount} (${data.withdrawalType})`,
+          duration: 5000,
+          action: {
+            label: 'View',
+            onClick: () => onNavigate('withdrawals')
+          }
+        });
+      };
+
+      s.off('withdrawal:new');
+      s.on('withdrawal:new', withdrawalHandler);
+      console.log('[AdminLayout] 💸 Withdrawal listener registered on socket');
+
       return () => {
         s.off('order:new', orderHandler);
         s.off('deposit:new', depositHandler);
+        s.off('withdrawal:new', withdrawalHandler);
       };
     };
 
@@ -728,33 +799,33 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
                           </>
                         )}
 
-                        {/* Deposit Notifications */}
-                        {depositNotifications.length > 0 && (
+                        {/* Withdrawal Notifications */}
+                        {withdrawalNotifications.length > 0 && (
                           <>
                             <div className="px-2 py-1 text-xs font-medium text-gray-400 uppercase tracking-wide mt-2">
-                              Deposits ({unreadDepositCount} new)
+                              Withdrawals ({unreadWithdrawalCount} new)
                             </div>
-                            {depositNotifications.slice(0, 5).map((notification) => (
+                            {withdrawalNotifications.slice(0, 5).map((notification) => (
                               <DropdownMenuItem
                                 key={notification.id}
                                 className="flex flex-col items-start gap-1 py-3 cursor-pointer"
-                                onClick={() => onNavigate('deposits')}
+                                onClick={() => onNavigate('withdrawals')}
                               >
                                 <div className="flex items-center gap-2 w-full">
                                   {!notification.isRead && (
                                     <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />
                                   )}
-                                  <ArrowDownCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                  <ArrowUpCircle className="w-4 h-4 text-orange-500 flex-shrink-0" />
                                   <span className={`font-medium text-sm ${notification.isRead ? 'text-gray-600' : 'text-gray-900'}`}>
-                                    New Deposit Request
+                                    New Withdrawal Request
                                   </span>
                                 </div>
                                 <p className="text-xs text-gray-500 pl-6">
                                   {notification.userName}
                                 </p>
                                 <div className="flex items-center justify-between w-full pl-6">
-                                  <span className="text-xs text-green-600 font-medium">
-                                    ${notification.amount.toLocaleString()}
+                                  <span className="text-xs text-orange-600 font-medium lowercase">
+                                    ${notification.amount.toLocaleString()} ({notification.withdrawalType})
                                   </span>
                                   <span className="text-xs text-gray-400">
                                     {formatTimeAgo(notification.createdAt)}
@@ -767,7 +838,7 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
                       </>
                     )}
                   </div>
-                  {(orderNotifications.length > 0 || depositNotifications.length > 0) && (
+                  {(orderNotifications.length > 0 || depositNotifications.length > 0 || withdrawalNotifications.length > 0) && (
                     <>
                       <DropdownMenuSeparator />
                       <div className="flex gap-2 p-2">
