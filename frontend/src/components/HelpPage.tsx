@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Send, Smile, Paperclip, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import api from "../services/api";
@@ -13,6 +14,7 @@ interface Message {
 }
 
 export function HelpPage() {
+  const location = useLocation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -25,7 +27,6 @@ export function HelpPage() {
   const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
   const soundEnabledRef = useRef<boolean>(false);
   const isWindowFocusedRef = useRef<boolean>(typeof document !== 'undefined' ? !document.hidden : true);
-  const hasLoadedRef = useRef<boolean>(false);
 
   // ⚡ NO SOCKET HERE - Use events from App.tsx global socket
 
@@ -47,11 +48,18 @@ export function HelpPage() {
   // Init: reuse saved threadId if available; otherwise open a thread. Then load messages
   // ⚡ NO SOCKET CONNECTION HERE - Use global socket from App.tsx
   useEffect(() => {
-    // Prevent double initialization in React Strict Mode
-    if (hasLoadedRef.current) return;
-    hasLoadedRef.current = true;
+    // Only debounce truly rapid re-initialization (React Strict Mode - ~50-100ms)
+    const now = Date.now();
+    const lastInit = (window as any).__helpPageLastInit || 0;
+    if (now - lastInit < 100) {
+      console.log('[HelpPage] Skipping rapid re-init (Strict Mode)');
+      return;
+    }
+    (window as any).__helpPageLastInit = now;
 
     const initChat = async () => {
+      console.log('[HelpPage] initChat called, loading messages from server...');
+
       try {
         // 1) Try to reuse saved thread id
         let threadId: string | null = null;
@@ -59,6 +67,8 @@ export function HelpPage() {
 
         if (threadId) {
           try {
+            // Small delay to ensure DB has committed recent writes (race condition fix)
+            await new Promise(resolve => setTimeout(resolve, 200));
             const list = await api.chatListMessages(threadId);
             threadIdRef.current = threadId;
             const arr: Message[] = (list?.data?.messages || []).map((m: any) => ({
@@ -68,8 +78,25 @@ export function HelpPage() {
               isUser: m.senderType === 'user',
               timestamp: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             }));
-            setMessages(arr);
-            console.log('[client] Loaded', arr.length, 'messages from saved threadId:', threadId);
+            // Merge API messages with existing messages (keep socket messages that aren't in API yet)
+            setMessages(prev => {
+              const apiIds = new Set(arr.map(m => m.id));
+              // Keep existing messages that are temp/failed or not in API response
+              const socketOnlyMessages = prev.filter(m =>
+                (String(m.id).startsWith('temp-') || String(m.id).startsWith('failed-')) ||
+                !apiIds.has(m.id)
+              );
+              // Merge: API messages first, then any socket-only messages
+              const merged = [...arr];
+              socketOnlyMessages.forEach(m => {
+                if (!merged.some(existing => existing.text === m.text && existing.isUser === m.isUser)) {
+                  merged.push(m);
+                }
+              });
+              console.log('[client] Merged', arr.length, 'API +', socketOnlyMessages.length, 'socket messages');
+              return merged;
+            });
+            console.log('[client] Loaded messages from saved threadId:', threadId);
             // Mark as active thread
             try { localStorage.setItem('client:activeThreadId', String(threadId)); } catch { }
             // Join thread room via App.tsx global socket
@@ -99,9 +126,10 @@ export function HelpPage() {
             isUser: m.senderType === 'user',
             timestamp: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           }));
+          // For new thread, just set messages (no merge needed)
           setMessages(arr);
-          try { 
-            localStorage.setItem('client:threadId', String(threadId)); 
+          try {
+            localStorage.setItem('client:threadId', String(threadId));
             localStorage.setItem('client:activeThreadId', String(threadId));
           } catch { }
           // Join thread room via App.tsx global socket
@@ -128,15 +156,20 @@ export function HelpPage() {
       };
 
       setMessages(prev => {
+        // Check for duplicates - by ID or by temp/failed ID with same text
         const exists = prev.some(m => {
           if (m.id === newMessage.id) return true;
-          if (String(m.id).startsWith('temp-') && m.text === newMessage.text && m.isUser === newMessage.isUser) return true;
+          // Match temp-* or failed-* messages by text content
+          if ((String(m.id).startsWith('temp-') || String(m.id).startsWith('failed-')) &&
+            m.text === newMessage.text && m.isUser === newMessage.isUser) return true;
           return false;
         });
 
         if (exists) {
+          // Replace temp/failed message with real one from server
           return prev.map(m => {
-            if (String(m.id).startsWith('temp-') && m.text === newMessage.text && m.isUser === newMessage.isUser) {
+            if ((String(m.id).startsWith('temp-') || String(m.id).startsWith('failed-')) &&
+              m.text === newMessage.text && m.isUser === newMessage.isUser) {
               return newMessage;
             }
             return m;
@@ -189,10 +222,10 @@ export function HelpPage() {
       }
     };
 
-    // Track focus/visibility
+    // Track focus/visibility - DON'T reload on focus, only on visibility change
     const onFocus = () => {
       isWindowFocusedRef.current = true;
-      handleVisibilityChange();
+      // ❌ REMOVED: handleVisibilityChange() - this was causing messages to disappear on input click
     };
     const onBlur = () => {
       isWindowFocusedRef.current = false;
@@ -205,7 +238,6 @@ export function HelpPage() {
     initChat();
 
     return () => {
-      hasLoadedRef.current = false;
       window.removeEventListener('focus', onFocus);
       window.removeEventListener('blur', onBlur);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -215,7 +247,7 @@ export function HelpPage() {
       // Clear unread when leaving Help page
       try { localStorage.setItem('client:helpUnread', '0'); window.dispatchEvent(new CustomEvent('client:chatUnreadUpdated', { detail: 0 })); } catch { }
     };
-  }, []);
+  }, [location.key]); // Re-run when navigating to this page (location.key changes)
 
   const enableSound = async () => {
     try {
@@ -288,7 +320,7 @@ export function HelpPage() {
   //   };
   // }, [soundEnabled]);
 
-  const handleSendMessage = (text?: string) => {
+  const handleSendMessage = async (text?: string) => {
     const messageText = text || inputMessage;
     if (!messageText.trim()) return;
 
@@ -313,7 +345,29 @@ export function HelpPage() {
     try {
       window.dispatchEvent(new CustomEvent('client:emitMessage', { detail: { threadId, text: messageText } }));
     } catch { }
-    console.log('[client] 📤 Message sent via global socket');
+
+    // 🔴 API FALLBACK: Also save via HTTP API to ensure persistence
+    try {
+      const result = await api.chatSendMessage(threadId, messageText);
+      console.log('[client] 📤 Message saved via API:', result?.data?.message?._id);
+
+      // Update optimistic message with real ID from server
+      if (result?.data?.message?._id) {
+        setMessages(prev => prev.map(m =>
+          m.id === tempId
+            ? { ...m, id: result.data.message._id }
+            : m
+        ));
+      }
+    } catch (err) {
+      console.error('[client] ❌ Failed to save message via API:', err);
+      // Mark message as failed (optional: add error styling)
+      setMessages(prev => prev.map(m =>
+        m.id === tempId
+          ? { ...m, id: `failed-${tempId}` }
+          : m
+      ));
+    }
   };
 
   // ⚡ Emit typing via App.tsx global socket
@@ -358,7 +412,7 @@ export function HelpPage() {
   };
 
   return (
-    <div className="pb-16 h-screen flex flex-col bg-gradient-to-b from-purple-50 via-blue-50 to-pink-50">
+    <div className="pb-16 flex flex-col bg-gradient-to-b from-purple-50 via-blue-50 to-pink-50" style={{ height: 'calc(100vh - 64px)' }}>
       {/* Header */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-3 shadow-sm z-20">
         <div className="flex items-center gap-3 max-w-md mx-auto">
