@@ -367,7 +367,10 @@ router.get('/withdrawal-requests', verifyAdminToken, async (req, res) => {
 
     const requests = await prisma.withdrawalRequest.findMany({
       where,
-      include: { user: { select: { id: true, phoneNumber: true, email: true, fullName: true, balance: true } } },
+      include: {
+        user: { select: { id: true, phoneNumber: true, email: true, fullName: true, balance: true } },
+        bankCard: { select: { id: true, bankName: true, cardNumber: true, accountName: true } }
+      },
       orderBy: { requestDate: 'desc' },
       take: parseInt(limit),
       skip: (parseInt(page) - 1) * parseInt(limit)
@@ -378,7 +381,13 @@ router.get('/withdrawal-requests', verifyAdminToken, async (req, res) => {
     res.json({
       success: true,
       data: {
-        requests: requests.map(r => ({ ...r, userId: r.user })),
+        requests: requests.map(r => ({
+          ...r,
+          userId: r.user,
+          bankName: r.bankCard?.bankName || '',
+          accountNumber: r.bankCard?.cardNumber || '',
+          accountName: r.bankCard?.accountName || r.user?.fullName || ''
+        })),
         pagination: { current: parseInt(page), pages: Math.ceil(total / parseInt(limit)), total }
       }
     });

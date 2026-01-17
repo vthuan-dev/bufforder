@@ -56,13 +56,14 @@ model Address {
 }
 
 model BankCard {
-  id          String  @id @default(cuid())
-  userId      String
-  bankName    String
-  cardNumber  String
-  accountName String
-  isDefault   Boolean @default(false)
-  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                  String              @id @default(cuid())
+  userId              String
+  bankName            String
+  cardNumber          String
+  accountName         String
+  isDefault           Boolean             @default(false)
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  withdrawalRequests  WithdrawalRequest[]
 
   @@index([userId], map: "BankCard_userId_idx")
   @@map("bankcard")
@@ -184,6 +185,7 @@ model WithdrawalRequest {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   user            User      @relation(fields: [userId], references: [id])
+  bankCard        BankCard  @relation(fields: [bankCardId], references: [id])
 
   @@index([status, requestDate], map: "WithdrawalRequest_status_requestDate_idx")
   @@index([userId, status], map: "WithdrawalRequest_userId_status_idx")
