@@ -5,9 +5,10 @@ import api from "../services/api";
 
 interface WithdrawalPageProps {
   onBack: () => void;
+  onNavigateToBankCards?: () => void;
 }
 
-export function WithdrawalPage({ onBack }: WithdrawalPageProps) {
+export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPageProps) {
   const [amount, setAmount] = useState("");
   const [password, setPassword] = useState("");
   const [availableBalance, setAvailableBalance] = useState(0);
@@ -17,6 +18,7 @@ export function WithdrawalPage({ onBack }: WithdrawalPageProps) {
   const [hasWithdrawToday, setHasWithdrawToday] = useState(false);
   const [bankCards, setBankCards] = useState<{ id: string; bankName: string; cardNumber: string; accountName: string; isDefault?: boolean; }[]>([]);
   const [selectedCardId, setSelectedCardId] = useState<string>("");
+  const [showNoBankCardPrompt, setShowNoBankCardPrompt] = useState(false);
   const minWithdrawal = 50;
   const maxWithdrawal = 5000;
 
@@ -41,6 +43,10 @@ export function WithdrawalPage({ onBack }: WithdrawalPageProps) {
         setBankCards(list);
         const def = list.find((c: any) => c.isDefault) || list[0];
         setSelectedCardId(def?.id || "");
+        // Show prompt if no bank cards
+        if (list.length === 0) {
+          setShowNoBankCardPrompt(true);
+        }
       } catch { }
       try {
         const list = await api.getWithdrawalRequests();
@@ -132,6 +138,51 @@ export function WithdrawalPage({ onBack }: WithdrawalPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
+      {/* No Bank Card Prompt Modal */}
+      {showNoBankCardPrompt && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                <AlertCircle className="w-6 h-6 text-orange-600" />
+              </div>
+              <h3 className="text-lg text-gray-900">No Bank Card Found</h3>
+            </div>
+            <p className="text-gray-600 mb-6">
+              You need to add a bank card before you can request a withdrawal. Please add your bank card first.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowNoBankCardPrompt(false);
+                  onBack();
+                }}
+                className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowNoBankCardPrompt(false);
+                  if (onNavigateToBankCards) {
+                    onNavigateToBankCards();
+                  } else {
+                    onBack();
+                  }
+                }}
+                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700"
+              >
+                Add Bank Card
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-4 sticky top-0 z-10">
         <div className="flex items-center gap-3">

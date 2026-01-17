@@ -1,16 +1,16 @@
 import React, { useEffect, useState, useMemo, lazy, Suspense } from "react";
-import { 
-  MapPin, 
-  Wallet, 
-  DollarSign, 
-  FileText, 
-  CreditCard, 
-  Shield, 
+import {
+  MapPin,
+  Wallet,
+  DollarSign,
+  FileText,
+  CreditCard,
+  Shield,
   LogOut,
   ChevronRight,
   Star,
   Sparkles,
-  
+
 } from "lucide-react";
 import { motion } from "motion/react";
 import api from "../services/api";
@@ -90,7 +90,7 @@ export function MyPage() {
     try {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-    } catch {}
+    } catch { }
     // Redirect to login/home
     window.location.href = '/';
   };
@@ -103,7 +103,7 @@ export function MyPage() {
     return <Suspense fallback={<PageLoader />}><TopUpPage onBack={() => setCurrentView('main')} /></Suspense>;
   }
   if (currentView === 'withdrawal') {
-    return <Suspense fallback={<PageLoader />}><WithdrawalPage onBack={() => setCurrentView('main')} /></Suspense>;
+    return <Suspense fallback={<PageLoader />}><WithdrawalPage onBack={() => setCurrentView('main')} onNavigateToBankCards={() => setCurrentView('card')} /></Suspense>;
   }
   if (currentView === 'history') {
     return <Suspense fallback={<PageLoader />}><TransactionHistoryPage onBack={() => setCurrentView('main')} /></Suspense>;
@@ -121,14 +121,14 @@ export function MyPage() {
       <div className="relative overflow-hidden">
         {/* Animated Background Pattern */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600">
-          <motion.div 
-            animate={{ 
+          <motion.div
+            animate={{
               backgroundPosition: ['0% 0%', '100% 100%'],
             }}
-            transition={{ 
-              duration: 20, 
-              repeat: Infinity, 
-              repeatType: 'reverse' 
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              repeatType: 'reverse'
             }}
             className="absolute inset-0 opacity-30"
             style={{
@@ -152,19 +152,19 @@ export function MyPage() {
           </div>
 
           {/* VIP overview card synced with Home VIP element */}
-          <motion.div 
+          <motion.div
             initial={{ y: 10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
             className={`relative overflow-hidden rounded-[2rem] p-6 shadow-2xl border border-white/20 ${vipTheme.gradient}`}
           >
             <div className="absolute inset-0 bg-white/10 mix-blend-overlay" />
-            
+
             {vipTheme.badgeImage && (
               <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-12 pointer-events-none">
-                <ImageWithFallback 
-                  src={vipTheme.badgeImage} 
-                  alt={`${vipTheme.label} Background`} 
+                <ImageWithFallback
+                  src={vipTheme.badgeImage}
+                  alt={`${vipTheme.label} Background`}
                   className="w-36 h-36 object-contain"
                 />
               </div>
@@ -173,7 +173,7 @@ export function MyPage() {
             <div className="relative z-10">
               <div className="flex items-center gap-4 mb-6">
                 <div className="relative">
-                  <motion.div 
+                  <motion.div
                     initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ duration: 0.15, ease: "easeOut" }}
@@ -188,16 +188,16 @@ export function MyPage() {
                     />
                     <span className="text-white relative z-10">A</span>
                   </motion.div>
-                  <motion.div 
+                  <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: 0.6, type: "spring", stiffness: 300 }}
-                    className="absolute -bottom-1 -right-1 w-6 h-6 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full border-4 border-white shadow-lg" 
+                    className="absolute -bottom-1 -right-1 w-6 h-6 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full border-4 border-white shadow-lg"
                   />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2 flex-wrap">
-                    <motion.h2 
+                    <motion.h2
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.1 }}
@@ -207,9 +207,9 @@ export function MyPage() {
                     </motion.h2>
                     {vipTheme.badgeImage && (
                       <div className="w-10 h-12 flex items-center justify-center">
-                        <ImageWithFallback 
-                          src={vipTheme.badgeImage} 
-                          alt={`${vipTheme.label} Badge`} 
+                        <ImageWithFallback
+                          src={vipTheme.badgeImage}
+                          alt={`${vipTheme.label} Badge`}
                           className="w-full h-full object-contain drop-shadow-lg"
                         />
                       </div>
@@ -222,7 +222,7 @@ export function MyPage() {
                       <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
                     </motion.div>
                   </div>
-                  <motion.p 
+                  <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.1 }}
@@ -230,7 +230,7 @@ export function MyPage() {
                   >
                     {vipSubtitle}
                   </motion.p>
-                  <motion.p 
+                  <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.1 }}
@@ -242,7 +242,7 @@ export function MyPage() {
               </div>
               {/* Enhanced Balance Display */}
               <div className="grid grid-cols-2 gap-4">
-                <motion.div 
+                <motion.div
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.15 }}
@@ -252,14 +252,14 @@ export function MyPage() {
                   {/* Decorative circles */}
                   <div className="absolute -top-8 -right-8 w-24 h-24 bg-white/20 rounded-full" />
                   <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-white/20 rounded-full" />
-                  
+
                   <div className="relative z-10">
                     <p className="text-xs text-white/90 mb-2 font-medium">Available Balance</p>
                     <p className="text-white text-2xl drop-shadow-md">${availableBalance.toFixed(2)}</p>
                   </div>
                 </motion.div>
-                
-                <motion.div 
+
+                <motion.div
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.2 }}
@@ -269,7 +269,7 @@ export function MyPage() {
                   {/* Decorative circles */}
                   <div className="absolute -top-8 -right-8 w-24 h-24 bg-white/20 rounded-full" />
                   <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-white/20 rounded-full" />
-                  
+
                   <div className="relative z-10">
                     <p className="text-xs text-white/90 mb-2 font-medium">Freeze Balance</p>
                     <p className="text-white text-2xl drop-shadow-md">${freezeBalance.toFixed(2)}</p>
@@ -283,7 +283,7 @@ export function MyPage() {
 
       {/* Menu Items with Modern Design */}
       <div className="px-6 -mt-12">
-        <motion.div 
+        <motion.div
           initial={{ y: 10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
@@ -299,11 +299,10 @@ export function MyPage() {
                 transition={{ duration: 0.1, delay: index * 0.01 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleMenuClick(item.id)}
-                className={`w-full flex items-center gap-4 px-6 py-4 transition-all hover:bg-gray-50 active:bg-gray-100 ${
-                  index !== menuItems.length - 1 ? 'border-b border-gray-100/50' : ''
-                }`}
+                className={`w-full flex items-center gap-4 px-6 py-4 transition-all hover:bg-gray-50 active:bg-gray-100 ${index !== menuItems.length - 1 ? 'border-b border-gray-100/50' : ''
+                  }`}
               >
-                <motion.div 
+                <motion.div
                   whileHover={{ rotate: 5, scale: 1.1 }}
                   className={`${item.bgColor} p-3 rounded-2xl shadow-sm`}
                 >
