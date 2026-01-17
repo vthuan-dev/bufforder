@@ -22,9 +22,12 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
   const [showNoBankCardPrompt, setShowNoBankCardPrompt] = useState(false);
 
   // Crypto withdrawal states
-  const [withdrawalType, setWithdrawalType] = useState<'bank' | 'crypto'>('bank');
+  const [withdrawalType, setWithdrawalType] = useState<'bank' | 'crypto'>('crypto');
   const [walletAddress, setWalletAddress] = useState("");
   const [network, setNetwork] = useState<string>("TRC20");
+
+  // Exchange rate for USD to VND
+  const [exchangeRate, setExchangeRate] = useState<number>(25000); // Default rate
 
   useEffect(() => {
     (async () => {
@@ -33,6 +36,17 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
         const user = profile?.data?.user;
         if (user) setAvailableBalance(Number(user.balance || 0));
       } catch { }
+
+      // Fetch USD/VND exchange rate from free API
+      try {
+        const rateRes = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+        const rateData = await rateRes.json();
+        if (rateData?.rates?.VND) {
+          setExchangeRate(rateData.rates.VND);
+        }
+      } catch {
+        setExchangeRate(25000); // Fallback rate
+      }
       // Load order stats for daily completion requirement
       try {
         const stats = await api.userOrderStats();
@@ -254,23 +268,23 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
           <div className="flex mb-4 bg-gray-100 rounded-xl p-1">
             <button
               type="button"
-              onClick={() => setWithdrawalType('bank')}
-              className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${withdrawalType === 'bank'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-                }`}
-            >
-              Bank Card
-            </button>
-            <button
-              type="button"
               onClick={() => setWithdrawalType('crypto')}
               className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${withdrawalType === 'crypto'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
                 }`}
             >
               USDT Wallet
+            </button>
+            <button
+              type="button"
+              onClick={() => setWithdrawalType('bank')}
+              className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${withdrawalType === 'bank'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              Bank Card
             </button>
           </div>
 
@@ -337,6 +351,21 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
               All
             </button>
           </div>
+
+          {/* VND Conversion Display (for bank withdrawals only) */}
+          {withdrawalType === 'bank' && amount && parseFloat(amount) > 0 && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">You will receive:</span>
+                <span className="text-lg font-semibold text-green-600">
+                  {(parseFloat(amount) * exchangeRate).toLocaleString('vi-VN')} VND
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Rate: 1 USD = {exchangeRate.toLocaleString('vi-VN')} VND
+              </p>
+            </div>
+          )}
 
           <label className="block text-sm text-gray-600 mb-3">Payment Password</label>
           <input
