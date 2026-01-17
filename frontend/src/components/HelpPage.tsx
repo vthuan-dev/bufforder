@@ -412,7 +412,7 @@ export function HelpPage() {
   };
 
   return (
-    <div className="pb-16 flex flex-col bg-gradient-to-b from-purple-50 via-blue-50 to-pink-50" style={{ height: 'calc(100vh - 64px)' }}>
+    <div className="flex flex-col bg-gradient-to-b from-purple-50 via-blue-50 to-pink-50" style={{ height: 'calc(100vh - 56px)' }}>
       {/* Header */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-3 shadow-sm z-20">
         <div className="flex items-center gap-3 max-w-md mx-auto">
