@@ -46,9 +46,9 @@ router.post('/thread', authenticateToken, async (req, res) => {
     });
 
     if (!userExists) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'User not found. Please login again.' 
+      return res.status(401).json({
+        success: false,
+        message: 'User not found. Please login again.'
       });
     }
 
@@ -110,6 +110,7 @@ router.post('/thread/:id/messages', authenticateToken, async (req, res) => {
     });
     if (!thread) return res.status(404).json({ success: false, message: 'Thread not found' });
 
+    console.log('[REST] 💾 Saving message via user API:', { threadId: thread.id, text });
     const msg = await prisma.chatMessage.create({
       data: { threadId: thread.id, senderType: 'user', senderId: req.userId, text }
     });
@@ -122,6 +123,21 @@ router.post('/thread/:id/messages', authenticateToken, async (req, res) => {
         unreadForAdmin: { increment: 1 }
       }
     });
+
+    // Emit realtime
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`thread:${thread.id}`).emit('chat:message', {
+          _id: msg.id,
+          threadId: thread.id,
+          senderType: 'user',
+          text,
+          createdAt: msg.createdAt
+        });
+        io.to('admins').emit('chat:threadUpdated', { threadId: thread.id, lastMessageText: text, lastMessageAt: new Date() });
+      }
+    } catch { }
 
     res.json({ success: true, data: { message: msg } });
   } catch (e) {
@@ -296,17 +312,17 @@ router.delete('/admin/threads/:id', verifyAdmin, async (req, res) => {
 router.post('/admin/threads/:id/block', verifyAdmin, async (req, res) => {
   try {
     const { reason } = req.body;
-    const thread = await prisma.chatThread.findUnique({ 
+    const thread = await prisma.chatThread.findUnique({
       where: { id: req.params.id },
       include: { user: { select: { id: true, fullName: true, isChatBlocked: true } } }
     });
     if (!thread) return res.status(404).json({ success: false, message: 'Thread not found' });
 
     const newBlockedStatus = !thread.user.isChatBlocked;
-    
+
     await prisma.user.update({
       where: { id: thread.userId },
-      data: { 
+      data: {
         isChatBlocked: newBlockedStatus,
         chatBlockedAt: newBlockedStatus ? new Date() : null,
         chatBlockedReason: newBlockedStatus ? (reason || 'Blocked by admin') : null
@@ -320,9 +336,9 @@ router.post('/admin/threads/:id/block', verifyAdmin, async (req, res) => {
       }
     } catch { }
 
-    res.json({ 
-      success: true, 
-      data: { 
+    res.json({
+      success: true,
+      data: {
         blocked: newBlockedStatus,
         userId: thread.userId,
         userName: thread.user.fullName
@@ -339,17 +355,17 @@ router.get('/admin/threads/:id', verifyAdmin, async (req, res) => {
   try {
     const thread = await prisma.chatThread.findUnique({
       where: { id: req.params.id },
-      include: { 
-        user: { 
-          select: { 
-            id: true, 
-            fullName: true, 
-            email: true, 
-            phoneNumber: true, 
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phoneNumber: true,
             isChatBlocked: true,
             chatBlockedAt: true,
             chatBlockedReason: true
-          } 
+          }
         }
       }
     });

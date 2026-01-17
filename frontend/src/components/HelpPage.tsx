@@ -320,12 +320,17 @@ export function HelpPage() {
   //   };
   // }, [soundEnabled]);
 
+  const isSendingRef = useRef(false);
+
   const handleSendMessage = async (text?: string) => {
     const messageText = text || inputMessage;
-    if (!messageText.trim()) return;
+    if (!messageText.trim() || isSendingRef.current) return;
 
     const threadId = threadIdRef.current;
     if (!threadId) return;
+
+    console.log('[HelpPage] 🚀 handleSendMessage triggered:', { threadId, text: messageText });
+    isSendingRef.current = true;
 
     setInputMessage('');
     setShowQuickReplies(false);
@@ -341,15 +346,11 @@ export function HelpPage() {
 
     setMessages(prev => [...prev, optimisticMessage]);
 
-    // ⚡ Emit via App.tsx global socket using custom event
+    // 🔴 API IS NOW THE PRIMARY WAY TO SAVE
     try {
-      window.dispatchEvent(new CustomEvent('client:emitMessage', { detail: { threadId, text: messageText } }));
-    } catch { }
-
-    // 🔴 API FALLBACK: Also save via HTTP API to ensure persistence
-    try {
+      console.log('[HelpPage] � Calling API chatSendMessage...');
       const result = await api.chatSendMessage(threadId, messageText);
-      console.log('[client] 📤 Message saved via API:', result?.data?.message?._id);
+      console.log('[HelpPage] ✅ API Response:', result?.data?.message?._id);
 
       // Update optimistic message with real ID from server
       if (result?.data?.message?._id) {
@@ -360,13 +361,15 @@ export function HelpPage() {
         ));
       }
     } catch (err) {
-      console.error('[client] ❌ Failed to save message via API:', err);
-      // Mark message as failed (optional: add error styling)
+      console.error('[HelpPage] ❌ API Error:', err);
+      // Mark message as failed
       setMessages(prev => prev.map(m =>
         m.id === tempId
           ? { ...m, id: `failed-${tempId}` }
           : m
       ));
+    } finally {
+      isSendingRef.current = false;
     }
   };
 

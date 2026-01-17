@@ -253,6 +253,7 @@ io.on('connection', (socket) => {
       const senderType = socket.data.role === 'admin' ? 'admin' : 'user';
       const senderId = socket.data.role === 'admin' ? socket.data.adminId : socket.data.userId;
 
+      console.log('[socket] 💾 Saving message from socket send:', { threadId, senderType, text });
       const msg = await prisma.chatMessage.create({
         data: { threadId, senderType, senderId, text }
       });

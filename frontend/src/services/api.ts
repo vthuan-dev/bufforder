@@ -179,7 +179,7 @@ export default {
       cacheTTL: 60000 // ⚡ Cache 1 minute
     });
   },
-  
+
   // IP Location lookup
   getIpLocation(ip: string) {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
@@ -374,7 +374,7 @@ export default {
     params.set('limit', String(limit));
     if (q) params.set('q', q);
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
-    return request(`/chat/admin/threads?${params.toString()}`, { headers });
+    return request(`/chat/admin/threads?${params.toString()}`, { headers, useCache: false });
   },
 
   // ---- User Chat ----
@@ -388,7 +388,7 @@ export default {
     const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
     const headers: Record<string, string> = {};
     if (t) headers.Authorization = `Bearer ${t}`;
-    return request(`/chat/thread/${threadId}/messages`, { headers });
+    return request(`/chat/thread/${threadId}/messages`, { headers, useCache: false });
   },
   chatSendMessage(threadId: string, text: string, token?: string) {
     const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
@@ -429,7 +429,7 @@ export default {
   },
   adminChatListMessages(threadId: string) {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
-    return request(`/chat/admin/threads/${threadId}/messages`, { headers });
+    return request(`/chat/admin/threads/${threadId}/messages`, { headers, useCache: false });
   },
   adminChatSendMessage(threadId: string, text: string) {
     const headers: Record<string, string> = { 'Content-Type': 'application/json', ...adminTokenHeader() } as Record<string, string>;
@@ -449,7 +449,7 @@ export default {
   },
   adminChatGetThread(threadId: string) {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
-    return request(`/chat/admin/threads/${threadId}`, { headers });
+    return request(`/chat/admin/threads/${threadId}`, { headers, useCache: false });
   },
 
   // =====================
@@ -586,14 +586,14 @@ export default {
   // Admin - Chat Support Tab
   adminGetChatRooms() {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
-    return request('/admin/chat/rooms', { headers });
+    return request('/admin/chat/rooms', { headers, useCache: false });
   },
   adminGetChatMessages(roomId: string, { page = 1, limit = 50 } = {}) {
     const params = new URLSearchParams();
     params.set('page', String(page));
     params.set('limit', String(limit));
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
-    return request(`/admin/chat/rooms/${roomId}/messages?${params.toString()}`, { headers });
+    return request(`/admin/chat/rooms/${roomId}/messages?${params.toString()}`, { headers, useCache: false });
   },
   adminSendChatMessage(roomId: string, message: string) {
     const headers: Record<string, string> = { 'Content-Type': 'application/json', ...adminTokenHeader() } as Record<string, string>;
