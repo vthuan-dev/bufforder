@@ -40,6 +40,15 @@ function resolveDailyTarget(user, vipLevel) {
   return vipLevel?.dailyTarget || 0;
 }
 
+// Get number of orders from user override or VIP level
+function resolveNumberOfOrders(user, vipLevel) {
+  const config = parseJsonField(user?.commissionConfig, {});
+  if (config.numberOfOrders != null) {
+    return Number(config.numberOfOrders);
+  }
+  return vipLevel?.numberOfOrders || 100;
+}
+
 // Simplified: pick daily target from VIP level
 function pickDailyTarget(user, vipLevel) {
   const target = resolveDailyTarget(user, vipLevel);
@@ -76,7 +85,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
     const vipLevel = getVipLevelByAmount(user.totalDeposited);
     const commissionRate = resolveCommissionRate(user, vipLevel);
     const dailyTarget = resolveDailyTarget(user, vipLevel);
-    const numberOfOrders = vipLevel?.numberOfOrders || 100;
+    const numberOfOrders = resolveNumberOfOrders(user, vipLevel);
 
     // Today's earned commission from user's dailyEarnings
     const todayKey = getDateKey();
@@ -86,9 +95,15 @@ router.get('/stats', authenticateToken, async (req, res) => {
       totalCommission: isToday ? Number(dailyEarnings.totalCommission || 0) : 0,
       ordersCount: isToday ? Number(dailyEarnings.ordersCount || 0) : 0,
       targetTotal: isToday ? Number(dailyEarnings.targetTotal || 0) : 0,
+      numberOfOrders: isToday ? Number(dailyEarnings.numberOfOrders || 0) : 0,
       mode: isToday ? (dailyEarnings.mode || 'auto') : 'auto',
       dateKey: todayKey
     };
+
+    // Use snapshotted value if exists (user already started grabbing today), otherwise use current config
+    const effectiveNumberOfOrders = (isToday && dailyEarnings.numberOfOrders > 0)
+      ? dailyEarnings.numberOfOrders
+      : numberOfOrders;
 
     res.json({
       success: true,
@@ -96,7 +111,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
         commission: user.commission + totalCommission,
         balance: user.balance,
         freezeBalance: user.freezeBalance,
-        totalDailyTasks: numberOfOrders,
+        totalDailyTasks: effectiveNumberOfOrders,
         completedToday: todayOrders.length,
         ordersGrabbed: todayOrders.length,
         vipLevel: user.vipLevel,
@@ -164,24 +179,39 @@ router.post('/take', authenticateToken, async (req, res) => {
     }
     const randomProduct = { id, name, price: Number(price), brand, category, image };
 
-    // Initialize/reset daily earnings for today
+    // Initialize/reset daily earnings for today - SNAPSHOT config at first order of day
     const todayKey = getDateKey();
     let dailyEarnings = parseJsonField(user.dailyEarnings, {});
     if (dailyEarnings.dateKey !== todayKey) {
       const picked = pickDailyTarget(user, vipLevel);
+      const snapshotNumberOfOrders = resolveNumberOfOrders(user, vipLevel);
       dailyEarnings = {
         dateKey: todayKey,
         totalCommission: 0,
         ordersCount: 0,
         mode: picked.mode,
-        targetTotal: picked.targetTotal
+        targetTotal: picked.targetTotal,
+        numberOfOrders: snapshotNumberOfOrders  // Snapshot at first order of day
       };
     }
 
-    // Calculate commission: price × rate × 0.9 (10% system fee deduction)
-    // Formula: Thực nhận = Giá trị đơn × Hoa hồng gốc × (9/10)
+    // Calculate commission based on SNAPSHOTTED numberOfOrders and dailyTarget
+    // Formula: commission per order = dailyTarget / numberOfOrders
+    // This ensures: completing all orders = reaching daily target exactly
+    // Uses snapshot from dailyEarnings to protect from mid-day config changes
+    const effectiveTarget = Number(dailyEarnings.targetTotal || dailyTarget);
+    const effectiveOrders = Number(dailyEarnings.numberOfOrders || resolveNumberOfOrders(user, vipLevel));
     const productPrice = randomProduct.price;
-    let commissionAmount = Math.round(productPrice * commissionRate * 0.9 * 100) / 100;
+
+    // Use admin-set dailyTarget / numberOfOrders if available, otherwise fallback to rate-based
+    let commissionAmount;
+    if (effectiveTarget > 0 && effectiveOrders > 0) {
+      // Fixed commission per order: dailyTarget / numberOfOrders
+      commissionAmount = Math.round((effectiveTarget / effectiveOrders) * 100) / 100;
+    } else {
+      // Fallback: price × rate × 0.9 (10% system fee)
+      commissionAmount = Math.round(productPrice * commissionRate * 0.9 * 100) / 100;
+    }
 
     // Hard cap: don't exceed daily target
     const target = Number(dailyEarnings.targetTotal || dailyTarget);

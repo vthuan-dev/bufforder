@@ -119,6 +119,25 @@ function ClientApp() {
 
     s.on('chat:message', (msg: any) => {
       window.dispatchEvent(new CustomEvent('client:chatMessage', { detail: msg }));
+
+      // 🔴 Update unread badge if message is from admin and user is NOT on Help page
+      if (msg?.senderType === 'admin') {
+        const isHelpActive = activeTabRef.current === 'help';
+        const isFocused = focusRef.current && !document.hidden;
+
+        // Only increment unread if user is not actively viewing Help page
+        if (!isHelpActive || !isFocused) {
+          try {
+            const currentUnread = parseInt(localStorage.getItem('client:helpUnread') || '0', 10);
+            const newUnread = (isNaN(currentUnread) ? 0 : currentUnread) + 1;
+            localStorage.setItem('client:helpUnread', String(newUnread));
+            window.dispatchEvent(new CustomEvent('client:chatUnreadUpdated', { detail: newUnread }));
+            console.log('[Socket] Unread messages updated:', newUnread);
+          } catch (e) {
+            console.error('[Socket] Failed to update unread count:', e);
+          }
+        }
+      }
     });
 
     s.on('chat:typing', (evt: any) => {

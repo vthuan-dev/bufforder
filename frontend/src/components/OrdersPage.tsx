@@ -267,15 +267,21 @@ export function OrdersPage() {
 
       if (currentStep >= 100) {
         clearInterval(interval);
-        // Random select a product after loading completes
-        if (products.length === 0) {
-          console.error('[Orders] No products available');
-          toast.error('No products available. Please try again later.');
+        // Filter products that user can afford (price <= balance)
+        const affordableProducts = products.filter(p => p.price <= availableBalance);
+
+        if (affordableProducts.length === 0) {
+          console.error('[Orders] No affordable products available');
+          toast.error('No products available within your balance. Please top up.', {
+            description: `Your balance: $${availableBalance.toFixed(2)}`,
+            duration: 5000,
+          });
           setShowOrderPopup(false);
           setProgress(0);
           return;
         }
-        const randomProduct = products[Math.floor(Math.random() * products.length)];
+
+        const randomProduct = affordableProducts[Math.floor(Math.random() * affordableProducts.length)];
         setSelectedProduct(randomProduct);
         // Generate a stable order number for this popup session
         const ts = Date.now().toString();
@@ -597,12 +603,9 @@ export function OrdersPage() {
       <div className="px-4 pb-4">
         <p className="text-sm font-medium text-gray-700 mb-3">Available Products</p>
         <div className="grid grid-cols-2 gap-2">
-          {products.map((product, index) => (
-            <motion.div
+          {products.map((product) => (
+            <div
               key={product.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.02 }}
               className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100"
             >
               <div className="aspect-square bg-gray-50">
@@ -620,7 +623,7 @@ export function OrdersPage() {
                   <span className="text-[10px] text-green-600">+${product.commission.toFixed(2)}</span>
                 </div>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>

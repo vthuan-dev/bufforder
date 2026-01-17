@@ -69,6 +69,7 @@ export function AdminUsersPage() {
   // Commission settings state (simplified)
   const [commissionPerOrder, setCommissionPerOrder] = useState<string>("");
   const [commissionDailyTarget, setCommissionDailyTarget] = useState<string>("");
+  const [commissionNumberOfOrders, setCommissionNumberOfOrders] = useState<string>("");
   // Today's stats (read-only)
   const [dailyEarnedSoFar, setDailyEarnedSoFar] = useState<string>('');
   const [dailyOrdersCount, setDailyOrdersCount] = useState<string>('');
@@ -135,6 +136,7 @@ export function AdminUsersPage() {
       // Load simplified fields
       setCommissionPerOrder(cfg.perOrderAmount != null ? String(cfg.perOrderAmount) : "");
       setCommissionDailyTarget(cfg.dailyTarget != null ? String(cfg.dailyTarget) : "");
+      setCommissionNumberOfOrders(cfg.numberOfOrders != null ? String(cfg.numberOfOrders) : "");
       // Load today's read-only stats
       const de = res?.data?.dailyEarnings || {};
       setDailyEarnedSoFar(de.totalCommission != null ? String(de.totalCommission) : '');
@@ -180,6 +182,7 @@ export function AdminUsersPage() {
         api.adminUpdateUserCommissionConfig(selectedUser.id, {
           perOrderAmount: commissionPerOrder !== '' ? Number(commissionPerOrder) : null,
           dailyTarget: commissionDailyTarget !== '' ? Number(commissionDailyTarget) : null,
+          numberOfOrders: commissionNumberOfOrders !== '' ? Number(commissionNumberOfOrders) : null,
         }),
         new Promise(resolve => setTimeout(resolve, 3000)) // Minimum 3s delay
       ]);
@@ -512,16 +515,16 @@ export function AdminUsersPage() {
                     Commission Settings
                   </h3>
                   <p className="text-xs text-gray-400 mb-3">Leave empty to use VIP level defaults</p>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <Label className="text-xs text-gray-500 mb-1 block">Per Order ($)</Label>
+                      <Label className="text-xs text-gray-500 mb-1 block">Number of Orders</Label>
                       <div className="relative">
-                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Target className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <Input
                           type="number"
-                          placeholder="4.50"
-                          value={commissionPerOrder}
-                          onChange={(e) => setCommissionPerOrder(e.target.value)}
+                          placeholder="50"
+                          value={commissionNumberOfOrders}
+                          onChange={(e) => setCommissionNumberOfOrders(e.target.value)}
                           className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
                         />
                       </div>
@@ -529,14 +532,29 @@ export function AdminUsersPage() {
                     <div>
                       <Label className="text-xs text-gray-500 mb-1 block">Daily Target ($)</Label>
                       <div className="relative">
-                        <Target className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <Input
                           type="number"
-                          placeholder="270"
+                          placeholder="100"
                           value={commissionDailyTarget}
                           onChange={(e) => setCommissionDailyTarget(e.target.value)}
                           className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
                         />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-500 mb-1 block">Per Order ($)</Label>
+                      <div className="relative">
+                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Input
+                          type="number"
+                          placeholder="Auto"
+                          value={commissionPerOrder}
+                          onChange={(e) => setCommissionPerOrder(e.target.value)}
+                          className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+                          disabled
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">Auto</span>
                       </div>
                     </div>
                   </div>
@@ -696,10 +714,10 @@ export function AdminUsersPage() {
                       value={createConfirmPassword}
                       onChange={(e) => setCreateConfirmPassword(e.target.value)}
                       className={`pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors ${createConfirmPassword && createPassword !== createConfirmPassword
-                          ? 'border-red-300 focus:ring-red-500'
-                          : createConfirmPassword && createPassword === createConfirmPassword
-                            ? 'border-green-300 focus:ring-green-500'
-                            : ''
+                        ? 'border-red-300 focus:ring-red-500'
+                        : createConfirmPassword && createPassword === createConfirmPassword
+                          ? 'border-green-300 focus:ring-green-500'
+                          : ''
                         }`}
                       placeholder="Confirm password"
                     />
