@@ -120,13 +120,27 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
 
     // Validate based on withdrawal type
     if (withdrawalType === 'crypto') {
-      if (!walletAddress.trim()) {
+      const addr = walletAddress.trim();
+      if (!addr) {
         toast.error("Please enter your USDT wallet address");
         return;
       }
       if (!network) {
         toast.error("Please select a network");
         return;
+      }
+
+      // Address format validation
+      if (network === 'TRC20') {
+        if (!/^T[A-Za-z1-9]{33}$/.test(addr)) {
+          toast.error("Invalid TRC20 address. It should start with 'T' and be 34 characters long.");
+          return;
+        }
+      } else if (network === 'ERC20' || network === 'BEP20') {
+        if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) {
+          toast.error(`Invalid ${network} address. It should start with '0x' and be 42 characters long.`);
+          return;
+        }
       }
     } else {
       if (!selectedCardId) {
