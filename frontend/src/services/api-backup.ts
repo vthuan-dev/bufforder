@@ -44,19 +44,19 @@ async function request(endpoint: string, options: RequestOptions = {}) {
         }
       }
 
-      throw new Error('Phiên làm việc hết hạn. Vui lòng đăng nhập lại.');
+      throw new Error('Session expired. Please log in again.');
     }
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const message = (data && (data.message || data.error)) || `Yêu cầu thất bại (Mã lỗi: ${res.status})`;
+      const message = (data && (data.message || data.error)) || `Request failed (Error code: ${res.status})`;
       throw new Error(message);
     }
     return data;
   } catch (error: any) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
-      throw new Error('Kết nối quá hạn. Vui lòng kiểm tra lại đường truyền mạng.');
+      throw new Error('Connection timed out. Please check your network.');
     }
     throw error;
   }

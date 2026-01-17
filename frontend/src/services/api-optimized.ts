@@ -24,7 +24,7 @@ const metrics = {
   averageResponseTime: 0
 };
 
-type RequestOptions = RequestInit & { 
+type RequestOptions = RequestInit & {
   headers?: Record<string, string>;
   cache?: boolean; // Enable caching
   cacheTTL?: number; // Cache time to live in ms
@@ -46,7 +46,7 @@ function getCacheKey(endpoint: string, options: RequestOptions): string {
 function isCacheValid(cacheKey: string): boolean {
   const cached = cache.get(cacheKey);
   if (!cached) return false;
-  
+
   const now = Date.now();
   return (now - cached.timestamp) < cached.ttl;
 }
@@ -59,7 +59,7 @@ function getCached(cacheKey: string): any | null {
     metrics.cacheHits++;
     return cache.get(cacheKey)!.data;
   }
-  
+
   cache.delete(cacheKey);
   metrics.cacheMisses++;
   return null;
@@ -74,7 +74,7 @@ function setCache(cacheKey: string, data: any, ttl: number): void {
     timestamp: Date.now(),
     ttl
   });
-  
+
   // Auto cleanup after TTL
   setTimeout(() => {
     cache.delete(cacheKey);
@@ -87,10 +87,10 @@ function setCache(cacheKey: string, data: any, ttl: number): void {
 async function request(endpoint: string, options: RequestOptions = {}) {
   const startTime = performance.now();
   metrics.totalRequests++;
-  
+
   const url = `${API_BASE_URL}${endpoint}`;
   const cacheKey = getCacheKey(endpoint, options);
-  
+
   // Check cache for GET requests
   if (options.method === 'GET' || !options.method) {
     if (options.cache !== false) {
@@ -101,28 +101,28 @@ async function request(endpoint: string, options: RequestOptions = {}) {
       }
     }
   }
-  
+
   // Request deduplication
   if (pendingRequests.has(cacheKey)) {
     console.log(`[Dedup] ${endpoint}`);
     return pendingRequests.get(cacheKey);
   }
-  
+
   // Create request promise
   const requestPromise = executeRequest(url, options, startTime);
-  
+
   // Store pending request
   pendingRequests.set(cacheKey, requestPromise);
-  
+
   try {
     const result = await requestPromise;
-    
+
     // Cache GET requests
     if ((options.method === 'GET' || !options.method) && options.cache !== false) {
       const ttl = options.cacheTTL || 30000; // Default 30s
       setCache(cacheKey, result, ttl);
     }
-    
+
     return result;
   } finally {
     // Remove from pending
@@ -136,7 +136,7 @@ async function request(endpoint: string, options: RequestOptions = {}) {
 async function executeRequest(url: string, options: RequestOptions, startTime: number) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15000);
-  
+
   const config: RequestInit = {
     ...options,
     signal: controller.signal,
@@ -145,43 +145,43 @@ async function executeRequest(url: string, options: RequestOptions, startTime: n
       ...(options.headers || {}),
     },
   };
-  
+
   try {
     const res = await fetch(url, config);
     clearTimeout(timeoutId);
-    
+
     // Update metrics
     const duration = performance.now() - startTime;
-    metrics.averageResponseTime = 
+    metrics.averageResponseTime =
       (metrics.averageResponseTime * (metrics.totalRequests - 1) + duration) / metrics.totalRequests;
-    
+
     if (res.status === 401) {
       handleUnauthorized();
-      throw new Error('Phiên làm việc hết hạn. Vui lòng đăng nhập lại.');
+      throw new Error('Session expired. Please log in again.');
     }
-    
+
     const data = await res.json().catch(() => ({}));
-    
+
     if (!res.ok) {
-      const message = (data && (data.message || data.error)) || `Yêu cầu thất bại (Mã lỗi: ${res.status})`;
+      const message = (data && (data.message || data.error)) || `Request failed (Error code: ${res.status})`;
       throw new Error(message);
     }
-    
+
     return data;
   } catch (error: any) {
     clearTimeout(timeoutId);
-    
+
     if (error.name === 'AbortError') {
-      throw new Error('Kết nối quá hạn. Vui lòng kiểm tra lại đường truyền mạng.');
+      throw new Error('Connection timed out. Please check your network.');
     }
-    
+
     // Retry logic
     if (options.retry && options.retry > 0) {
       console.log(`[Retry] ${url} (${options.retry} attempts left)`);
       await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s
       return executeRequest(url, { ...options, retry: options.retry - 1 }, startTime);
     }
-    
+
     throw error;
   }
 }
@@ -194,12 +194,12 @@ function handleUnauthorized() {
     localStorage.removeItem('token');
     localStorage.removeItem('adminToken');
   }
-  
+
   const isAdmin = window.location.pathname.startsWith('/admin');
-  const isLoginPage = window.location.pathname === '/login' || 
-                      window.location.pathname === '/admin' || 
-                      (isAdmin && window.location.pathname.includes('login'));
-  
+  const isLoginPage = window.location.pathname === '/login' ||
+    window.location.pathname === '/admin' ||
+    (isAdmin && window.location.pathname.includes('login'));
+
   if (!isLoginPage) {
     window.location.href = isAdmin ? '/admin' : '/login';
   }
@@ -269,7 +269,7 @@ export default {
   prefetch,
   clearCache,
   getMetrics,
-  
+
   // Admin APIs (with caching)
   adminLogin(username: string, password: string) {
     return request('/admin/login', {
@@ -278,7 +278,7 @@ export default {
       cache: 'no-store'
     });
   },
-  
+
   adminProfile() {
     return request('/admin/profile', {
       headers: adminTokenHeader() as Record<string, string>,
@@ -286,7 +286,7 @@ export default {
       cacheTTL: 60000 // 1 minute
     });
   },
-  
+
   adminDashboardStats() {
     return request('/admin/dashboard/stats', {
       headers: adminTokenHeader() as Record<string, string>,
@@ -294,7 +294,7 @@ export default {
       cacheTTL: 30000 // 30 seconds
     });
   },
-  
+
   adminListUsers(params: any = {}) {
     const query = new URLSearchParams(params).toString();
     return request(`/admin/users?${query}`, {
@@ -303,7 +303,7 @@ export default {
       cacheTTL: 10000 // 10 seconds
     });
   },
-  
+
   // User APIs (with caching)
   getProfile() {
     return request('/auth/profile', {
@@ -312,7 +312,7 @@ export default {
       cacheTTL: 60000 // 1 minute
     });
   },
-  
+
   getOrderStats() {
     return request('/orders/stats', {
       headers: userTokenHeader() as Record<string, string>,
@@ -320,14 +320,14 @@ export default {
       cacheTTL: 5000 // 5 seconds
     });
   },
-  
+
   getVipLevels() {
     return request('/vip/levels', {
       cache: true,
       cacheTTL: 3600000 // 1 hour (static data)
     });
   },
-  
+
   takeOrder(product: any, idempotencyKey: string) {
     return request('/orders/take', {
       method: 'POST',
@@ -340,7 +340,7 @@ export default {
       retry: 2 // Retry twice on failure
     });
   },
-  
+
   // Batch operations
   async getDashboardData() {
     return batchRequest([
@@ -348,7 +348,7 @@ export default {
       { endpoint: '/admin/dashboard/recent-users', options: { headers: adminTokenHeader() as Record<string, string> } }
     ]);
   },
-  
+
   async getUserDashboard() {
     return batchRequest([
       { endpoint: '/orders/stats', options: { headers: userTokenHeader() as Record<string, string> } },

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, DollarSign, AlertCircle } from "lucide-react";
 import { motion } from "motion/react";
+import { toast } from "sonner";
 import api from "../services/api";
 
 interface WithdrawalPageProps {
@@ -73,48 +74,53 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
   const handleWithdrawal = async () => {
     // Guard: daily tasks must be completed
     if (completedToday < dailyTasks) {
-      alert(`Vui lòng hoàn thành toàn bộ nhiệm vụ ngày hôm nay (${completedToday}/${dailyTasks} đơn) trước khi rút tiền.`);
+      toast.error(`Please complete today's tasks (${completedToday}/${dailyTasks} orders) before withdrawing.`);
       return;
     }
     // Guard: only one withdrawal per day
     if (hasWithdrawToday) {
-      alert('Bạn đã rút tiền hôm nay rồi. Mỗi ngày chỉ được phép rút tối đa 1 lần.');
+      toast.warning('You have already withdrawn today. Only 1 withdrawal per day is allowed.', {
+        duration: 5000,
+      });
       return;
     }
     const withdrawAmount = parseFloat(amount);
 
     if (!amount || withdrawAmount <= 0) {
-      alert("Vui lòng nhập số tiền hợp lệ");
+      toast.error("Please enter a valid amount");
       return;
     }
 
     if (withdrawAmount < minWithdrawal) {
-      alert(`Số tiền rút tối thiểu là $${minWithdrawal}`);
+      toast.error(`Minimum withdrawal amount is $${minWithdrawal}`);
       return;
     }
 
     if (withdrawAmount > maxWithdrawal) {
-      alert(`Số tiền rút tối đa là $${maxWithdrawal}`);
+      toast.error(`Maximum withdrawal amount is $${maxWithdrawal}`);
       return;
     }
 
     if (withdrawAmount > availableBalance) {
-      alert("Số dư không đủ");
+      toast.error("Insufficient balance");
       return;
     }
 
     if (!password) {
-      alert("Vui lòng nhập mật khẩu thanh toán");
+      toast.error("Please enter your payment password");
       return;
     }
     if (!selectedCardId) {
-      alert("Vui lòng chọn thẻ ngân hàng");
+      toast.error("Please select a bank card");
       return;
     }
     try {
       const res = await api.withdrawal({ amount: withdrawAmount, bankCardId: selectedCardId, password });
       if (res?.success) {
-        alert("Lệnh rút tiền đã được gửi! Vui lòng chờ admin duyệt.");
+        toast.success("Withdrawal request submitted! Please wait for admin approval.", {
+          duration: 5000,
+          description: "Note: Only 1 withdrawal per day is allowed.",
+        });
         setAmount("");
         setPassword("");
         setHasWithdrawToday(true);
@@ -124,11 +130,9 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
           const items = (list?.data?.requests || []).filter((w: any) => w.status === 'pending');
           setPendingWithdrawals(items);
         } catch { }
-        // Inform daily limit
-        alert('Lưu ý: Mỗi ngày chỉ được phép rút tiền 1 lần.');
       }
     } catch (e: any) {
-      alert(e?.message || "Failed to submit withdrawal request");
+      toast.error(e?.message || "Failed to submit withdrawal request");
     }
   };
 
@@ -215,13 +219,13 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
             <div className="mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
               <AlertCircle className="w-5 h-5 flex-shrink-0" />
               <span>
-                Vui lòng hoàn thành toàn bộ nhiệm vụ ngày hôm nay ({completedToday}/{dailyTasks} đơn) trước khi rút tiền.
+                Please complete all tasks for today ({completedToday}/{dailyTasks} orders) before withdrawing.
               </span>
             </div>
           )}
           {hasWithdrawToday && (
             <div className="mb-3 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
-              Bạn đã tạo lệnh rút tiền hôm nay rồi. Mỗi ngày chỉ được rút tối đa 1 lần.
+              You have already submitted a withdrawal request today. Only 1 withdrawal per day is allowed.
             </div>
           )}
           <label className="block text-sm text-gray-600 mb-3">Select Bank Card</label>
