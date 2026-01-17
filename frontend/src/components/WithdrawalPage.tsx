@@ -20,8 +20,6 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
   const [bankCards, setBankCards] = useState<{ id: string; bankName: string; cardNumber: string; accountName: string; isDefault?: boolean; }[]>([]);
   const [selectedCardId, setSelectedCardId] = useState<string>("");
   const [showNoBankCardPrompt, setShowNoBankCardPrompt] = useState(false);
-  const minWithdrawal = 50;
-  const maxWithdrawal = 5000;
 
   useEffect(() => {
     (async () => {
@@ -88,16 +86,6 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
 
     if (!amount || withdrawAmount <= 0) {
       toast.error("Please enter a valid amount");
-      return;
-    }
-
-    if (withdrawAmount < minWithdrawal) {
-      toast.error(`Minimum withdrawal amount is $${minWithdrawal}`);
-      return;
-    }
-
-    if (withdrawAmount > maxWithdrawal) {
-      toast.error(`Maximum withdrawal amount is $${maxWithdrawal}`);
       return;
     }
 
@@ -259,11 +247,6 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
             >
               All
             </button>
-          </div>
-
-          <div className="flex justify-between text-xs text-gray-500 mb-4">
-            <span>Min: ${minWithdrawal}</span>
-            <span>Max: ${maxWithdrawal}</span>
           </div>
 
           <label className="block text-sm text-gray-600 mb-3">Payment Password</label>
