@@ -150,6 +150,13 @@ function ClientApp() {
       window.dispatchEvent(new CustomEvent('balance:updated', { detail: data }));
     });
 
+    // 🔔 Listen for generic notifications (Admin -> Client)
+    s.on('notification:new', (data: any) => {
+      console.log('[Socket] Received notification:new:', data);
+      play();
+      window.dispatchEvent(new CustomEvent('notification:new', { detail: data }));
+    });
+
     const handleEmitMessage = (event: any) => {
       const { threadId, text } = event.detail;
       s.emit('chat:send', { threadId, text });

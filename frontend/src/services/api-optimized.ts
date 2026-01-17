@@ -348,11 +348,31 @@ export default {
       { endpoint: '/admin/dashboard/recent-users', options: { headers: adminTokenHeader() as Record<string, string> } }
     ]);
   },
-
   async getUserDashboard() {
     return batchRequest([
       { endpoint: '/orders/stats', options: { headers: userTokenHeader() as Record<string, string> } },
       { endpoint: '/vip/status', options: { headers: userTokenHeader() as Record<string, string> } }
     ]);
+  },
+
+  // Notifications
+  getNotifications() {
+    return request('/vip/notifications', {
+      headers: userTokenHeader() as Record<string, string>,
+      cache: true,
+      cacheTTL: 30000 // 30 seconds
+    });
+  },
+  markNotificationAsRead(id: string) {
+    return request(`/vip/notifications/${id}/read`, {
+      method: 'PATCH',
+      headers: userTokenHeader() as Record<string, string>
+    });
+  },
+  clearAllNotifications() {
+    return request('/vip/notifications', {
+      method: 'DELETE',
+      headers: userTokenHeader() as Record<string, string>
+    });
   }
 };

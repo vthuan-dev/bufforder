@@ -484,4 +484,50 @@ router.get('/level/:amount', (req, res) => {
   }
 });
 
+// =====================
+// Notifications
+// =====================
+
+// List user's notifications
+router.get('/notifications', verifyToken, async (req, res) => {
+  try {
+    const notifications = await prisma.notification.findMany({
+      where: { userId: req.userId },
+      orderBy: { createdAt: 'desc' },
+      take: 50
+    });
+    res.json({ success: true, data: { notifications } });
+  } catch (e) {
+    console.error('List notifications error:', e);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Mark notification as read
+router.patch('/notifications/:id/read', verifyToken, async (req, res) => {
+  try {
+    await prisma.notification.update({
+      where: { id: req.params.id, userId: req.userId },
+      data: { isRead: true }
+    });
+    res.json({ success: true, message: 'Notification marked as read' });
+  } catch (e) {
+    console.error('Mark notification read error:', e);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Clear all notifications
+router.delete('/notifications', verifyToken, async (req, res) => {
+  try {
+    await prisma.notification.deleteMany({
+      where: { userId: req.userId }
+    });
+    res.json({ success: true, message: 'All notifications cleared' });
+  } catch (e) {
+    console.error('Clear notifications error:', e);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 module.exports = router;

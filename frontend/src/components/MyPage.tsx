@@ -10,7 +10,10 @@ import {
   ChevronRight,
   Star,
   Sparkles,
-
+  Bell,
+  X,
+  Trash2,
+  CheckCheck
 } from "lucide-react";
 import { motion } from "motion/react";
 import api from "../services/api";
@@ -44,14 +47,17 @@ export function MyPage() {
   const [userId, setUserId] = useState('');
   const [vipLabel, setVipLabel] = useState<string>(vipThemes[DEFAULT_VIP_THEME_KEY].label);
   const [vipTierId, setVipTierId] = useState<string>(DEFAULT_VIP_THEME_KEY);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
 
   // ⚡ Fetch data in parallel, not sequential
   useEffect(() => {
-    // Fire both requests simultaneously
+    // Fire requests simultaneously
     const profilePromise = api.profile().catch(() => null);
     const vipPromise = api.vipStatus().catch(() => null);
+    const notifyPromise = api.getNotifications().catch(() => null);
 
-    Promise.all([profilePromise, vipPromise]).then(([profileRes, vipRes]) => {
+    Promise.all([profilePromise, vipPromise, notifyPromise]).then(([profileRes, vipRes, notifyRes]) => {
       // Handle profile
       const user = profileRes?.data?.user;
       if (user) {
@@ -64,8 +70,43 @@ export function MyPage() {
       const currentLevel = vipRes?.data?.currentLevel;
       if (currentLevel?.name) setVipLabel(currentLevel.name);
       if (currentLevel?.id) setVipTierId(String(currentLevel.id));
+
+      // Handle notifications
+      if (notifyRes?.data?.notifications) {
+        setNotifications(notifyRes.data.notifications);
+      }
     });
+
+    // Handle real-time notifications
+    const handleNewNotify = (e: any) => {
+      const newNotify = e.detail;
+      setNotifications(prev => [
+        { ...newNotify, id: `temp-${Date.now()}`, createdAt: new Date(), isRead: false },
+        ...prev
+      ].slice(0, 50));
+    };
+
+    window.addEventListener('notification:new', handleNewNotify);
+    return () => window.removeEventListener('notification:new', handleNewNotify);
   }, []);
+
+  const unreadCount = useMemo(() => notifications.filter(n => !n.isRead).length, [notifications]);
+
+  const markAsRead = async (id: string | number) => {
+    try {
+      if (typeof id === 'string' && !id.startsWith('temp-')) {
+        await api.markNotificationAsRead(id);
+      }
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    } catch { }
+  };
+
+  const clearAll = async () => {
+    try {
+      await api.clearAllNotifications();
+      setNotifications([]);
+    } catch { }
+  };
 
   const menuItems = [
     { id: 'address' as PageView, label: 'Shipping Address', icon: MapPin, color: 'text-blue-600', bgColor: 'bg-gradient-to-br from-blue-50 to-blue-100' },
@@ -119,6 +160,21 @@ export function MyPage() {
     <div className="pb-16 bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30 min-h-screen">
       {/* Header with Premium Gradient */}
       <div className="relative overflow-hidden">
+        {/* Bell Icon for Notifications */}
+        <div className="absolute top-6 right-6 z-20">
+          <button
+            onClick={() => setShowNotifications(true)}
+            className="p-2 bg-white/20 backdrop-blur-md rounded-full text-white relative hover:bg-white/30 transition-colors"
+          >
+            <Bell className="w-6 h-6" />
+            {unreadCount > 0 && (
+              <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-white">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
+        </div>
+
         {/* Animated Background Pattern */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600">
           <motion.div
@@ -336,6 +392,85 @@ export function MyPage() {
           <span className="relative z-10">Logout</span>
         </motion.button>
       </div>
+
+      {/* Notifications Side Drawer / Modal */}
+      {showNotifications && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowNotifications(false)}
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+          />
+          <motion.div
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            className="relative w-full max-w-md bg-white rounded-t-3xl shadow-2xl max-h-[85vh] flex flex-col"
+          >
+            {/* Drawer Handle */}
+            <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto my-3" />
+
+            <div className="px-6 pb-4 flex items-center justify-between border-b border-gray-100">
+              <h3 className="text-xl font-bold text-gray-900">Notifications Center</h3>
+              <div className="flex items-center gap-4">
+                {notifications.length > 0 && (
+                  <button onClick={clearAll} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors">
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                )}
+                <button onClick={() => setShowNotifications(false)} className="p-1.5 bg-gray-100 rounded-full text-gray-500">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-2 space-y-2">
+              {notifications.length === 0 ? (
+                <div className="py-20 flex flex-col items-center justify-center text-gray-400">
+                  <div className="p-4 bg-gray-50 rounded-full mb-3">
+                    <Bell className="w-12 h-12 opacity-20" />
+                  </div>
+                  <p>No notifications yet</p>
+                </div>
+              ) : (
+                notifications.map((n) => (
+                  <div
+                    key={n.id}
+                    onClick={() => !n.isRead && markAsRead(n.id)}
+                    className={`p-4 rounded-2xl transition-all cursor-pointer border ${n.isRead ? 'bg-white border-gray-100 opacity-60' : 'bg-blue-50/50 border-blue-100 shadow-sm'
+                      }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <p className={`font-bold text-sm ${n.isRead ? 'text-gray-600' : 'text-blue-900'}`}>{n.title}</p>
+                        <p className="text-sm text-gray-600 mt-1 leading-relaxed">{n.message}</p>
+                        <p className="text-[10px] text-gray-400 mt-2">
+                          {new Date(n.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                      {!n.isRead && (
+                        <div className="mt-1">
+                          <CheckCheck className="w-4 h-4 text-blue-500" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="p-6">
+              <button
+                onClick={() => setShowNotifications(false)}
+                className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold shadow-lg active:scale-95 transition-transform"
+              >
+                Close
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

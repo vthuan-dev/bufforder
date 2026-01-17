@@ -369,6 +369,26 @@ export default {
     return request('/auth/change-password', { method: 'POST', headers, body: JSON.stringify({ currentPassword, newPassword }) });
   },
 
+  // Notifications
+  getNotifications(token?: string) {
+    const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
+    const headers: Record<string, string> = {};
+    if (t) headers.Authorization = `Bearer ${t}`;
+    return request('/vip/notifications', { headers });
+  },
+  markNotificationAsRead(id: string, token?: string) {
+    const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
+    const headers: Record<string, string> = {};
+    if (t) headers.Authorization = `Bearer ${t}`;
+    return request(`/vip/notifications/${id}/read`, { method: 'PATCH', headers });
+  },
+  clearAllNotifications(token?: string) {
+    const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
+    const headers: Record<string, string> = {};
+    if (t) headers.Authorization = `Bearer ${t}`;
+    return request('/vip/notifications', { method: 'DELETE', headers });
+  },
+
   // ---- Admin Chat ----
   adminChatListThreads({ page = 1, limit = 20, q = '' }: { page?: number; limit?: number; q?: string } = {}) {
     const params = new URLSearchParams();

@@ -321,8 +321,28 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
       prisma.depositRequest.update({
         where: { id: requestId },
         data: { status: 'approved', approvedBy: req.adminId, approvedAt: new Date(), notes }
+      }),
+      prisma.notification.create({
+        data: {
+          userId: user.id,
+          title: 'Deposit Approved',
+          message: `Your deposit of $${amount.toLocaleString()} has been approved.`,
+          type: 'success'
+        }
       })
     ]);
+
+    // 🔔 Emit notification to client
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user:${user.id}`).emit('notification:new', {
+          title: 'Deposit Approved',
+          message: `Your deposit of $${amount.toLocaleString()} has been approved.`,
+          type: 'success'
+        });
+      }
+    } catch (e) { console.error('[Socket] Notify error:', e); }
 
     res.json({
       success: true,
@@ -345,10 +365,32 @@ router.post('/deposit-requests/:requestId/reject', verifyAdminToken, async (req,
     if (!request) return res.status(404).json({ success: false, message: 'Not found' });
     if (request.status !== 'pending') return res.status(400).json({ success: false, message: 'Already processed' });
 
-    await prisma.depositRequest.update({
-      where: { id: requestId },
-      data: { status: 'rejected', approvedBy: req.adminId, approvedAt: new Date(), rejectionReason, notes }
-    });
+    await prisma.$transaction([
+      prisma.depositRequest.update({
+        where: { id: requestId },
+        data: { status: 'rejected', approvedBy: req.adminId, approvedAt: new Date(), rejectionReason, notes }
+      }),
+      prisma.notification.create({
+        data: {
+          userId: request.userId,
+          title: 'Deposit Rejected',
+          message: `Your deposit of $${request.amount.toLocaleString()} was rejected. Reason: ${rejectionReason}`,
+          type: 'error'
+        }
+      })
+    ]);
+
+    // 🔔 Emit notification to client
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user:${request.userId}`).emit('notification:new', {
+          title: 'Deposit Rejected',
+          message: `Your deposit of $${request.amount.toLocaleString()} was rejected.`,
+          type: 'error'
+        });
+      }
+    } catch (e) { console.error('[Socket] Notify error:', e); }
 
     res.json({ success: true, message: 'Deposit rejected' });
   } catch (error) {
@@ -420,8 +462,28 @@ router.post('/withdrawal-requests/:id/approve', verifyAdminToken, async (req, re
       prisma.withdrawalRequest.update({
         where: { id: wr.id },
         data: { status: 'approved', approvedBy: req.adminId, approvedAt: new Date() }
+      }),
+      prisma.notification.create({
+        data: {
+          userId: user.id,
+          title: 'Withdrawal Approved',
+          message: `Your withdrawal of $${wr.amount.toLocaleString()} has been approved.`,
+          type: 'success'
+        }
       })
     ]);
+
+    // 🔔 Emit notification to client
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user:${user.id}`).emit('notification:new', {
+          title: 'Withdrawal Approved',
+          message: `Your withdrawal of $${wr.amount.toLocaleString()} has been approved.`,
+          type: 'success'
+        });
+      }
+    } catch (e) { console.error('[Socket] Notify error:', e); }
 
     res.json({ success: true, message: 'Withdrawal approved' });
   } catch (error) {
@@ -437,10 +499,33 @@ router.post('/withdrawal-requests/:id/reject', verifyAdminToken, async (req, res
     if (!wr) return res.status(404).json({ success: false, message: 'Not found' });
     if (wr.status !== 'pending') return res.status(400).json({ success: false, message: 'Already processed' });
 
-    await prisma.withdrawalRequest.update({
-      where: { id: wr.id },
-      data: { status: 'rejected', rejectionReason: reason || 'Rejected by admin', approvedBy: req.adminId, approvedAt: new Date() }
-    });
+    const reasonText = reason || 'Rejected by admin';
+    await prisma.$transaction([
+      prisma.withdrawalRequest.update({
+        where: { id: wr.id },
+        data: { status: 'rejected', rejectionReason: reasonText, approvedBy: req.adminId, approvedAt: new Date() }
+      }),
+      prisma.notification.create({
+        data: {
+          userId: wr.userId,
+          title: 'Withdrawal Rejected',
+          message: `Your withdrawal of $${wr.amount.toLocaleString()} was rejected. Reason: ${reasonText}`,
+          type: 'error'
+        }
+      })
+    ]);
+
+    // 🔔 Emit notification to client
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user:${wr.userId}`).emit('notification:new', {
+          title: 'Withdrawal Rejected',
+          message: `Your withdrawal of $${wr.amount.toLocaleString()} was rejected.`,
+          type: 'error'
+        });
+      }
+    } catch (e) { console.error('[Socket] Notify error:', e); }
 
     res.json({ success: true, message: 'Withdrawal rejected' });
   } catch (error) {

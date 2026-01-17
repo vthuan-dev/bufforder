@@ -34,6 +34,7 @@ model User {
   depositRequests    DepositRequest[]    @relation("UserDeposits")
   orders             Order[]
   withdrawalRequests WithdrawalRequest[]
+  notifications      Notification[]
 
   @@index([fullName], map: "User_fullName_idx")
   @@index([phoneNumber], map: "User_phoneNumber_idx")
@@ -210,4 +211,18 @@ model Product {
   @@index([category], map: "Product_category_idx")
   @@index([isActive], map: "Product_isActive_idx")
   @@map("product")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String   @db.Text
+  type      String   @default("info") // "info", "success", "warning", "error"
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notification")
 }
