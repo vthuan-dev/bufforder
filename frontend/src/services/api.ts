@@ -309,11 +309,13 @@ export default {
     if (t) headers.Authorization = `Bearer ${t}`;
     return request(`/vip/bank-cards/${id}`, { method: 'DELETE', headers });
   },
-  withdrawal({ amount, bankCardId, password, token }: { amount: number; bankCardId: string; password: string; token?: string; }) {
-    const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
+  withdrawal(payload: any) {
+    const t = payload.token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (t) headers.Authorization = `Bearer ${t}`;
-    return request('/vip/withdrawal', { method: 'POST', headers, body: JSON.stringify({ amount, bankCardId, password }) });
+    // Clone payload and remove token before sending to backend
+    const { token, ...data } = payload;
+    return request('/vip/withdrawal', { method: 'POST', headers, body: JSON.stringify(data) });
   },
 
   // VIP info

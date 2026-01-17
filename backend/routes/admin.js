@@ -384,6 +384,9 @@ router.get('/withdrawal-requests', verifyAdminToken, async (req, res) => {
         requests: requests.map(r => ({
           ...r,
           userId: r.user,
+          withdrawalType: r.withdrawalType || 'bank',
+          walletAddress: r.walletAddress || '',
+          network: r.network || '',
           bankName: r.bankCard?.bankName || '',
           accountNumber: r.bankCard?.cardNumber || '',
           accountName: r.bankCard?.accountName || r.user?.fullName || ''
