@@ -144,11 +144,12 @@ router.post('/take', authenticateToken, async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // Check daily limit
+    // Get today's date range
     const today = new Date();
     const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
+    // Get today's orders
     const todayOrders = await prisma.order.findMany({
       where: {
         userId: userId,
@@ -156,14 +157,19 @@ router.post('/take', authenticateToken, async (req, res) => {
       }
     });
 
-    if (todayOrders.length >= 100) {
-      return res.status(400).json({ success: false, message: 'Daily order limit reached (100 orders)' });
+    // Get VIP level
+    const vipLevel = getVipLevelByAmount(user.totalDeposited);
+    const dailyEarnings = parseJsonField(user.dailyEarnings, {});
+
+    // Get dynamic order limit from user snapshot or VIP level
+    const effectiveOrdersLimit = dailyEarnings.numberOfOrders || resolveNumberOfOrders(user, vipLevel);
+
+    if (todayOrders.length >= effectiveOrdersLimit) {
+      return res.status(400).json({ success: false, message: `Daily order limit reached (${effectiveOrdersLimit} orders)` });
     }
 
-    // Get VIP level and commission rate
-    const vipLevel = getVipLevelByAmount(user.totalDeposited);
+    // Get commission rate
     const commissionRate = resolveCommissionRate(user, vipLevel);
-    const dailyTarget = resolveDailyTarget(user, vipLevel);
 
     // Require client to send product
     if (!clientProduct) {
@@ -181,43 +187,23 @@ router.post('/take', authenticateToken, async (req, res) => {
 
     // Initialize/reset daily earnings for today - SNAPSHOT config at first order of day
     const todayKey = getDateKey();
-    let dailyEarnings = parseJsonField(user.dailyEarnings, {});
-    if (dailyEarnings.dateKey !== todayKey) {
-      const picked = pickDailyTarget(user, vipLevel);
+    let currentDailyEarnings = dailyEarnings;
+    if (currentDailyEarnings.dateKey !== todayKey) {
       const snapshotNumberOfOrders = resolveNumberOfOrders(user, vipLevel);
-      dailyEarnings = {
+      currentDailyEarnings = {
         dateKey: todayKey,
         totalCommission: 0,
         ordersCount: 0,
-        mode: picked.mode,
-        targetTotal: picked.targetTotal,
         numberOfOrders: snapshotNumberOfOrders  // Snapshot at first order of day
       };
     }
 
-    // Calculate commission based on SNAPSHOTTED numberOfOrders and dailyTarget
-    // Formula: commission per order = dailyTarget / numberOfOrders
-    // This ensures: completing all orders = reaching daily target exactly
-    // Uses snapshot from dailyEarnings to protect from mid-day config changes
-    const effectiveTarget = Number(dailyEarnings.targetTotal || dailyTarget);
-    const effectiveOrders = Number(dailyEarnings.numberOfOrders || resolveNumberOfOrders(user, vipLevel));
+
+    // Calculate commission based on product price and VIP rate
+    // This ensures profit is proportional to the item value
     const productPrice = randomProduct.price;
+    const commissionAmount = Math.round(productPrice * commissionRate * 0.9 * 100) / 100;
 
-    // Calculate commission: price × rate × 0.9 (10% system fee deduction)
-    // This matches the user's provided commission formula and table
-    let commissionAmount = Math.round(productPrice * commissionRate * 0.9 * 100) / 100;
-
-
-    // Hard cap: don't exceed daily target
-    const target = Number(dailyEarnings.targetTotal || dailyTarget);
-    const already = Number(dailyEarnings.totalCommission || 0);
-    const remaining = Math.max(0, target - already);
-
-    if (remaining <= 0) {
-      commissionAmount = 0;
-    } else if (commissionAmount > remaining) {
-      commissionAmount = Math.round(remaining * 100) / 100;
-    }
 
     // Check idempotency key
     if (clientRequestId) {
@@ -244,7 +230,7 @@ router.post('/take', authenticateToken, async (req, res) => {
               image: existing.image
             },
             order: { id: existing.id, status: existing.status, orderDate: existing.orderDate },
-            dailyEarnings
+            dailyEarnings: currentDailyEarnings
           }
         });
       }
@@ -280,7 +266,7 @@ router.post('/take', authenticateToken, async (req, res) => {
             image: recentDuplicate.image
           },
           order: { id: recentDuplicate.id, status: recentDuplicate.status, orderDate: recentDuplicate.orderDate },
-          dailyEarnings
+          dailyEarnings: currentDailyEarnings
         }
       });
     }
@@ -307,20 +293,21 @@ router.post('/take', authenticateToken, async (req, res) => {
 
       // Credit user
       const creditedCommission = commissionAmount;
-      dailyEarnings.totalCommission = Math.round((dailyEarnings.totalCommission + commissionAmount) * 100) / 100;
-      dailyEarnings.ordersCount = (dailyEarnings.ordersCount || 0) + 1;
+      currentDailyEarnings.totalCommission = Math.round((currentDailyEarnings.totalCommission + commissionAmount) * 100) / 100;
+      currentDailyEarnings.ordersCount = (currentDailyEarnings.ordersCount || 0) + 1;
 
       const updatedUser = await tx.user.update({
         where: { id: userId },
         data: {
           balance: { increment: creditedCommission },
           commission: { increment: commissionAmount },
-          dailyEarnings: JSON.stringify(dailyEarnings)
+          dailyEarnings: JSON.stringify(currentDailyEarnings)
         }
       });
 
       return { newOrder, updatedUser };
     });
+
 
     // Get updated stats
     const updatedTodayOrders = await prisma.order.findMany({
@@ -383,7 +370,7 @@ router.post('/take', authenticateToken, async (req, res) => {
           status: result.newOrder.status,
           orderDate: result.newOrder.orderDate
         },
-        dailyEarnings
+        dailyEarnings: currentDailyEarnings
       }
     });
   } catch (error) {

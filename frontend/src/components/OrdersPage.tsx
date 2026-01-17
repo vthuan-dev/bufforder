@@ -107,8 +107,8 @@ export function OrdersPage() {
           setTotalOrdersLimit(Number(stats.data.totalDailyTasks || 0));
           setOrdersReceived(Number(stats.data.ordersGrabbed || 0));
           // Sync today's earned commission from backend
-          // Backend commissionAmount is full amount, but balance only credits 80%.
-          // UI shows Earned commission = lifetime earnings today (full amount).
+          // Backend commissionAmount is credited 100% to the user's balance.
+          // UI shows Earned commission = total commission earned today.
           const earnedToday = Number(stats.data?.dailyEarnings?.totalCommission || 0);
           setDailyCommission(isNaN(earnedToday) ? 0 : earnedToday);
           // Get daily target from VIP level or custom config
@@ -251,10 +251,10 @@ export function OrdersPage() {
       return;
     }
 
-    // Check if daily target reached
-    if (dailyTarget > 0 && dailyCommission >= dailyTarget) {
-      toast.warning('Daily commission target reached! 🎯', {
-        description: `You've earned $${dailyCommission.toFixed(2)} of your $${dailyTarget} daily target. Come back tomorrow!`,
+    // Check daily task limit
+    if (ordersReceived >= totalOrdersLimit) {
+      toast.warning('Daily tasks completed! 🎯', {
+        description: `You've completed all ${totalOrdersLimit} tasks for today. Come back tomorrow!`,
         duration: 5000,
       });
       return;
@@ -491,48 +491,17 @@ export function OrdersPage() {
         </div>
       </div>
 
-      {/* Daily Target Warning Banner */}
-      {dailyTarget > 0 && dailyCommission >= dailyTarget * 0.9 && (
-        <div className="px-4 pt-4">
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`rounded-xl p-3 ${dailyCommission >= dailyTarget
-              ? 'bg-red-50 border-2 border-red-200'
-              : 'bg-orange-50 border-2 border-orange-200'
-              }`}
-          >
-            <div className="flex items-start gap-2">
-              <Target className={`w-5 h-5 flex-shrink-0 mt-0.5 ${dailyCommission >= dailyTarget ? 'text-red-600' : 'text-orange-600'
-                }`} />
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm font-semibold ${dailyCommission >= dailyTarget ? 'text-red-700' : 'text-orange-700'
-                  }`}>
-                  {dailyCommission >= dailyTarget
-                    ? '🎯 Daily Target Reached!'
-                    : '⚠️ Approaching Daily Limit'}
-                </p>
-                <p className={`text-xs mt-1 ${dailyCommission >= dailyTarget ? 'text-red-600' : 'text-orange-600'
-                  }`}>
-                  {dailyCommission >= dailyTarget
-                    ? `You've earned $${dailyCommission.toFixed(2)} of your $${dailyTarget} daily target. No more commission until tomorrow! ⏰`
-                    : `You've earned $${dailyCommission.toFixed(2)} of $${dailyTarget} target. ${(dailyTarget - dailyCommission).toFixed(2)} remaining today.`}
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      )}
+      {/* Daily Target Warning Banner - REMOVED per user request to focus on task count */}
 
       {/* Take Order Button - Compact */}
       <div className="px-4 pt-4">
         <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 rounded-2xl p-4 shadow-inner">
           <motion.button
-            whileHover={(!showOrderPopup && !submitting && !loadingProducts && !(dailyTarget > 0 && dailyCommission >= dailyTarget)) ? { scale: 1.02 } : {}}
-            whileTap={(!showOrderPopup && !submitting && !loadingProducts && !(dailyTarget > 0 && dailyCommission >= dailyTarget)) ? { scale: 0.98 } : {}}
+            whileHover={(!showOrderPopup && !submitting && !loadingProducts && ordersReceived < totalOrdersLimit) ? { scale: 1.02 } : {}}
+            whileTap={(!showOrderPopup && !submitting && !loadingProducts && ordersReceived < totalOrdersLimit) ? { scale: 0.98 } : {}}
             onClick={handleTakeOrder}
-            disabled={showOrderPopup || submitting || loadingProducts || (dailyTarget > 0 && dailyCommission >= dailyTarget)}
-            className={`w-full py-3 rounded-xl shadow-lg transition-all relative overflow-hidden group ${showOrderPopup || submitting || loadingProducts || (dailyTarget > 0 && dailyCommission >= dailyTarget)
+            disabled={showOrderPopup || submitting || loadingProducts || ordersReceived >= totalOrdersLimit}
+            className={`w-full py-3 rounded-xl shadow-lg transition-all relative overflow-hidden group ${showOrderPopup || submitting || loadingProducts || ordersReceived >= totalOrdersLimit
               ? 'bg-gray-400 cursor-not-allowed opacity-50'
               : 'bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 text-white hover:shadow-blue-500/50'
               }`}
@@ -543,8 +512,8 @@ export function OrdersPage() {
               <span className="text-base">
                 {loadingProducts
                   ? 'Loading...'
-                  : (dailyTarget > 0 && dailyCommission >= dailyTarget)
-                    ? 'Target Reached'
+                  : ordersReceived >= totalOrdersLimit
+                    ? 'Wait for Tomorrow'
                     : (showOrderPopup || submitting)
                       ? 'Processing...'
                       : 'Submit'}
