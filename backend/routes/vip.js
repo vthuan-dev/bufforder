@@ -398,6 +398,24 @@ router.post('/withdrawal', verifyToken, async (req, res) => {
       }
     });
 
+    // 🔔 Emit new withdrawal notification to admins
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to('admins').emit('withdrawal:new', {
+          requestId: wr.id,
+          userId: user.id,
+          userName: user.fullName || user.phoneNumber,
+          amount: wr.amount,
+          withdrawalType: wr.withdrawalType,
+          createdAt: wr.requestDate
+        });
+        console.log('[Withdrawal] Emitted withdrawal:new to admins');
+      }
+    } catch (emitErr) {
+      console.error('[Withdrawal] Failed to emit:', emitErr);
+    }
+
     res.json({
       success: true,
       message: 'Withdrawal request submitted. Please wait for admin approval.',
