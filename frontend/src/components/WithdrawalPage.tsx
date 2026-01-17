@@ -336,13 +336,17 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
 
           <label className="block text-sm text-gray-600 mb-2">Withdrawal Amount</label>
           <div className="relative mb-3">
-            <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <DollarSign className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${amount && parseFloat(amount) > availableBalance ? 'text-red-400' : 'text-gray-400'
+              }`} />
             <input
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
-              className="w-full pl-12 pr-24 py-4 bg-gray-50 border border-gray-200 rounded-xl text-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full pl-12 pr-24 py-4 bg-gray-50 border rounded-xl text-xl focus:outline-none focus:ring-2 ${amount && parseFloat(amount) > availableBalance
+                ? 'border-red-400 focus:ring-red-500 text-red-600'
+                : 'border-gray-200 focus:ring-blue-500'
+                }`}
             />
             <button
               onClick={handleWithdrawAll}
@@ -352,12 +356,26 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
             </button>
           </div>
 
+          {/* Insufficient Balance Warning */}
+          {amount && parseFloat(amount) > availableBalance && (
+            <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+              <span className="text-sm text-red-600">
+                Insufficient balance! You need ${(parseFloat(amount) - availableBalance).toFixed(2)} more.
+              </span>
+            </div>
+          )}
+
           {/* VND Conversion Display (for bank withdrawals only) */}
           {withdrawalType === 'bank' && amount && parseFloat(amount) > 0 && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl">
+            <div className={`mb-4 p-3 border rounded-xl ${parseFloat(amount) > availableBalance
+              ? 'bg-red-50 border-red-200'
+              : 'bg-green-50 border-green-200'
+              }`}>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">You will receive:</span>
-                <span className="text-lg font-semibold text-green-600">
+                <span className={`text-lg font-semibold ${parseFloat(amount) > availableBalance ? 'text-red-600' : 'text-green-600'
+                  }`}>
                   {(parseFloat(amount) * exchangeRate).toLocaleString('vi-VN')} VND
                 </span>
               </div>
@@ -397,7 +415,13 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
           whileTap={{ scale: 0.98 }}
           onClick={handleWithdrawal}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled={completedToday < dailyTasks || hasWithdrawToday}
+          disabled={
+            completedToday < dailyTasks ||
+            hasWithdrawToday ||
+            !amount ||
+            parseFloat(amount) <= 0 ||
+            parseFloat(amount) > availableBalance
+          }
         >
           Submit Withdrawal
         </motion.button>

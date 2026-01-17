@@ -85,7 +85,9 @@ export function AdminWithdrawalsPage() {
     const matchesSearch =
       withdrawal.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       withdrawal.user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      withdrawal.accountNumber.toLowerCase().includes(searchQuery.toLowerCase());
+      withdrawal.accountNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      withdrawal.walletAddress.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      withdrawal.network.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || withdrawal.status === statusFilter;
     return matchesSearch && matchesStatus;
   }), [withdrawals, searchQuery, statusFilter]);
@@ -183,9 +185,8 @@ export function AdminWithdrawalsPage() {
               <TableRow>
                 <TableHead>User</TableHead>
                 <TableHead>Amount</TableHead>
-                <TableHead>Fee</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>Bank Details</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Details</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Request Date</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -208,12 +209,47 @@ export function AdminWithdrawalsPage() {
                     </div>
                   </TableCell>
                   <TableCell className="text-gray-900">${withdrawal.amount.toFixed(2)}</TableCell>
-                  <TableCell className="text-red-600">-${withdrawal.fee.toFixed(2)}</TableCell>
-                  <TableCell className="text-green-600">${withdrawal.totalAmount.toFixed(2)}</TableCell>
                   <TableCell>
-                    <div className="text-sm">
-                      <p className="text-gray-900">{withdrawal.bankName}</p>
-                      <p className="text-gray-500">{withdrawal.accountNumber}</p>
+                    <span className={`px-2 py-1 text-xs rounded-full ${withdrawal.withdrawalType === 'crypto'
+                      ? 'bg-orange-100 text-orange-700'
+                      : 'bg-blue-100 text-blue-700'
+                      }`}>
+                      {withdrawal.withdrawalType === 'crypto' ? 'USDT' : 'Bank'}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm max-w-[200px]">
+                      {withdrawal.withdrawalType === 'crypto' ? (
+                        <>
+                          <p className="text-orange-600 font-medium">{withdrawal.network}</p>
+                          <div className="flex items-center gap-1">
+                            <p className="text-gray-500 truncate flex-1" title={withdrawal.walletAddress}>
+                              {withdrawal.walletAddress}
+                            </p>
+                            <button
+                              onClick={() => handleCopy(withdrawal.walletAddress)}
+                              className="p-1 hover:bg-gray-100 rounded flex-shrink-0"
+                              title="Copy Address"
+                            >
+                              <Copy className="w-3 h-3 text-gray-400 hover:text-blue-500" />
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-gray-900">{withdrawal.bankName}</p>
+                          <div className="flex items-center gap-1">
+                            <p className="text-gray-500 truncate flex-1">{withdrawal.accountNumber}</p>
+                            <button
+                              onClick={() => handleCopy(withdrawal.accountNumber)}
+                              className="p-1 hover:bg-gray-100 rounded flex-shrink-0"
+                              title="Copy Account"
+                            >
+                              <Copy className="w-3 h-3 text-gray-400 hover:text-blue-500" />
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -488,8 +524,8 @@ export function AdminWithdrawalsPage() {
                     {viewWithdrawal.withdrawalType === 'crypto' ? 'Crypto Details:' : 'Bank Details:'}
                   </p>
                   <span className={`px-2 py-1 text-xs rounded-full ${viewWithdrawal.withdrawalType === 'crypto'
-                      ? 'bg-orange-100 text-orange-700'
-                      : 'bg-blue-100 text-blue-700'
+                    ? 'bg-orange-100 text-orange-700'
+                    : 'bg-blue-100 text-blue-700'
                     }`}>
                     {viewWithdrawal.withdrawalType === 'crypto' ? 'USDT' : 'Bank'}
                   </span>
