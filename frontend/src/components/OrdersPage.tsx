@@ -238,6 +238,19 @@ export function OrdersPage() {
       return;
     }
 
+    // Check if VIP 0
+    if (commissionRate === 0) {
+      toast.warning('VIP Upgrade Required! 🚀', {
+        description: 'Your current VIP level (VIP 0) does not support earning commission. Please upgrade to VIP 1 or higher to start taking orders.',
+        duration: 5000,
+        action: {
+          label: 'Upgrade Now',
+          onClick: () => window.location.hash = '#/my' // Redirect to My page or VIP page if exists
+        }
+      });
+      return;
+    }
+
     // Check if daily target reached
     if (dailyTarget > 0 && dailyCommission >= dailyTarget) {
       toast.warning('Daily commission target reached! 🎯', {
