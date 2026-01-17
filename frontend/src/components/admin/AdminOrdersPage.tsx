@@ -27,17 +27,17 @@ import api from "../../services/api";
 interface Order {
   id: string;
   orderId: string;
-  user: { 
-    name: string; 
-    email: string; 
+  user: {
+    name: string;
+    email: string;
     phoneNumber?: string;
     balance?: number;
     totalDeposited?: number;
     vipLevel?: string;
   };
-  product: { 
-    name: string; 
-    image: string; 
+  product: {
+    name: string;
+    image: string;
     brand?: string;
     category?: string;
     id?: number;
@@ -91,7 +91,7 @@ export function AdminOrdersPage() {
         sortBy: 'orderDate',
         sortOrder: 'desc'
       });
-      
+
       if (response.success) {
         setOrders(response.data.orders);
         setPagination(response.data.pagination);
@@ -153,7 +153,7 @@ export function AdminOrdersPage() {
 
   const handleUpdateStatus = async () => {
     if (!selectedOrder) return;
-    
+
     try {
       setUpdating(true);
       const response = await api.adminUpdateOrderStatus(selectedOrder.id, newStatus.toLowerCase());
@@ -350,14 +350,14 @@ export function AdminOrdersPage() {
             Showing {orders.length} of {pagination.total} orders
           </p>
           <div className="flex gap-2">
-            <button 
+            <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage <= 1}
               className="px-3 py-1 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Previous
             </button>
-            
+
             {/* Page numbers */}
             {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
               const pageNum = i + 1;
@@ -365,18 +365,17 @@ export function AdminOrdersPage() {
                 <button
                   key={pageNum}
                   onClick={() => handlePageChange(pageNum)}
-                  className={`px-3 py-1 rounded-lg text-sm ${
-                    currentPage === pageNum
-                      ? 'bg-blue-600 text-white'
-                      : 'border border-gray-200 hover:bg-gray-50'
-                  }`}
+                  className={`px-3 py-1 rounded-lg text-sm ${currentPage === pageNum
+                    ? 'bg-blue-600 text-white'
+                    : 'border border-gray-200 hover:bg-gray-50'
+                    }`}
                 >
                   {pageNum}
                 </button>
               );
             })}
-            
-            <button 
+
+            <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage >= pagination.pages}
               className="px-3 py-1 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -492,25 +491,9 @@ export function AdminOrdersPage() {
               <div>
                 <Label>Update Order Status</Label>
                 {(() => {
-                  // Status transition rules
-                  const allowedTransitions: Record<string, string[]> = {
-                    'Pending': ['Processing', 'Cancelled'],
-                    'Processing': ['Shipped', 'Cancelled'],
-                    'Shipped': ['Delivered', 'Cancelled'],
-                    'Delivered': [], // Final state
-                    'Cancelled': []  // Final state
-                  };
+                  const allStatuses = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
                   const currentStatus = selectedOrder.status;
-                  const allowed = allowedTransitions[currentStatus] || [];
-                  const isFinalState = allowed.length === 0;
-
-                  if (isFinalState) {
-                    return (
-                      <div className="p-3 bg-gray-100 rounded-lg text-sm text-gray-600">
-                        <span className="font-medium">{currentStatus}</span> is a final state and cannot be changed.
-                      </div>
-                    );
-                  }
+                  const options = allStatuses.filter(s => s !== currentStatus);
 
                   return (
                     <Select value={newStatus} onValueChange={setNewStatus}>
@@ -519,7 +502,7 @@ export function AdminOrdersPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value={currentStatus} disabled>{currentStatus} (current)</SelectItem>
-                        {allowed.map(status => (
+                        {options.map(status => (
                           <SelectItem key={status} value={status}>{status}</SelectItem>
                         ))}
                       </SelectContent>
@@ -533,20 +516,11 @@ export function AdminOrdersPage() {
                   Close
                 </Button>
                 {(() => {
-                  const allowedTransitions: Record<string, string[]> = {
-                    'Pending': ['Processing', 'Cancelled'],
-                    'Processing': ['Shipped', 'Cancelled'],
-                    'Shipped': ['Delivered', 'Cancelled'],
-                    'Delivered': [],
-                    'Cancelled': []
-                  };
-                  const isFinalState = (allowedTransitions[selectedOrder.status] || []).length === 0;
-                  
-                  if (isFinalState) return null;
-                  
+                  if (newStatus === selectedOrder.status) return null;
+
                   return (
-                    <Button 
-                      onClick={handleUpdateStatus} 
+                    <Button
+                      onClick={handleUpdateStatus}
                       className="flex-1 bg-blue-600"
                       disabled={updating || newStatus === selectedOrder.status}
                     >

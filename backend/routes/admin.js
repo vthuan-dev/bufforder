@@ -856,29 +856,19 @@ router.patch('/orders/:id/status', verifyAdminToken, async (req, res) => {
     const oldStatus = order.status.toLowerCase();
     const newStatus = status.toLowerCase();
 
-    // ⚡ Status transition rules
-    const allowedTransitions = {
-      'pending': ['processing', 'cancelled'],
-      'processing': ['shipped', 'cancelled'],
-      'shipped': ['delivered', 'cancelled'],
-      'delivered': [], // Final state - no changes allowed
-      'cancelled': []  // Final state - no changes allowed
-    };
+    // ⚡ Status transition rules - Relaxed to allow any transition
+    const allStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
 
-    // Check if transition is allowed
+    // Check if new status is valid
+    if (!allStatuses.includes(newStatus)) {
+      return res.status(400).json({ success: false, message: 'Invalid status' });
+    }
+
+    // Check if transition is allowed (relaxed: any transition allowed)
     if (oldStatus === newStatus) {
       return res.status(400).json({ success: false, message: 'Order is already in this status' });
     }
 
-    if (!allowedTransitions[oldStatus]?.includes(newStatus)) {
-      const allowedList = allowedTransitions[oldStatus]?.length > 0
-        ? allowedTransitions[oldStatus].join(', ')
-        : 'none (final state)';
-      return res.status(400).json({
-        success: false,
-        message: `Cannot change status from "${oldStatus}" to "${newStatus}". Allowed transitions: ${allowedList}`
-      });
-    }
 
     const data = { status: newStatus };
 
