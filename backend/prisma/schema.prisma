@@ -175,7 +175,10 @@ model WithdrawalRequest {
   id              String    @id @default(cuid())
   userId          String
   amount          Float
-  bankCardId      String
+  withdrawalType  String    @default("bank")  // "bank" | "crypto"
+  bankCardId      String?   // Optional for crypto withdrawals
+  walletAddress   String?   // USDT wallet address
+  network         String?   // TRC20, ERC20, BEP20
   status          String    @default("pending")
   approvedBy      String?
   approvedAt      DateTime?
@@ -185,7 +188,7 @@ model WithdrawalRequest {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   user            User      @relation(fields: [userId], references: [id])
-  bankCard        BankCard  @relation(fields: [bankCardId], references: [id])
+  bankCard        BankCard? @relation(fields: [bankCardId], references: [id])
 
   @@index([status, requestDate], map: "WithdrawalRequest_status_requestDate_idx")
   @@index([userId, status], map: "WithdrawalRequest_userId_status_idx")

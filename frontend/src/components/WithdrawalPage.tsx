@@ -21,6 +21,11 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
   const [selectedCardId, setSelectedCardId] = useState<string>("");
   const [showNoBankCardPrompt, setShowNoBankCardPrompt] = useState(false);
 
+  // Crypto withdrawal states
+  const [withdrawalType, setWithdrawalType] = useState<'bank' | 'crypto'>('bank');
+  const [walletAddress, setWalletAddress] = useState("");
+  const [network, setNetwork] = useState<string>("TRC20");
+
   useEffect(() => {
     (async () => {
       try {
@@ -98,12 +103,39 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
       toast.error("Please enter your payment password");
       return;
     }
-    if (!selectedCardId) {
-      toast.error("Please select a bank card");
-      return;
+
+    // Validate based on withdrawal type
+    if (withdrawalType === 'crypto') {
+      if (!walletAddress.trim()) {
+        toast.error("Please enter your USDT wallet address");
+        return;
+      }
+      if (!network) {
+        toast.error("Please select a network");
+        return;
+      }
+    } else {
+      if (!selectedCardId) {
+        toast.error("Please select a bank card");
+        return;
+      }
     }
+
     try {
-      const res = await api.withdrawal({ amount: withdrawAmount, bankCardId: selectedCardId, password });
+      const payload: any = {
+        amount: withdrawAmount,
+        password,
+        withdrawalType
+      };
+
+      if (withdrawalType === 'crypto') {
+        payload.walletAddress = walletAddress.trim();
+        payload.network = network;
+      } else {
+        payload.bankCardId = selectedCardId;
+      }
+
+      const res = await api.withdrawal(payload);
       if (res?.success) {
         toast.success("Withdrawal request submitted! Please wait for admin approval.", {
           duration: 5000,
@@ -111,6 +143,7 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
         });
         setAmount("");
         setPassword("");
+        setWalletAddress("");
         setHasWithdrawToday(true);
         // refresh pending list to reflect new request
         try {
@@ -216,22 +249,78 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
               You have already submitted a withdrawal request today. Only 1 withdrawal per day is allowed.
             </div>
           )}
-          <label className="block text-sm text-gray-600 mb-3">Select Bank Card</label>
-          <select
-            value={selectedCardId}
-            onChange={(e) => setSelectedCardId(e.target.value)}
-            className="w-full mb-4 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="" disabled>
-              {bankCards.length ? 'Choose a card' : 'No bank card found, add in My > Withdrawal bank card'}
-            </option>
-            {bankCards.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.bankName} - {c.cardNumber} ({c.accountName})
-              </option>
-            ))}
-          </select>
-          <label className="block text-sm text-gray-600 mb-3">Withdrawal Amount</label>
+
+          {/* Withdrawal Type Toggle */}
+          <div className="flex mb-4 bg-gray-100 rounded-xl p-1">
+            <button
+              type="button"
+              onClick={() => setWithdrawalType('bank')}
+              className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${withdrawalType === 'bank'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              Bank Card
+            </button>
+            <button
+              type="button"
+              onClick={() => setWithdrawalType('crypto')}
+              className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${withdrawalType === 'crypto'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              USDT Wallet
+            </button>
+          </div>
+
+          {/* Bank Card Selection (shown when type is bank) */}
+          {withdrawalType === 'bank' && (
+            <>
+              <label className="block text-sm text-gray-600 mb-2">Select Bank Card</label>
+              <select
+                value={selectedCardId}
+                onChange={(e) => setSelectedCardId(e.target.value)}
+                className="w-full mb-4 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="" disabled>
+                  {bankCards.length ? 'Choose a card' : 'No bank card found, add in My > Withdrawal bank card'}
+                </option>
+                {bankCards.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.bankName} - {c.cardNumber} ({c.accountName})
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+
+          {/* Crypto Wallet Inputs (shown when type is crypto) */}
+          {withdrawalType === 'crypto' && (
+            <>
+              <label className="block text-sm text-gray-600 mb-2">USDT Wallet Address</label>
+              <input
+                type="text"
+                value={walletAddress}
+                onChange={(e) => setWalletAddress(e.target.value)}
+                placeholder="Enter your USDT wallet address..."
+                className="w-full mb-3 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+
+              <label className="block text-sm text-gray-600 mb-2">Network</label>
+              <select
+                value={network}
+                onChange={(e) => setNetwork(e.target.value)}
+                className="w-full mb-4 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="TRC20">TRC20 (Tron) - Low fee</option>
+                <option value="ERC20">ERC20 (Ethereum)</option>
+                <option value="BEP20">BEP20 (BSC)</option>
+              </select>
+            </>
+          )}
+
+          <label className="block text-sm text-gray-600 mb-2">Withdrawal Amount</label>
           <div className="relative mb-3">
             <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input

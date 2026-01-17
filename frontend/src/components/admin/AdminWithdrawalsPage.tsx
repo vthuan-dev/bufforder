@@ -31,9 +31,12 @@ interface WithdrawalRow {
   amount: number;
   fee: number;
   totalAmount: number;
+  withdrawalType: 'bank' | 'crypto';
   bankName: string;
   accountNumber: string;
   accountName: string;
+  walletAddress: string;
+  network: string;
   status: "Pending" | "Approved" | "Rejected";
   requestDate: string;
 }
@@ -56,9 +59,12 @@ export function AdminWithdrawalsPage() {
     amount: Number(r.amount || 0),
     fee: 0,
     totalAmount: Number(r.amount || 0),
+    withdrawalType: r.withdrawalType || 'bank',
     bankName: r.bankName || r.bankCard?.bankName || '',
     accountNumber: r.accountNumber || r.bankCard?.cardNumber || '',
     accountName: r.accountName || r.bankCard?.accountName || r.userId?.fullName || '',
+    walletAddress: r.walletAddress || '',
+    network: r.network || '',
     status: (r.status || 'pending').toLowerCase() === 'approved' ? 'Approved' : (r.status || 'pending').toLowerCase() === 'rejected' ? 'Rejected' : 'Pending',
     requestDate: formatSafeDateTime(r.requestDate),
   });
@@ -313,32 +319,69 @@ export function AdminWithdrawalsPage() {
               </div>
 
               <div className="bg-blue-50 rounded-lg p-4 space-y-2">
-                <p className="text-sm text-gray-900">Bank Details:</p>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Bank:</span>
-                    <span className="text-gray-900">{selectedWithdrawal.bankName}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Account:</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-900">{selectedWithdrawal.accountNumber}</span>
-                      <button
-                        onClick={() => handleCopy(selectedWithdrawal.accountNumber)}
-                        className="p-1 hover:bg-blue-100 rounded"
-                      >
-                        <Copy className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Name:</span>
-                    <span className="text-gray-900">{selectedWithdrawal.accountName}</span>
-                  </div>
+                {/* Withdrawal Type Badge */}
+                <div className="flex justify-between items-center mb-2">
+                  <p className="text-sm text-gray-900 font-medium">
+                    {selectedWithdrawal.withdrawalType === 'crypto' ? 'Crypto Details:' : 'Bank Details:'}
+                  </p>
+                  <span className={`px-2 py-1 text-xs rounded-full ${selectedWithdrawal.withdrawalType === 'crypto'
+                    ? 'bg-orange-100 text-orange-700'
+                    : 'bg-blue-100 text-blue-700'
+                    }`}>
+                    {selectedWithdrawal.withdrawalType === 'crypto' ? 'USDT' : 'Bank'}
+                  </span>
                 </div>
 
-                {/* VietQR Code for Quick Transfer */}
-                {selectedWithdrawal.bankName && selectedWithdrawal.accountNumber && (
+                {/* Bank Card Info */}
+                {selectedWithdrawal.withdrawalType === 'bank' && (
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Bank:</span>
+                      <span className="text-gray-900">{selectedWithdrawal.bankName}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Account:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-900">{selectedWithdrawal.accountNumber}</span>
+                        <button
+                          onClick={() => handleCopy(selectedWithdrawal.accountNumber)}
+                          className="p-1 hover:bg-blue-100 rounded"
+                        >
+                          <Copy className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Name:</span>
+                      <span className="text-gray-900">{selectedWithdrawal.accountName}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Crypto Wallet Info */}
+                {selectedWithdrawal.withdrawalType === 'crypto' && (
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Network:</span>
+                      <span className="text-orange-600 font-medium">{selectedWithdrawal.network}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Wallet Address:</span>
+                      <div className="flex items-center gap-2 mt-1 bg-white p-2 rounded border">
+                        <span className="text-gray-900 text-xs break-all flex-1">{selectedWithdrawal.walletAddress}</span>
+                        <button
+                          onClick={() => handleCopy(selectedWithdrawal.walletAddress)}
+                          className="p-1 hover:bg-gray-100 rounded flex-shrink-0"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* VietQR Code for Bank Transfer Only */}
+                {selectedWithdrawal.withdrawalType === 'bank' && selectedWithdrawal.bankName && selectedWithdrawal.accountNumber && (
                   <div className="mt-4 pt-4 border-t border-blue-200">
                     <p className="text-sm text-gray-700 font-medium mb-2 text-center">Scan to Transfer</p>
                     <div className="flex justify-center">
@@ -440,32 +483,68 @@ export function AdminWithdrawalsPage() {
               </div>
 
               <div className="bg-blue-50 rounded-lg p-4 space-y-2">
-                <p className="text-sm text-gray-900 font-medium">Bank Details:</p>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Bank:</span>
-                    <span className="text-gray-900">{viewWithdrawal.bankName}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Account:</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-900">{viewWithdrawal.accountNumber}</span>
-                      <button
-                        onClick={() => handleCopy(viewWithdrawal.accountNumber)}
-                        className="p-1 hover:bg-blue-100 rounded"
-                      >
-                        <Copy className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Name:</span>
-                    <span className="text-gray-900">{viewWithdrawal.accountName}</span>
-                  </div>
+                <div className="flex justify-between items-center mb-2">
+                  <p className="text-sm text-gray-900 font-medium">
+                    {viewWithdrawal.withdrawalType === 'crypto' ? 'Crypto Details:' : 'Bank Details:'}
+                  </p>
+                  <span className={`px-2 py-1 text-xs rounded-full ${viewWithdrawal.withdrawalType === 'crypto'
+                      ? 'bg-orange-100 text-orange-700'
+                      : 'bg-blue-100 text-blue-700'
+                    }`}>
+                    {viewWithdrawal.withdrawalType === 'crypto' ? 'USDT' : 'Bank'}
+                  </span>
                 </div>
 
-                {/* VietQR Code */}
-                {viewWithdrawal.bankName && viewWithdrawal.accountNumber && (
+                {/* Bank Card Info */}
+                {viewWithdrawal.withdrawalType === 'bank' && (
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Bank:</span>
+                      <span className="text-gray-900">{viewWithdrawal.bankName}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Account:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-900">{viewWithdrawal.accountNumber}</span>
+                        <button
+                          onClick={() => handleCopy(viewWithdrawal.accountNumber)}
+                          className="p-1 hover:bg-blue-100 rounded"
+                        >
+                          <Copy className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Name:</span>
+                      <span className="text-gray-900">{viewWithdrawal.accountName}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Crypto Wallet Info */}
+                {viewWithdrawal.withdrawalType === 'crypto' && (
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Network:</span>
+                      <span className="text-orange-600 font-medium">{viewWithdrawal.network}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Wallet Address:</span>
+                      <div className="flex items-center gap-2 mt-1 bg-white p-2 rounded border">
+                        <span className="text-gray-900 text-xs break-all flex-1">{viewWithdrawal.walletAddress}</span>
+                        <button
+                          onClick={() => handleCopy(viewWithdrawal.walletAddress)}
+                          className="p-1 hover:bg-gray-100 rounded flex-shrink-0"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* VietQR Code for Bank Only */}
+                {viewWithdrawal.withdrawalType === 'bank' && viewWithdrawal.bankName && viewWithdrawal.accountNumber && (
                   <div className="mt-4 pt-4 border-t border-blue-200">
                     <p className="text-sm text-gray-700 font-medium mb-2 text-center">VietQR Code</p>
                     <div className="flex justify-center">

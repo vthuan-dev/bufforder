@@ -310,11 +310,11 @@ router.delete('/bank-cards/:id', verifyToken, async (req, res) => {
 // ===== Withdrawal request =====
 router.post('/withdrawal', verifyToken, async (req, res) => {
   try {
-    const { amount, bankCardId, password } = req.body || {};
+    const { amount, bankCardId, password, withdrawalType = 'bank', walletAddress, network } = req.body || {};
     const parsed = Number(amount);
 
     if (!parsed || isNaN(parsed) || parsed <= 0) {
-      return res.status(400).json({ success: false, message: 'Số tiền rút không hợp lệ' });
+      return res.status(400).json({ success: false, message: 'Invalid withdrawal amount' });
     }
 
     const user = await prisma.user.findUnique({
@@ -322,20 +322,31 @@ router.post('/withdrawal', verifyToken, async (req, res) => {
     });
 
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    if (!password) return res.status(400).json({ success: false, message: 'Vui lòng nhập mật khẩu để xác nhận' });
+    if (!password) return res.status(400).json({ success: false, message: 'Please enter your password to confirm' });
 
     const ok = await comparePassword(password, user.password);
-    if (!ok) return res.status(401).json({ success: false, message: 'Mật khẩu không đúng' });
+    if (!ok) return res.status(401).json({ success: false, message: 'Incorrect password' });
 
-    const card = await prisma.bankCard.findFirst({
-      where: {
-        id: bankCardId,
-        userId: req.userId
+    // Validate based on withdrawal type
+    if (withdrawalType === 'crypto') {
+      if (!walletAddress || !walletAddress.trim()) {
+        return res.status(400).json({ success: false, message: 'Please enter your USDT wallet address' });
       }
-    });
+      if (!network || !['TRC20', 'ERC20', 'BEP20'].includes(network)) {
+        return res.status(400).json({ success: false, message: 'Please select a valid network (TRC20, ERC20, or BEP20)' });
+      }
+    } else {
+      // Bank withdrawal
+      const card = await prisma.bankCard.findFirst({
+        where: {
+          id: bankCardId,
+          userId: req.userId
+        }
+      });
+      if (!card) return res.status(400).json({ success: false, message: 'Please select a bank card' });
+    }
 
-    if (!card) return res.status(400).json({ success: false, message: 'Vui lòng chọn thẻ ngân hàng' });
-    if (parsed > user.balance) return res.status(400).json({ success: false, message: 'Số dư không đủ' });
+    if (parsed > user.balance) return res.status(400).json({ success: false, message: 'Insufficient balance' });
 
     // 🔒 Task-Based Withdrawal Constraint
     // Users must complete all daily tasks (orders) before withdrawing
@@ -366,7 +377,7 @@ router.post('/withdrawal', verifyToken, async (req, res) => {
       if (todayOrdersCount < totalDailyTasks) {
         return res.status(400).json({
           success: false,
-          message: `Bạn chưa hoàn thành nhiệm vụ ngày hôm nay (${todayOrdersCount}/${totalDailyTasks} đơn). Vui lòng hoàn thành tất cả đơn hàng để rút tiền.`
+          message: `Please complete today's tasks (${todayOrdersCount}/${totalDailyTasks} orders) before withdrawing.`
         });
       }
     } catch (statsErr) {
@@ -380,18 +391,24 @@ router.post('/withdrawal', verifyToken, async (req, res) => {
       data: {
         userId: user.id,
         amount: parsed,
-        bankCardId
+        withdrawalType,
+        bankCardId: withdrawalType === 'bank' ? bankCardId : null,
+        walletAddress: withdrawalType === 'crypto' ? walletAddress.trim() : null,
+        network: withdrawalType === 'crypto' ? network : null
       }
     });
 
     res.json({
       success: true,
-      message: 'Đã tạo yêu cầu rút tiền. Vui lòng chờ admin duyệt.',
+      message: 'Withdrawal request submitted. Please wait for admin approval.',
       data: {
         requestId: wr.id,
         status: wr.status,
         amount: wr.amount,
+        withdrawalType: wr.withdrawalType,
         bankCardId: wr.bankCardId,
+        walletAddress: wr.walletAddress,
+        network: wr.network,
         requestDate: wr.requestDate
       }
     });
