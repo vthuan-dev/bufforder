@@ -125,7 +125,7 @@ export function OrdersPage() {
         // VIP commission rates (matching backend vipLevels.js)
         const vipCommissionRates: Record<VipThemeKey, number> = {
           royal: 0.025,  // 2.5% → thực nhận 2.25%
-          ssvip: 0.022,
+          ssvip: 0.022,  // Extra level? Keep as is or sync with table
           svip: 0.02,    // 2.0% → thực nhận 1.80%
           vip7: 0.018,   // 1.8% → thực nhận 1.62%
           vip6: 0.015,   // 1.5% → thực nhận 1.35%

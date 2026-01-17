@@ -872,36 +872,9 @@ router.patch('/orders/:id/status', verifyAdminToken, async (req, res) => {
 
     const data = { status: newStatus };
 
-    // Handle delivered status - credit commission to user
-    let updatedUser = null;
+    // Handle delivered status - only update completedAt timestamp if needed
     if (newStatus === 'delivered' && !order.completedAt) {
       data.completedAt = new Date();
-      // Credit user commission
-      updatedUser = await prisma.user.update({
-        where: { id: order.userId },
-        data: {
-          balance: { increment: order.commissionAmount },
-          commission: { increment: order.commissionAmount }
-        }
-      });
-
-      // 🔔 Emit real-time balance update to user
-      try {
-        const io = req.app.get('io');
-        if (io) {
-          io.to(`user:${order.userId}`).emit('balance:updated', {
-            userId: order.userId,
-            newBalance: updatedUser.balance,
-            newCommission: updatedUser.commission,
-            commissionIncrement: order.commissionAmount,
-            orderId: order.id,
-            orderNumber: order.orderNumber
-          });
-          console.log('[Admin] Emitted balance:updated to user:', order.userId);
-        }
-      } catch (emitErr) {
-        console.error('[Admin] Failed to emit balance:updated:', emitErr);
-      }
     }
 
     await prisma.order.update({ where: { id: req.params.id }, data });

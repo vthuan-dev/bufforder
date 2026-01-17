@@ -203,15 +203,10 @@ router.post('/take', authenticateToken, async (req, res) => {
     const effectiveOrders = Number(dailyEarnings.numberOfOrders || resolveNumberOfOrders(user, vipLevel));
     const productPrice = randomProduct.price;
 
-    // Use admin-set dailyTarget / numberOfOrders if available, otherwise fallback to rate-based
-    let commissionAmount;
-    if (effectiveTarget > 0 && effectiveOrders > 0) {
-      // Fixed commission per order: dailyTarget / numberOfOrders
-      commissionAmount = Math.round((effectiveTarget / effectiveOrders) * 100) / 100;
-    } else {
-      // Fallback: price × rate × 0.9 (10% system fee)
-      commissionAmount = Math.round(productPrice * commissionRate * 0.9 * 100) / 100;
-    }
+    // Calculate commission: price × rate × 0.9 (10% system fee deduction)
+    // This matches the user's provided commission formula and table
+    let commissionAmount = Math.round(productPrice * commissionRate * 0.9 * 100) / 100;
+
 
     // Hard cap: don't exceed daily target
     const target = Number(dailyEarnings.targetTotal || dailyTarget);
@@ -311,7 +306,7 @@ router.post('/take', authenticateToken, async (req, res) => {
       });
 
       // Credit user
-      const creditedCommission = Math.round(commissionAmount * 0.8 * 100) / 100;
+      const creditedCommission = commissionAmount;
       dailyEarnings.totalCommission = Math.round((dailyEarnings.totalCommission + commissionAmount) * 100) / 100;
       dailyEarnings.ordersCount = (dailyEarnings.ordersCount || 0) + 1;
 
