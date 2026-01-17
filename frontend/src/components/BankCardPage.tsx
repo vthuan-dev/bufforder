@@ -11,6 +11,14 @@ interface BankCard {
   isDefault: boolean;
 }
 
+interface SepayBank {
+  name: string;
+  code: string;
+  bin: string;
+  short_name: string;
+  supported: boolean;
+}
+
 interface BankCardPageProps {
   onBack: () => void;
 }
@@ -27,11 +35,10 @@ function Toast({ message, type, onClose }: { message: string; type: 'success' | 
       initial={{ opacity: 0, y: -50, scale: 0.9 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -20, scale: 0.9 }}
-      className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl shadow-lg flex items-center gap-3 ${
-        type === 'success' 
-          ? 'bg-green-500 text-white' 
-          : 'bg-red-500 text-white'
-      }`}
+      className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl shadow-lg flex items-center gap-3 ${type === 'success'
+        ? 'bg-green-500 text-white'
+        : 'bg-red-500 text-white'
+        }`}
     >
       {type === 'success' ? (
         <CheckCircle className="w-5 h-5" />
@@ -54,6 +61,27 @@ export function BankCardPage({ onBack }: BankCardPageProps) {
     holderName: ''
   });
 
+  // Bank list from SePay
+  const [bankList, setBankList] = useState<SepayBank[]>([]);
+  const [bankSearchQuery, setBankSearchQuery] = useState('');
+  const [showBankDropdown, setShowBankDropdown] = useState(false);
+
+  // Fetch bank list from SePay on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('https://qr.sepay.vn/banks.json');
+        const data = await res.json();
+        // Filter to only supported banks for better UX
+        const banks = (data?.data || []).filter((b: SepayBank) => b.supported);
+        setBankList(banks);
+      } catch (e) {
+        console.error('Failed to fetch bank list:', e);
+      }
+    })();
+  }, []);
+
+  // Fetch saved bank cards
   useEffect(() => {
     (async () => {
       try {
@@ -66,9 +94,15 @@ export function BankCardPage({ onBack }: BankCardPageProps) {
           isDefault: !!c.isDefault,
         }));
         setCards(list);
-      } catch {}
+      } catch { }
     })();
   }, []);
+
+  // Filtered bank list based on search query
+  const filteredBanks = bankList.filter(bank =>
+    bank.short_name.toLowerCase().includes(bankSearchQuery.toLowerCase()) ||
+    bank.name.toLowerCase().includes(bankSearchQuery.toLowerCase())
+  );
 
   const handleAddCard = async () => {
     if (!newCard.bankName || !newCard.cardNumber || !newCard.holderName) {
@@ -85,14 +119,15 @@ export function BankCardPage({ onBack }: BankCardPageProps) {
       });
       const res = await api.getBankCards();
       const list = (res?.data?.bankCards || []).map((c: any) => ({
-          id: c.id,
-          bankName: c.bankName,
-          cardNumber: `**** **** **** ${String(c.cardNumber).slice(-4)}`,
-          holderName: c.accountName,
-          isDefault: !!c.isDefault,
+        id: c.id,
+        bankName: c.bankName,
+        cardNumber: `**** **** **** ${String(c.cardNumber).slice(-4)}`,
+        holderName: c.accountName,
+        isDefault: !!c.isDefault,
       }));
       setCards(list);
       setNewCard({ bankName: '', cardNumber: '', holderName: '' });
+      setBankSearchQuery(''); // Reset bank search
       setShowAddForm(false);
       setToast({ message: 'Card added successfully!', type: 'success' });
     } catch (e: any) {
@@ -125,10 +160,10 @@ export function BankCardPage({ onBack }: BankCardPageProps) {
       {/* Toast Notification */}
       <AnimatePresence>
         {toast && (
-          <Toast 
-            message={toast.message} 
-            type={toast.type} 
-            onClose={() => setToast(null)} 
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
           />
         )}
       </AnimatePresence>
@@ -168,38 +203,63 @@ export function BankCardPage({ onBack }: BankCardPageProps) {
               className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 mb-5 overflow-hidden"
             >
               <h3 className="text-gray-800 mb-5 text-base">New Bank Card</h3>
-              
+
               <div className="space-y-4">
-                <div>
+                <div className="relative">
                   <label className="block text-sm text-gray-700 mb-2">Bank Name</label>
                   <input
                     type="text"
-                    value={newCard.bankName}
-                    onChange={(e) => setNewCard({ ...newCard, bankName: e.target.value })}
-                    placeholder="e.g. Chase Bank"
+                    value={bankSearchQuery || newCard.bankName}
+                    onChange={(e) => {
+                      setBankSearchQuery(e.target.value);
+                      setNewCard({ ...newCard, bankName: '' }); // Clear selection when typing
+                      setShowBankDropdown(true);
+                    }}
+                    onFocus={() => setShowBankDropdown(true)}
+                    placeholder="Search bank..."
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
+                  {/* Bank Dropdown */}
+                  {showBankDropdown && filteredBanks.length > 0 && (
+                    <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                      {filteredBanks.map((bank) => (
+                        <button
+                          key={bank.bin}
+                          type="button"
+                          onClick={() => {
+                            setNewCard({ ...newCard, bankName: bank.short_name });
+                            setBankSearchQuery(bank.short_name);
+                            setShowBankDropdown(false);
+                          }}
+                          className="w-full px-4 py-2.5 text-left text-sm hover:bg-blue-50 flex items-center gap-2 border-b border-gray-100 last:border-0"
+                        >
+                          <span className="font-medium text-gray-800">{bank.short_name}</span>
+                          <span className="text-gray-400 text-xs truncate">({bank.name})</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm text-gray-700 mb-2">Card Number</label>
+                  <label className="block text-sm text-gray-700 mb-2">Account Number</label>
                   <input
                     type="text"
                     value={newCard.cardNumber}
                     onChange={(e) => setNewCard({ ...newCard, cardNumber: e.target.value })}
-                    placeholder="1234 5678 9012 3456"
+                    placeholder="e.g. 1234567890"
                     maxLength={19}
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm text-gray-700 mb-2">Card Holder Name</label>
+                  <label className="block text-sm text-gray-700 mb-2">Account Holder Name</label>
                   <input
                     type="text"
                     value={newCard.holderName}
                     onChange={(e) => setNewCard({ ...newCard, holderName: e.target.value })}
-                    placeholder="Name on card"
+                    placeholder="e.g. NGUYEN VAN A"
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                 </div>
@@ -268,7 +328,7 @@ export function BankCardPage({ onBack }: BankCardPageProps) {
                     <p className="text-xs opacity-75 mb-1">Card Holder</p>
                     <p className="text-sm">{card.holderName}</p>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     {card.isDefault ? (
                       <span className="bg-white/25 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs flex items-center gap-1.5">
