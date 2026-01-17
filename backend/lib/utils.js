@@ -48,9 +48,52 @@ function parseJsonField(jsonField, defaultValue = {}) {
     }
 }
 
+/**
+ * Get YYYY-MM-DD date key
+ * @param {Date} d - Date object
+ * @returns {string} - Date key
+ */
+function getDateKey(d = new Date()) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+/**
+ * Get commission rate from user override or VIP level
+ */
+function resolveCommissionRate(user, vipLevel) {
+    const config = parseJsonField(user?.commissionConfig, {});
+    if (config.commissionRate != null) return Number(config.commissionRate);
+    return vipLevel?.commissionRate || 0;
+}
+
+/**
+ * Get daily target from user override or VIP level
+ */
+function resolveDailyTarget(user, vipLevel) {
+    const config = parseJsonField(user?.commissionConfig, {});
+    if (config.dailyTarget != null) return Number(config.dailyTarget);
+    return vipLevel?.dailyTarget || 0;
+}
+
+/**
+ * Get number of orders from user override or VIP level
+ */
+function resolveNumberOfOrders(user, vipLevel) {
+    const config = parseJsonField(user?.commissionConfig, {});
+    if (config.numberOfOrders != null) return Number(config.numberOfOrders);
+    return vipLevel?.numberOfOrders || 100;
+}
+
 module.exports = {
     hashPassword,
     comparePassword,
     excludeFromUser,
-    parseJsonField
+    parseJsonField,
+    getDateKey,
+    resolveCommissionRate,
+    resolveDailyTarget,
+    resolveNumberOfOrders
 };

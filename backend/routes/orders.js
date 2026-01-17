@@ -3,50 +3,20 @@ const router = express.Router();
 const prisma = require('../lib/prisma');
 const { getVipLevelByAmount } = require('../config/vipLevels');
 const { authenticateToken } = require('../middleware/auth');
-const { parseJsonField } = require('../lib/utils');
+const {
+  parseJsonField,
+  getDateKey,
+  resolveCommissionRate,
+  resolveDailyTarget,
+  resolveNumberOfOrders
+} = require('../lib/utils');
 const { getUserStats, getOrdersPaginated } = require('../lib/optimized-queries'); // ⚡ Optimized queries
-
-// Helpers
-function getDateKey(d = new Date()) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
 
 // Generate order number: ASH + timestamp + random 3 digits
 function generateOrderNumber() {
   const timestamp = Date.now().toString();
   const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
   return `ASH${timestamp.slice(-8)}${random}`;
-}
-
-// Get commission rate from VIP level or user override
-function resolveCommissionRate(user, vipLevel) {
-  const config = parseJsonField(user?.commissionConfig, {});
-  // Support custom rate (as decimal, e.g., 0.015 = 1.5%)
-  if (config.commissionRate != null) {
-    return Number(config.commissionRate);
-  }
-  return vipLevel?.commissionRate || 0;
-}
-
-// Get daily target from VIP level or user override
-function resolveDailyTarget(user, vipLevel) {
-  const config = parseJsonField(user?.commissionConfig, {});
-  if (config.dailyTarget != null) {
-    return Number(config.dailyTarget);
-  }
-  return vipLevel?.dailyTarget || 0;
-}
-
-// Get number of orders from user override or VIP level
-function resolveNumberOfOrders(user, vipLevel) {
-  const config = parseJsonField(user?.commissionConfig, {});
-  if (config.numberOfOrders != null) {
-    return Number(config.numberOfOrders);
-  }
-  return vipLevel?.numberOfOrders || 100;
 }
 
 // Simplified: pick daily target from VIP level

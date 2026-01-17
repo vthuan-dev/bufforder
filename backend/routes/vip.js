@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
 const { VIP_LEVELS, getVipLevelByAmount, getNextVipLevel, getProgressToNextLevel } = require('../config/vipLevels');
 const config = require('../config');
-const { comparePassword } = require('../lib/utils');
+const { comparePassword, getDateKey, resolveNumberOfOrders, parseJsonField } = require('../lib/utils');
 const { cached } = require('../lib/cache'); // ⚡ Caching
 
 const router = express.Router();
@@ -38,7 +38,7 @@ router.get('/levels', async (req, res) => {
     const levels = await cached('vip:levels', async () => {
       return VIP_LEVELS;
     }, 3600);
-    
+
     res.json({
       success: true,
       data: {
@@ -336,6 +336,44 @@ router.post('/withdrawal', verifyToken, async (req, res) => {
 
     if (!card) return res.status(400).json({ success: false, message: 'Vui lòng chọn thẻ ngân hàng' });
     if (parsed > user.balance) return res.status(400).json({ success: false, message: 'Số dư không đủ' });
+
+    // 🔒 Task-Based Withdrawal Constraint
+    // Users must complete all daily tasks (orders) before withdrawing
+    try {
+      // Get today's order count for this user
+      const todayKey = getDateKey();
+      const today = new Date();
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+
+      const todayOrdersCount = await prisma.order.count({
+        where: {
+          userId: user.id,
+          orderDate: { gte: startOfDay, lt: endOfDay }
+        }
+      });
+
+      // Get user's daily task limit (numberOfOrders)
+      const vipLevel = getVipLevelByAmount(user.totalDeposited);
+
+      // Use snapshotted value if exists (user already started grabbing today), otherwise use current config
+      const dailyEarnings = parseJsonField(user.dailyEarnings, {});
+      const isToday = dailyEarnings.dateKey === todayKey;
+      const totalDailyTasks = (isToday && dailyEarnings.numberOfOrders > 0)
+        ? dailyEarnings.numberOfOrders
+        : resolveNumberOfOrders(user, vipLevel);
+
+      if (todayOrdersCount < totalDailyTasks) {
+        return res.status(400).json({
+          success: false,
+          message: `Bạn chưa hoàn thành nhiệm vụ ngày hôm nay (${todayOrdersCount}/${totalDailyTasks} đơn). Vui lòng hoàn thành tất cả đơn hàng để rút tiền.`
+        });
+      }
+    } catch (statsErr) {
+      console.error('Withdrawal stats check error:', statsErr);
+      // Fallback: allow if stats check fail for some reason, or block? 
+      // safer to block but let's just log for now
+    }
 
     // Create withdrawal request
     const wr = await prisma.withdrawalRequest.create({

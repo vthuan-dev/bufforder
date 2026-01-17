@@ -26,7 +26,7 @@ export function WithdrawalPage({ onBack }: WithdrawalPageProps) {
         const profile = await api.profile();
         const user = profile?.data?.user;
         if (user) setAvailableBalance(Number(user.balance || 0));
-      } catch {}
+      } catch { }
       // Load order stats for daily completion requirement
       try {
         const stats = await api.userOrderStats();
@@ -34,14 +34,14 @@ export function WithdrawalPage({ onBack }: WithdrawalPageProps) {
           setDailyTasks(Number(stats.data?.totalDailyTasks || 0));
           setCompletedToday(Number(stats.data?.completedToday || 0));
         }
-      } catch {}
+      } catch { }
       try {
         const cards = await api.getBankCards();
         const list = cards?.data?.bankCards || [];
         setBankCards(list);
         const def = list.find((c: any) => c.isDefault) || list[0];
         setSelectedCardId(def?.id || "");
-      } catch {}
+      } catch { }
       try {
         const list = await api.getWithdrawalRequests();
         const all = (list?.data?.requests || []);
@@ -60,55 +60,55 @@ export function WithdrawalPage({ onBack }: WithdrawalPageProps) {
           return processed && today;
         });
         setHasWithdrawToday(withdrew);
-      } catch {}
+      } catch { }
     })();
   }, []);
 
   const handleWithdrawal = async () => {
     // Guard: daily tasks must be completed
     if (completedToday < dailyTasks) {
-      alert(`Please complete all daily orders first (${completedToday}/${dailyTasks}).`);
+      alert(`Vui lòng hoàn thành toàn bộ nhiệm vụ ngày hôm nay (${completedToday}/${dailyTasks} đơn) trước khi rút tiền.`);
       return;
     }
     // Guard: only one withdrawal per day
     if (hasWithdrawToday) {
-      alert('You have already made a withdrawal today. Only one withdrawal per day is allowed.');
+      alert('Bạn đã rút tiền hôm nay rồi. Mỗi ngày chỉ được phép rút tối đa 1 lần.');
       return;
     }
     const withdrawAmount = parseFloat(amount);
-    
+
     if (!amount || withdrawAmount <= 0) {
-      alert("Please enter a valid amount");
+      alert("Vui lòng nhập số tiền hợp lệ");
       return;
     }
-    
+
     if (withdrawAmount < minWithdrawal) {
-      alert(`Minimum withdrawal amount is $${minWithdrawal}`);
+      alert(`Số tiền rút tối thiểu là $${minWithdrawal}`);
       return;
     }
-    
+
     if (withdrawAmount > maxWithdrawal) {
-      alert(`Maximum withdrawal amount is $${maxWithdrawal}`);
+      alert(`Số tiền rút tối đa là $${maxWithdrawal}`);
       return;
     }
-    
+
     if (withdrawAmount > availableBalance) {
-      alert("Insufficient balance");
+      alert("Số dư không đủ");
       return;
     }
-    
+
     if (!password) {
-      alert("Please enter your password");
+      alert("Vui lòng nhập mật khẩu thanh toán");
       return;
     }
     if (!selectedCardId) {
-      alert("Please add/select a bank card first");
+      alert("Vui lòng chọn thẻ ngân hàng");
       return;
     }
     try {
       const res = await api.withdrawal({ amount: withdrawAmount, bankCardId: selectedCardId, password });
       if (res?.success) {
-        alert("Withdrawal request submitted!");
+        alert("Lệnh rút tiền đã được gửi! Vui lòng chờ admin duyệt.");
         setAmount("");
         setPassword("");
         setHasWithdrawToday(true);
@@ -117,9 +117,9 @@ export function WithdrawalPage({ onBack }: WithdrawalPageProps) {
           const list = await api.getWithdrawalRequests();
           const items = (list?.data?.requests || []).filter((w: any) => w.status === 'pending');
           setPendingWithdrawals(items);
-        } catch {}
+        } catch { }
         // Inform daily limit
-        alert('Note: Only one withdrawal is allowed per day.');
+        alert('Lưu ý: Mỗi ngày chỉ được phép rút tiền 1 lần.');
       }
     } catch (e: any) {
       alert(e?.message || "Failed to submit withdrawal request");
@@ -161,13 +161,16 @@ export function WithdrawalPage({ onBack }: WithdrawalPageProps) {
         <div className="bg-white rounded-2xl p-5 shadow-md mb-4">
           {/* Eligibility notice */}
           {completedToday < dailyTasks && (
-            <div className="mb-3 text-sm text-orange-700 bg-orange-50 border border-orange-200 rounded-lg p-3">
-              Complete all orders to withdraw today ({completedToday}/{dailyTasks}).
+            <div className="mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <span>
+                Vui lòng hoàn thành toàn bộ nhiệm vụ ngày hôm nay ({completedToday}/{dailyTasks} đơn) trước khi rút tiền.
+              </span>
             </div>
           )}
           {hasWithdrawToday && (
             <div className="mb-3 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
-              You have already submitted a withdrawal today.
+              Bạn đã tạo lệnh rút tiền hôm nay rồi. Mỗi ngày chỉ được rút tối đa 1 lần.
             </div>
           )}
           <label className="block text-sm text-gray-600 mb-3">Select Bank Card</label>
@@ -202,7 +205,7 @@ export function WithdrawalPage({ onBack }: WithdrawalPageProps) {
               All
             </button>
           </div>
-          
+
           <div className="flex justify-between text-xs text-gray-500 mb-4">
             <span>Min: ${minWithdrawal}</span>
             <span>Max: ${maxWithdrawal}</span>
