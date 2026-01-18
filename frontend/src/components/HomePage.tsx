@@ -87,14 +87,16 @@ export function HomePage({ bannerImage }: HomePageProps) {
 
       {/* Video Advertisement */}
       <div className="px-4 pt-4">
-        <div className="overflow-hidden shadow-lg">
+        <div className="overflow-hidden shadow-lg bg-gray-200">
           <video
             ref={videoRef}
             src={videoAds}
+            poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 200'%3E%3Crect fill='%23f3f4f6' width='400' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='16' fill='%239ca3af'%3ELoading video...%3C/text%3E%3C/svg%3E"
             autoPlay
             loop
             muted
             playsInline
+            preload="metadata"
             disablePictureInPicture
             controlsList="nodownload nofullscreen noremoteplayback"
             className="w-full h-48 object-cover"
