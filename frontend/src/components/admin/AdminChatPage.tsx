@@ -776,7 +776,8 @@ export function AdminChatPage() {
                       className="fixed z-[9999] shadow-2xl rounded-2xl overflow-hidden"
                       style={{
                         bottom: 'calc(60px + 20px)',
-                        left: '360px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
                         animation: 'fadeIn 0.2s ease-out'
                       }}
                     >
@@ -785,8 +786,8 @@ export function AdminChatPage() {
                         theme={Theme.LIGHT}
                         emojiStyle={EmojiStyle.NATIVE}
                         lazyLoadEmojis={false}
-                        width={320}
-                        height={400}
+                        width={300}
+                        height={380}
                         searchPlaceHolder="Search emoji..."
                         previewConfig={{ showPreview: false }}
                       />
