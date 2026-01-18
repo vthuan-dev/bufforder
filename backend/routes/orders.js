@@ -19,6 +19,32 @@ function generateOrderNumber() {
   return `ASH${timestamp.slice(-8)}${random}`;
 }
 
+// Helper to build consistent order response
+function buildOrderResponse(order, user, todayOrdersCount, dailyEarnings) {
+  return {
+    newCommission: user.commission,
+    newBalance: user.balance,
+    newCompletedToday: todayOrdersCount,
+    newOrdersGrabbed: todayOrdersCount,
+    selectedProduct: {
+      productName: order.productName,
+      productPrice: order.productPrice,
+      commissionAmount: order.commissionAmount,
+      commissionRate: order.commissionRate,
+      brand: order.brand,
+      productId: order.productId,
+      category: order.category,
+      image: order.image
+    },
+    order: {
+      id: order.id,
+      status: order.status,
+      orderDate: order.orderDate
+    },
+    dailyEarnings
+  };
+}
+
 // Simplified: pick daily target from VIP level
 function pickDailyTarget(user, vipLevel) {
   const target = resolveDailyTarget(user, vipLevel);
@@ -105,6 +131,7 @@ router.post('/take', authenticateToken, async (req, res) => {
 
     const clientProduct = req.body?.product;
     const clientRequestId = (req.headers['x-idempotency-key'] || req.body?.idempotencyKey || '').toString().trim() || null;
+    console.log('[Orders/take] Idempotency key:', clientRequestId);
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     console.log('[Orders/take] user found:', user ? 'yes' : 'no');
@@ -174,41 +201,27 @@ router.post('/take', authenticateToken, async (req, res) => {
     const productPrice = randomProduct.price;
     const commissionAmount = Math.round(productPrice * commissionRate * 0.9 * 100) / 100;
 
-
-    // Check idempotency key
+    // ============================================
+    // DUPLICATE DETECTION - BEFORE TRANSACTION
+    // ============================================
+    
+    // Check idempotency key BEFORE transaction
     if (clientRequestId) {
-      const existing = await prisma.order.findFirst({
+      const existingByKey = await prisma.order.findFirst({
         where: { userId, clientRequestId }
       });
-      if (existing) {
-        console.log('[Orders] Duplicate detected via clientRequestId:', clientRequestId);
+      if (existingByKey) {
+        console.log('[Orders/take] ✅ Duplicate detected via idempotency key:', clientRequestId);
         return res.json({
           success: true,
-          data: {
-            newCommission: user.commission,
-            newBalance: user.balance,
-            newCompletedToday: todayOrders.length,
-            newOrdersGrabbed: todayOrders.length,
-            selectedProduct: {
-              productName: existing.productName,
-              productPrice: existing.productPrice,
-              commissionAmount: existing.commissionAmount,
-              commissionRate: existing.commissionRate,
-              brand: existing.brand,
-              productId: existing.productId,
-              category: existing.category,
-              image: existing.image
-            },
-            order: { id: existing.id, status: existing.status, orderDate: existing.orderDate },
-            dailyEarnings: currentDailyEarnings
-          }
+          data: buildOrderResponse(existingByKey, user, todayOrders.length, currentDailyEarnings)
         });
       }
     }
 
-    // Check for same product within last 5 minutes
+    // Check for same product within last 5 minutes BEFORE transaction
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-    const recentDuplicate = await prisma.order.findFirst({
+    const existingByTime = await prisma.order.findFirst({
       where: {
         userId,
         productId: parseInt(randomProduct.id),
@@ -216,67 +229,85 @@ router.post('/take', authenticateToken, async (req, res) => {
       }
     });
 
-    if (recentDuplicate) {
-      console.log('[Orders] Duplicate detected: same product within 5 minutes');
+    if (existingByTime) {
+      console.log('[Orders/take] ✅ Duplicate detected: same product within 5 minutes, productId:', randomProduct.id);
       return res.json({
         success: true,
-        data: {
-          newCommission: user.commission,
-          newBalance: user.balance,
-          newCompletedToday: todayOrders.length,
-          newOrdersGrabbed: todayOrders.length,
-          selectedProduct: {
-            productName: recentDuplicate.productName,
-            productPrice: recentDuplicate.productPrice,
-            commissionAmount: recentDuplicate.commissionAmount,
-            commissionRate: recentDuplicate.commissionRate,
-            brand: recentDuplicate.brand,
-            productId: recentDuplicate.productId,
-            category: recentDuplicate.category,
-            image: recentDuplicate.image
-          },
-          order: { id: recentDuplicate.id, status: recentDuplicate.status, orderDate: recentDuplicate.orderDate },
-          dailyEarnings: currentDailyEarnings
-        }
+        data: buildOrderResponse(existingByTime, user, todayOrders.length, currentDailyEarnings)
       });
     }
 
+    // ============================================
+    // CREATE ORDER - START TRANSACTION
+    // ============================================
+
     // Create order and update user in transaction
-    const result = await prisma.$transaction(async (tx) => {
-      const newOrder = await tx.order.create({
-        data: {
-          userId,
-          clientRequestId: clientRequestId || undefined,
-          orderNumber: generateOrderNumber(),
-          productId: parseInt(randomProduct.id),
-          productName: randomProduct.name,
-          productPrice: randomProduct.price,
-          commissionRate: commissionRate,
-          commissionAmount,
-          brand: randomProduct.brand,
-          category: randomProduct.category,
-          image: randomProduct.image,
-          status: 'pending',
-          orderDate: new Date()
-        }
+    let result;
+    try {
+      result = await prisma.$transaction(async (tx) => {
+        const newOrder = await tx.order.create({
+          data: {
+            userId,
+            clientRequestId, // ✅ Store the key directly (not undefined)
+            orderNumber: generateOrderNumber(),
+            productId: parseInt(randomProduct.id),
+            productName: randomProduct.name,
+            productPrice: randomProduct.price,
+            commissionRate: commissionRate,
+            commissionAmount,
+            brand: randomProduct.brand,
+            category: randomProduct.category,
+            image: randomProduct.image,
+            status: 'pending',
+            orderDate: new Date()
+          }
+        });
+
+        // Credit user
+        const creditedCommission = commissionAmount;
+        currentDailyEarnings.totalCommission = Math.round((currentDailyEarnings.totalCommission + commissionAmount) * 100) / 100;
+        currentDailyEarnings.ordersCount = (currentDailyEarnings.ordersCount || 0) + 1;
+
+        const updatedUser = await tx.user.update({
+          where: { id: userId },
+          data: {
+            balance: { increment: creditedCommission },
+            commission: { increment: commissionAmount },
+            dailyEarnings: JSON.stringify(currentDailyEarnings)
+          }
+        });
+
+        return { newOrder, updatedUser };
       });
 
-      // Credit user
-      const creditedCommission = commissionAmount;
-      currentDailyEarnings.totalCommission = Math.round((currentDailyEarnings.totalCommission + commissionAmount) * 100) / 100;
-      currentDailyEarnings.ordersCount = (currentDailyEarnings.ordersCount || 0) + 1;
-
-      const updatedUser = await tx.user.update({
-        where: { id: userId },
-        data: {
-          balance: { increment: creditedCommission },
-          commission: { increment: commissionAmount },
-          dailyEarnings: JSON.stringify(currentDailyEarnings)
-        }
+      console.log('[Orders/take] ✅ Order created successfully:', {
+        orderId: result.newOrder.id,
+        clientRequestId,
+        productId: randomProduct.id
       });
-
-      return { newOrder, updatedUser };
-    });
+    } catch (transactionError) {
+      // Check if it's a unique constraint violation on clientRequestId
+      if (transactionError.code === 'P2002' && 
+          transactionError.meta?.target?.includes('clientRequestId')) {
+        console.log('[Orders/take] ⚠️ Database constraint caught duplicate:', clientRequestId);
+        
+        // Fetch the existing order
+        const existing = await prisma.order.findFirst({
+          where: { userId, clientRequestId }
+        });
+        
+        if (existing) {
+          return res.json({
+            success: true,
+            data: buildOrderResponse(existing, user, todayOrders.length, currentDailyEarnings)
+          });
+        }
+      }
+      
+      // Re-throw if it's a different error
+      console.error('[Orders/take] ❌ Transaction error:', transactionError);
+      throw transactionError;
+    }
 
 
     // Get updated stats

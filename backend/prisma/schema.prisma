@@ -93,6 +93,7 @@ model Order {
   @@unique([userId, clientRequestId], map: "Order_userId_clientRequestId_key")
   @@index([status], map: "Order_status_idx")
   @@index([userId, orderDate], map: "Order_userId_orderDate_idx")
+  @@index([userId, productId, orderDate], map: "Order_userId_productId_orderDate_idx")
   @@map("order")
 }
 

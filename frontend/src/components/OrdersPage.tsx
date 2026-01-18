@@ -365,8 +365,9 @@ export function OrdersPage() {
         newCommission: newCommission
       });
 
-      // Update UI: count order grabbed
+      // Update UI: count order grabbed AND completed today
       setOrdersReceived((prev) => prev + 1);
+      setCompletedToday((prev) => prev + 1); // ✅ Update completed today immediately
 
       // Refresh full stats from API to sync everything else (tasks, limits, etc)
       try {
