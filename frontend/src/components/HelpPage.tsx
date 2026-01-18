@@ -625,8 +625,8 @@ export function HelpPage() {
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9, y: 10 }}
                   transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                  className="fixed right-4 z-[9999] shadow-2xl rounded-2xl overflow-hidden"
-                  style={{ bottom: 'calc(56px + 60px + 10px)' }}
+                  className="fixed left-1/2 z-[9999] shadow-2xl rounded-2xl overflow-hidden"
+                  style={{ bottom: 'calc(56px + 60px + 10px)', transform: 'translateX(-50%)' }}
                 >
                   <EmojiPicker
                     onEmojiClick={handleEmojiClick}
