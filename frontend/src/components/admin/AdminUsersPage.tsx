@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Search, Plus, MoreHorizontal, Edit, Trash2, Eye, Filter, User, Phone, Mail, DollarSign, Shield, Target, TrendingUp, Calendar, Lock, CheckCircle2, XCircle } from "lucide-react";
+import { Search, Plus, MoreHorizontal, Edit, Trash2, Filter, User, Phone, Mail, DollarSign, Shield, Target, TrendingUp, Calendar, Lock, CheckCircle2, XCircle } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { toast } from "sonner";
 import {
@@ -47,7 +47,7 @@ export function AdminUsersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
   const [formFullName, setFormFullName] = useState("");
   const [formPhone, setFormPhone] = useState("");
@@ -214,10 +214,7 @@ export function AdminUsersPage() {
     setEditDialogOpen(open);
   };
 
-  const handleView = (user: UserRow) => {
-    setSelectedUser(user);
-    setViewDialogOpen(true);
-  };
+
 
   const handleDelete = async (user: UserRow) => {
     if (!confirm(`Are you sure you want to delete ${user.name}?`)) return;
@@ -334,10 +331,7 @@ export function AdminUsersPage() {
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleView(user)}>
-                          <Eye className="w-4 h-4 mr-2" />
-                          View Details
-                        </DropdownMenuItem>
+
                         <DropdownMenuItem onClick={() => handleEdit(user)}>
                           <Edit className="w-4 h-4 mr-2" />
                           Edit
@@ -788,102 +782,6 @@ export function AdminUsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* View User Dialog - Redesigned */}
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] p-0 overflow-hidden [&>button]:text-white [&>button]:hover:text-white">
-          {selectedUser && (
-            <>
-              {/* Header */}
-              <div className="bg-purple-600 px-6 py-6">
-                <div className="flex items-center gap-4">
-                  <Avatar className="w-20 h-20 border-4 border-white/30 shadow-xl">
-                    <AvatarImage src="" />
-                    <AvatarFallback className="bg-white/20 text-white text-2xl font-bold">
-                      {selectedUser.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <h2 className="text-white text-xl font-bold">{selectedUser.name}</h2>
-                    <p className="text-white/80 text-sm">{selectedUser.email}</p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Badge className="bg-white/20 text-white border-0 px-3">
-                        {selectedUser.vipLevel.toUpperCase()}
-                      </Badge>
-                      <Badge className={`border-0 px-3 ${selectedUser.status === 'Active' ? 'bg-green-400/30 text-green-100' : 'bg-red-400/30 text-red-100'}`}>
-                        {selectedUser.status}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Details Content */}
-              <div className="px-6 py-5">
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Phone */}
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Phone className="w-4 h-4 text-blue-500" />
-                      <span className="text-xs text-gray-500">Phone</span>
-                    </div>
-                    <p className="text-gray-900 font-medium">{selectedUser.phone || 'Not set'}</p>
-                  </div>
-
-                  {/* Balance */}
-                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
-                    <div className="flex items-center gap-2 mb-2">
-                      <DollarSign className="w-4 h-4 text-green-500" />
-                      <span className="text-xs text-green-600">Balance</span>
-                    </div>
-                    <p className="text-green-700 font-bold text-lg">${selectedUser.balance.toFixed(2)}</p>
-                  </div>
-
-                  {/* VIP Level */}
-                  <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl p-4 border border-purple-100">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Shield className="w-4 h-4 text-purple-500" />
-                      <span className="text-xs text-purple-600">VIP Level</span>
-                    </div>
-                    <Badge className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white border-0">
-                      {selectedUser.vipLevel.toUpperCase()}
-                    </Badge>
-                  </div>
-
-                  {/* Join Date */}
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Calendar className="w-4 h-4 text-gray-500" />
-                      <span className="text-xs text-gray-500">Join Date</span>
-                    </div>
-                    <p className="text-gray-900 font-medium">{selectedUser.joinDate}</p>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-3 mt-5">
-                  <Button
-                    onClick={() => {
-                      setViewDialogOpen(false);
-                      handleEdit(selectedUser);
-                    }}
-                    className="flex-1 h-11 bg-gradient-to-r from-blue-600 to-indigo-600"
-                  >
-                    <Edit className="w-4 h-4 mr-2" />
-                    Edit User
-                  </Button>
-                  <Button
-                    onClick={() => setViewDialogOpen(false)}
-                    variant="outline"
-                    className="flex-1 h-11"
-                  >
-                    Close
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
