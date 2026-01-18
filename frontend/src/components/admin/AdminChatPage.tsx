@@ -744,10 +744,46 @@ export function AdminChatPage() {
             {/* Input Area */}
             <div className="p-4 border-t border-gray-100 sticky bottom-0 bg-white z-10 flex-shrink-0">
               <div className="flex items-end gap-3">
+                {/* Paperclip button */}
                 <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg" onClick={handlePickImage} disabled={!selectedThread}>
                   <Paperclip className="w-5 h-5" />
                 </button>
                 <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+
+                {/* Emoji Picker Button & Popup - moved to left side */}
+                <div className="relative" ref={emojiPickerRef}>
+                  <button
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    className={`p-2 rounded-lg transition-colors ${showEmojiPicker ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}
+                  >
+                    <Smile className="w-5 h-5" />
+                  </button>
+
+                  {/* Emoji Picker Popup */}
+                  {showEmojiPicker && (
+                    <div
+                      className="fixed z-[9999] shadow-2xl rounded-2xl overflow-hidden"
+                      style={{
+                        bottom: 'calc(60px + 20px)',
+                        left: '360px',
+                        animation: 'fadeIn 0.2s ease-out'
+                      }}
+                    >
+                      <EmojiPicker
+                        onEmojiClick={handleEmojiClick}
+                        theme={Theme.LIGHT}
+                        emojiStyle={EmojiStyle.NATIVE}
+                        lazyLoadEmojis={false}
+                        width={320}
+                        height={400}
+                        searchPlaceHolder="Search emoji..."
+                        previewConfig={{ showPreview: false }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Text input */}
                 <div className="flex-1">
                   <textarea
                     ref={textareaRef}
@@ -776,35 +812,7 @@ export function AdminChatPage() {
                   />
                 </div>
 
-                {/* Emoji Picker Button & Popup */}
-                <div className="relative" ref={emojiPickerRef}>
-                  <button
-                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                    className={`p-2 rounded-lg transition-colors ${showEmojiPicker ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}
-                  >
-                    <Smile className="w-5 h-5" />
-                  </button>
-
-                  {/* Emoji Picker Popup */}
-                  {showEmojiPicker && (
-                    <div
-                      className="absolute bottom-full right-0 mb-2 z-[100] shadow-2xl rounded-2xl overflow-hidden"
-                      style={{ animation: 'fadeIn 0.2s ease-out' }}
-                    >
-                      <EmojiPicker
-                        onEmojiClick={handleEmojiClick}
-                        theme={Theme.LIGHT}
-                        emojiStyle={EmojiStyle.NATIVE}
-                        lazyLoadEmojis={false}
-                        width={320}
-                        height={400}
-                        searchPlaceHolder="Search emoji..."
-                        previewConfig={{ showPreview: false }}
-                      />
-                    </div>
-                  )}
-                </div>
-
+                {/* Send button */}
                 <button
                   onClick={handleSendMessage}
                   className="p-3 bg-blue-600 text-white hover:bg-blue-700 rounded-lg"
