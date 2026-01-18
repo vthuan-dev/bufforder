@@ -423,25 +423,7 @@ export function AdminWithdrawalsPage() {
                   </div>
                 )}
 
-                {/* VietQR Code for Bank Transfer Only */}
-                {selectedWithdrawal.withdrawalType === 'bank' && selectedWithdrawal.bankName && selectedWithdrawal.accountNumber && (
-                  <div className="mt-4 pt-4 border-t border-blue-200">
-                    <p className="text-sm text-gray-700 font-medium mb-2 text-center">Scan to Transfer</p>
-                    <div className="flex justify-center">
-                      <img
-                        src={`https://qr.sepay.vn/img?acc=${selectedWithdrawal.accountNumber}&bank=${selectedWithdrawal.bankName}&amount=${Math.round(selectedWithdrawal.amount)}&des=Withdrawal%20${selectedWithdrawal.id.slice(-6)}&template=compact`}
-                        alt="VietQR Code"
-                        className="w-48 h-48 rounded-lg border border-gray-200 bg-white"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500 text-center mt-2">
-                      Amount: ${selectedWithdrawal.amount.toFixed(2)}
-                    </p>
-                  </div>
-                )}
+
               </div>
 
               <div>
@@ -586,22 +568,7 @@ export function AdminWithdrawalsPage() {
                   </div>
                 )}
 
-                {/* VietQR Code for Bank Only */}
-                {viewWithdrawal.withdrawalType === 'bank' && viewWithdrawal.bankName && viewWithdrawal.accountNumber && (
-                  <div className="mt-4 pt-4 border-t border-blue-200">
-                    <p className="text-sm text-gray-700 font-medium mb-2 text-center">VietQR Code</p>
-                    <div className="flex justify-center">
-                      <img
-                        src={`https://qr.sepay.vn/img?acc=${viewWithdrawal.accountNumber}&bank=${viewWithdrawal.bankName}&amount=${Math.round(viewWithdrawal.amount)}&des=Withdrawal%20${viewWithdrawal.id.slice(-6)}&template=compact`}
-                        alt="VietQR Code"
-                        className="w-40 h-40 rounded-lg border border-gray-200 bg-white"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
+
               </div>
 
               <div className="flex justify-end pt-2">

@@ -8,9 +8,10 @@ interface Transaction {
   id: string;
   type: 'deposit' | 'withdrawal';
   amount: number;
-  status: 'completed' | 'pending' | 'failed';
+  status: 'completed' | 'pending' | 'failed' | 'approved' | 'rejected';
   date: string;
   time: string;
+  rejectionReason?: string;
 }
 
 interface TransactionHistoryPageProps {
@@ -29,20 +30,22 @@ export function TransactionHistoryPage({ onBack }: TransactionHistoryPageProps) 
           api.getWithdrawalRequests(),
         ]);
         const deposits = (depositsRes?.data?.requests || []).map((r: any) => ({
-          id: r._id,
+          id: r._id || r.id,
           type: 'deposit' as const,
           amount: Number(r.amount || 0),
-          status: (r.status || 'pending') as 'completed' | 'pending' | 'failed',
+          status: (r.status || 'pending') as Transaction['status'],
           date: formatSafeDate(r.requestDate),
           time: formatSafeTime(r.requestDate),
+          rejectionReason: r.rejectionReason || undefined,
         }));
         const withdrawals = (withdrawalsRes?.data?.requests || []).map((r: any) => ({
-          id: r._id,
+          id: r._id || r.id,
           type: 'withdrawal' as const,
           amount: Number(r.amount || 0),
-          status: (r.status || 'pending') as 'completed' | 'pending' | 'failed',
+          status: (r.status || 'pending') as Transaction['status'],
           date: formatSafeDate(r.requestDate),
           time: formatSafeTime(r.requestDate),
+          rejectionReason: r.rejectionReason || undefined,
         }));
         setTransactions([...deposits, ...withdrawals].sort((a, b) => {
           const d1 = new Date(`${a.date} ${a.time}`).getTime();
@@ -61,10 +64,23 @@ export function TransactionHistoryPage({ onBack }: TransactionHistoryPageProps) 
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'text-green-600';
+      case 'completed':
+      case 'approved': return 'text-green-600';
       case 'pending': return 'text-yellow-600';
-      case 'failed': return 'text-red-600';
+      case 'failed':
+      case 'rejected': return 'text-red-600';
       default: return 'text-gray-600';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'completed':
+      case 'approved': return 'Approved';
+      case 'pending': return 'Pending';
+      case 'failed':
+      case 'rejected': return 'Rejected';
+      default: return status;
     }
   };
 
@@ -170,10 +186,19 @@ export function TransactionHistoryPage({ onBack }: TransactionHistoryPageProps) 
                     {transaction.type === 'deposit' ? '+' : '-'}${transaction.amount}
                   </p>
                   <p className={`text-xs capitalize ${getStatusColor(transaction.status)}`}>
-                    {transaction.status}
+                    {getStatusLabel(transaction.status)}
                   </p>
                 </div>
               </div>
+
+              {/* Rejection Reason */}
+              {(transaction.status === 'failed' || transaction.status === 'rejected') && transaction.rejectionReason && (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <p className="text-xs text-red-500">
+                    <span className="font-medium">Reason:</span> {transaction.rejectionReason}
+                  </p>
+                </div>
+              )}
             </motion.div>
           ))}
         </div>
