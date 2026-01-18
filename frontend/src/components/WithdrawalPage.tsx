@@ -26,9 +26,6 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
   const [walletAddress, setWalletAddress] = useState("");
   const [network, setNetwork] = useState<string>("TRC20");
 
-  // Exchange rate for USD to VND
-  const [exchangeRate, setExchangeRate] = useState<number>(25000); // Default rate
-
   useEffect(() => {
     (async () => {
       try {
@@ -36,17 +33,6 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
         const user = profile?.data?.user;
         if (user) setAvailableBalance(Number(user.balance || 0));
       } catch { }
-
-      // Fetch USD/VND exchange rate from free API
-      try {
-        const rateRes = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
-        const rateData = await rateRes.json();
-        if (rateData?.rates?.VND) {
-          setExchangeRate(rateData.rates.VND);
-        }
-      } catch {
-        setExchangeRate(25000); // Fallback rate
-      }
       // Load order stats for daily completion requirement
       try {
         const stats = await api.userOrderStats();
@@ -380,24 +366,7 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
             </div>
           )}
 
-          {/* VND Conversion Display (for bank withdrawals only) */}
-          {withdrawalType === 'bank' && amount && parseFloat(amount) > 0 && (
-            <div className={`mb-4 p-3 border rounded-xl ${parseFloat(amount) > availableBalance
-              ? 'bg-red-50 border-red-200'
-              : 'bg-green-50 border-green-200'
-              }`}>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">You will receive:</span>
-                <span className={`text-lg font-semibold ${parseFloat(amount) > availableBalance ? 'text-red-600' : 'text-green-600'
-                  }`}>
-                  {(parseFloat(amount) * exchangeRate).toLocaleString('vi-VN')} VND
-                </span>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Rate: 1 USD = {exchangeRate.toLocaleString('vi-VN')} VND
-              </p>
-            </div>
-          )}
+
 
           <label className="block text-sm text-gray-600 mb-3">Payment Password</label>
           <input
@@ -428,13 +397,26 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={handleWithdrawal}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          className={`w-full py-4 rounded-xl shadow-lg transition-all ${completedToday < dailyTasks ||
+            hasWithdrawToday ||
+            !amount ||
+            parseFloat(amount) <= 0 ||
+            parseFloat(amount) > availableBalance ||
+            !password.trim() ||
+            (withdrawalType === 'crypto' && !walletAddress.trim()) ||
+            (withdrawalType === 'bank' && !selectedCardId)
+            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}
           disabled={
             completedToday < dailyTasks ||
             hasWithdrawToday ||
             !amount ||
             parseFloat(amount) <= 0 ||
-            parseFloat(amount) > availableBalance
+            parseFloat(amount) > availableBalance ||
+            !password.trim() ||
+            (withdrawalType === 'crypto' && !walletAddress.trim()) ||
+            (withdrawalType === 'bank' && !selectedCardId)
           }
         >
           Submit Withdrawal
