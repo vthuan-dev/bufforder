@@ -6,6 +6,12 @@ const logoImage = new URL('../assets/image.png', import.meta.url).toString();
 import { vipThemes, VipTheme, VipThemeKey, normalizeVipId } from '../constants/vipThemes';
 import api from '../services/api';
 
+const bannerImages = [
+  'https://i.ibb.co/84zLyNTL/istockphoto-1135934992-612x612.jpg',
+  'https://i.ibb.co/Cs4817KP/omega-vs-rolex-khi-cuu-hoang-thach-thuc-tan-vuong.jpg',
+  'https://i.ibb.co/7JD8hGg3/omega-vs-rolex-khi-cuu-hoang-thach-thuc-tan-vuong-1.jpg'
+];
+
 interface VIPLevel {
   id: VipThemeKey;
   name: string;
@@ -68,15 +74,17 @@ export function HomePage({ bannerImage }: HomePageProps) {
         <img src={logoImage} alt="Ashford" className="inline-block h-10 object-contain" />
       </div>
 
-      {/* Banner */}
-      <div className="px-4 pt-4">
-        <div className="rounded-2xl overflow-hidden shadow-lg">
-          <img
-            src={bannerImage}
-            alt="Luxury Product"
-            className="w-full h-40 object-cover"
-          />
-        </div>
+      {/* Banner Images - Vertical Stack */}
+      <div className="px-4 pt-4 space-y-3">
+        {bannerImages.map((img, index) => (
+          <div key={index} className="overflow-hidden shadow-lg">
+            <img
+              src={img}
+              alt={`Banner ${index + 1}`}
+              className="w-full h-40 object-cover"
+            />
+          </div>
+        ))}
       </div>
 
       {/* Membership Levels */}
