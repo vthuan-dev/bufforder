@@ -480,14 +480,7 @@ export function AdminUsersPage() {
                       <Label className="text-xs text-gray-500 mb-1 block">Status</Label>
                       <Select value={formStatus} onValueChange={(v: any) => setFormStatus(v)}>
                         <SelectTrigger className="h-11 bg-gray-50 border-gray-200">
-                          <div className="flex items-center gap-2">
-                            {formStatus === 'Active' ? (
-                              <CheckCircle2 className="w-4 h-4 text-green-500" />
-                            ) : (
-                              <XCircle className="w-4 h-4 text-red-500" />
-                            )}
-                            <SelectValue />
-                          </div>
+                          <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="Active">
