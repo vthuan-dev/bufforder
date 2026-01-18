@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { Send, Smile, Paperclip, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import EmojiPicker, { EmojiClickData, Theme, EmojiStyle } from 'emoji-picker-react';
 import api from "../services/api";
 const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:5000';
 
@@ -27,6 +28,9 @@ export function HelpPage() {
   const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
   const soundEnabledRef = useRef<boolean>(false);
   const isWindowFocusedRef = useRef<boolean>(typeof document !== 'undefined' ? !document.hidden : true);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // ⚡ NO SOCKET HERE - Use events from App.tsx global socket
 
@@ -414,6 +418,28 @@ export function HelpPage() {
     }
   };
 
+  // Emoji picker handlers
+  const handleEmojiClick = (emojiData: EmojiClickData) => {
+    setInputMessage(prev => prev + emojiData.emoji);
+    setShowEmojiPicker(false);
+    inputRef.current?.focus();
+  };
+
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    if (showEmojiPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showEmojiPicker]);
+
   return (
     <div className="flex flex-col bg-gradient-to-b from-purple-50 via-blue-50 to-pink-50" style={{ height: 'calc(100vh - 56px)' }}>
       {/* Header */}
@@ -571,6 +597,7 @@ export function HelpPage() {
 
           <div className="flex-1">
             <input
+              ref={inputRef}
               type="text"
               value={inputMessage}
               onChange={(e) => handleInputChange(e.target.value)}
@@ -580,12 +607,41 @@ export function HelpPage() {
             />
           </div>
 
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <Smile className="w-5 h-5 text-gray-600" />
-          </motion.button>
+          {/* Emoji Picker Button & Popup */}
+          <div className="relative" ref={emojiPickerRef}>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className={`p-2 rounded-full transition-colors ${showEmojiPicker ? 'bg-purple-100 text-purple-600' : 'hover:bg-gray-100 text-gray-600'}`}
+            >
+              <Smile className="w-5 h-5" />
+            </motion.button>
+
+            {/* Emoji Picker Popup */}
+            <AnimatePresence>
+              {showEmojiPicker && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                  className="fixed right-4 z-[9999] shadow-2xl rounded-2xl overflow-hidden"
+                  style={{ bottom: 'calc(56px + 60px + 10px)' }}
+                >
+                  <EmojiPicker
+                    onEmojiClick={handleEmojiClick}
+                    theme={Theme.LIGHT}
+                    emojiStyle={EmojiStyle.NATIVE}
+                    lazyLoadEmojis={false}
+                    width={320}
+                    height={350}
+                    searchPlaceHolder="Search emoji..."
+                    previewConfig={{ showPreview: false }}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
           <motion.button
             whileHover={{ scale: 1.05 }}

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Send, Paperclip, MoreVertical, User, Clock, Trash2, Ban, MessageSquare, X, MapPin } from "lucide-react";
+import { Search, Send, Paperclip, MoreVertical, User, Clock, Trash2, Ban, MessageSquare, X, MapPin, Smile } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import {
@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
+import EmojiPicker, { EmojiClickData, Theme, EmojiStyle } from 'emoji-picker-react';
 import api from "../../services/api";
 import { getAdminSocket } from "./adminSocket";
 import { io, Socket } from "socket.io-client";
@@ -71,6 +72,9 @@ export function AdminChatPage() {
   const typingTimerRef = useRef<number | null>(null);
   const isWindowFocusedRef = useRef<boolean>(typeof document !== 'undefined' ? !document.hidden : true);
   const locationCacheRef = useRef<Record<string, string>>({});
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Fetch location from IP via backend proxy
   const fetchLocationFromIp = async (ip: string) => {
@@ -460,6 +464,28 @@ export function AdminChatPage() {
     setShowQuickReplies(false);
   };
 
+  // Emoji picker handlers
+  const handleEmojiClick = (emojiData: EmojiClickData) => {
+    setMessageInput(prev => prev + emojiData.emoji);
+    setShowEmojiPicker(false);
+    textareaRef.current?.focus();
+  };
+
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    if (showEmojiPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showEmojiPicker]);
+
   // Check block status when thread changes
   useEffect(() => {
     if (selectedThread?.user?.isChatBlocked !== undefined) {
@@ -589,7 +615,7 @@ export function AdminChatPage() {
                     <div className="flex items-center gap-2 text-xs text-gray-400">
                       <span>IP: {selectedThread.userIp}</span>
                       {userLocation && (
-                        <span 
+                        <span
                           className="flex items-center gap-1 cursor-help"
                           title="Data retrieved from ip-api.com and securely processed through our server"
                         >
@@ -601,7 +627,7 @@ export function AdminChatPage() {
                   )}
                 </div>
               </div>
-              
+
               {/* Actions Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -724,6 +750,7 @@ export function AdminChatPage() {
                 <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                 <div className="flex-1">
                   <textarea
+                    ref={textareaRef}
                     value={messageInput}
                     onChange={(e) => {
                       setMessageInput(e.target.value);
@@ -748,6 +775,36 @@ export function AdminChatPage() {
                     className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                   />
                 </div>
+
+                {/* Emoji Picker Button & Popup */}
+                <div className="relative" ref={emojiPickerRef}>
+                  <button
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    className={`p-2 rounded-lg transition-colors ${showEmojiPicker ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}
+                  >
+                    <Smile className="w-5 h-5" />
+                  </button>
+
+                  {/* Emoji Picker Popup */}
+                  {showEmojiPicker && (
+                    <div
+                      className="absolute bottom-full right-0 mb-2 z-[100] shadow-2xl rounded-2xl overflow-hidden"
+                      style={{ animation: 'fadeIn 0.2s ease-out' }}
+                    >
+                      <EmojiPicker
+                        onEmojiClick={handleEmojiClick}
+                        theme={Theme.LIGHT}
+                        emojiStyle={EmojiStyle.NATIVE}
+                        lazyLoadEmojis={false}
+                        width={320}
+                        height={400}
+                        searchPlaceHolder="Search emoji..."
+                        previewConfig={{ showPreview: false }}
+                      />
+                    </div>
+                  )}
+                </div>
+
                 <button
                   onClick={handleSendMessage}
                   className="p-3 bg-blue-600 text-white hover:bg-blue-700 rounded-lg"
