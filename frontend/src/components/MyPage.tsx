@@ -50,6 +50,7 @@ export function MyPage() {
   const [vipTierId, setVipTierId] = useState<string>(DEFAULT_VIP_THEME_KEY);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [bellShake, setBellShake] = useState(false);
 
   // ⚡ Fetch data in parallel, not sequential
   useEffect(() => {
@@ -85,6 +86,10 @@ export function MyPage() {
         { ...newNotify, id: `temp-${Date.now()}`, createdAt: new Date(), isRead: false },
         ...prev
       ].slice(0, 50));
+      
+      // Trigger bell shake animation
+      setBellShake(true);
+      setTimeout(() => setBellShake(false), 1000);
     };
 
     window.addEventListener('notification:new', handleNewNotify);
@@ -195,18 +200,29 @@ export function MyPage() {
             {/* Bell Icon for Notifications */}
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
+              animate={{ 
+                opacity: 1, 
+                scale: 1,
+                rotate: bellShake ? [0, -15, 15, -15, 15, 0] : 0
+              }}
+              transition={{ 
+                delay: 0.2,
+                rotate: { duration: 0.5, ease: "easeInOut" }
+              }}
             >
               <button
                 onClick={() => setShowNotifications(true)}
-                className="p-2 bg-white/20 backdrop-blur-md border border-white/30 rounded-full text-white relative hover:bg-white/30 transition-all active:scale-90"
+                className={`p-2 bg-white/20 backdrop-blur-md border border-white/30 rounded-full text-white relative hover:bg-white/30 transition-all active:scale-90 ${bellShake ? 'ring-2 ring-white/50' : ''}`}
               >
                 <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-white shadow-lg">
+                  <motion.span 
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-white shadow-lg"
+                  >
                     {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
+                  </motion.span>
                 )}
               </button>
             </motion.div>

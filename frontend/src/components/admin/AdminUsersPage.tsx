@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { Dialog, DialogContent } from "../ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "../ui/dialog";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
@@ -73,6 +73,9 @@ export function AdminUsersPage() {
   // Today's stats (read-only)
   const [dailyEarnedSoFar, setDailyEarnedSoFar] = useState<string>('');
   const [dailyOrdersCount, setDailyOrdersCount] = useState<string>('');
+  // Add balance inline state
+  const [showAddBalanceInput, setShowAddBalanceInput] = useState(false);
+  const [addBalanceAmount, setAddBalanceAmount] = useState<string>("");
 
   const mapBackendUser = (u: any): UserRow => ({
     id: u.id || u._id, // Support both Prisma (id) and MongoDB (_id)
@@ -151,7 +154,23 @@ export function AdminUsersPage() {
     setFormBalance(String(user.balance ?? 0));
     setFormStatus(user.status);
     setEditDialogOpen(true);
+    setShowAddBalanceInput(false);
+    setAddBalanceAmount("");
     loadCommissionConfig(user.id);
+  };
+
+  const handleAddBalance = () => {
+    if (!addBalanceAmount || Number(addBalanceAmount) <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+    const currentBalance = Number(formBalance) || 0;
+    const amountToAdd = Number(addBalanceAmount);
+    const newBalance = currentBalance + amountToAdd;
+    setFormBalance(String(newBalance));
+    setShowAddBalanceInput(false);
+    setAddBalanceAmount("");
+    toast.success(`Added $${amountToAdd} to balance`);
   };
   const handleSave = async () => {
     if (!selectedUser) return;
@@ -389,6 +408,7 @@ export function AdminUsersPage() {
       {/* Edit User Dialog - Redesigned */}
       <Dialog open={editDialogOpen} onOpenChange={handleCloseEditDialog}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] p-0 overflow-hidden [&>button]:text-white [&>button]:hover:text-white">
+          <DialogTitle className="sr-only">Edit User</DialogTitle>
           {selectedUser && (
             <>
               {/* Header */}
@@ -460,15 +480,74 @@ export function AdminUsersPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label className="text-xs text-gray-500 mb-1 block">Balance ($)</Label>
-                      <div className="relative">
-                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <Input
-                          type="number"
-                          value={formBalance}
-                          onChange={(e) => setFormBalance(e.target.value)}
-                          className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
-                        />
-                      </div>
+                      {!showAddBalanceInput ? (
+                        <div className="relative flex gap-2">
+                          <div className="relative flex-1">
+                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <Input
+                              type="number"
+                              value={formBalance}
+                              onChange={(e) => setFormBalance(e.target.value)}
+                              className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+                              readOnly
+                            />
+                          </div>
+                          <button
+                            onClick={() => setShowAddBalanceInput(true)}
+                            className="h-11 w-11 flex items-center justify-center bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex-shrink-0"
+                            title="Add balance"
+                          >
+                            <Plus className="w-5 h-5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="bg-blue-50 rounded-lg p-2 border border-blue-200">
+                            <p className="text-xs text-blue-600 mb-1">Current: ${formBalance}</p>
+                            <div className="relative">
+                              <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                              <Input
+                                type="number"
+                                value={addBalanceAmount}
+                                onChange={(e) => setAddBalanceAmount(e.target.value)}
+                                className="pl-8 h-9 text-sm"
+                                placeholder="Amount to add"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleAddBalance();
+                                  } else if (e.key === 'Escape') {
+                                    setShowAddBalanceInput(false);
+                                    setAddBalanceAmount("");
+                                  }
+                                }}
+                              />
+                            </div>
+                            {addBalanceAmount && Number(addBalanceAmount) > 0 && (
+                              <p className="text-xs text-blue-700 mt-1 font-medium">
+                                New: ${(Number(formBalance) + Number(addBalanceAmount)).toFixed(2)}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => {
+                                setShowAddBalanceInput(false);
+                                setAddBalanceAmount("");
+                              }}
+                              className="flex-1 h-8 text-xs border border-gray-200 rounded hover:bg-gray-50"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={handleAddBalance}
+                              className="flex-1 h-8 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                            >
+                              Add
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-gray-500 mb-1 block">Status</Label>
@@ -602,6 +681,7 @@ export function AdminUsersPage() {
       {/* Create User Dialog - Redesigned */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] p-0 overflow-hidden [&>button]:text-white [&>button]:hover:text-white">
+          <DialogTitle className="sr-only">Create New User</DialogTitle>
           {/* Header */}
           <div className="bg-blue-600 px-6 py-5">
             <div className="flex items-center gap-4">

@@ -675,25 +675,78 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
     if (password) data.password = await hashPassword(password);
 
     // Handle balance increase (treat as deposit)
+    let balanceDelta = 0;
     if (balance !== undefined) {
       const newBalance = Number(balance);
       if (newBalance < currentUser.balance) {
         return res.status(400).json({ success: false, message: 'Balance decrease not allowed' });
       }
-      const delta = newBalance - currentUser.balance;
-      if (delta > 0) {
+      balanceDelta = newBalance - currentUser.balance;
+      if (balanceDelta > 0) {
         data.balance = newBalance;
-        data.totalDeposited = currentUser.totalDeposited + delta;
+        data.totalDeposited = currentUser.totalDeposited + balanceDelta;
         const newVipLevel = getVipLevelByAmount(data.totalDeposited);
         if (newVipLevel) data.vipLevel = newVipLevel.id;
       }
     }
 
-    const user = await prisma.user.update({
-      where: { id: req.params.id },
-      data,
-      include: { addresses: true, bankCards: true }
-    });
+    // Use transaction to update user and create deposit request if balance increased
+    let user;
+    let notification;
+    if (balanceDelta > 0) {
+      const result = await prisma.$transaction([
+        prisma.user.update({
+          where: { id: req.params.id },
+          data,
+          include: { addresses: true, bankCards: true }
+        }),
+        prisma.depositRequest.create({
+          data: {
+            userId: req.params.id,
+            amount: balanceDelta,
+            status: 'approved',
+            approvedBy: req.adminId,
+            approvedAt: new Date(),
+            notes: 'Manually added by admin',
+            requestDate: new Date()
+          }
+        }),
+        prisma.notification.create({
+          data: {
+            userId: req.params.id,
+            title: 'Balance Added',
+            message: `Admin has added ${balanceDelta.toLocaleString()} to your account.`,
+            type: 'success'
+          }
+        })
+      ]);
+      user = result[0];
+      notification = result[2];
+
+      // 🔔 Emit notification and balance update to client
+      try {
+        const io = req.app.get('io');
+        if (io) {
+          io.to(`user:${req.params.id}`).emit('notification:new', {
+            id: notification.id,
+            title: 'Balance Added',
+            message: `Admin has added ${balanceDelta.toLocaleString()} to your account.`,
+            type: 'success',
+            createdAt: notification.createdAt
+          });
+          io.to(`user:${req.params.id}`).emit('balance:updated', {
+            balance: user.balance,
+            commission: user.commission || 0
+          });
+        }
+      } catch (e) { console.error('[Socket] Balance update notify error:', e); }
+    } else {
+      user = await prisma.user.update({
+        where: { id: req.params.id },
+        data,
+        include: { addresses: true, bankCards: true }
+      });
+    }
 
     res.json({ success: true, data: { user: excludeFromUser(user) } });
   } catch (error) {
