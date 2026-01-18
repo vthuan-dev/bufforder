@@ -346,13 +346,25 @@ export function OrdersPage() {
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       // Show success toast
-      toast.success('Order placed successfully! 🎉', {
-        description: `Commission: +$${takeRes?.data?.selectedProduct?.commissionAmount?.toFixed(2) || '0.00'}`,
-        duration: 3000,
-      });
+      const commissionEarned = Number(takeRes?.data?.selectedProduct?.commissionAmount || 0);
+      
+      if (commissionEarned === 0 || commissionRate === 0) {
+        toast.warning('Order placed! No commission earned', {
+          description: 'You are VIP 0. Upgrade to VIP 1+ to earn commission!',
+          duration: 5000,
+          action: {
+            label: 'Upgrade VIP',
+            onClick: () => window.location.hash = '#/'
+          }
+        });
+      } else {
+        toast.success('Order placed successfully!', {
+          description: `Commission: +$${commissionEarned.toFixed(2)}`,
+          duration: 3000,
+        });
+      }
 
       // ✅ OPTIMISTIC UPDATE: Update UI immediately from response
-      const commissionEarned = Number(takeRes?.data?.selectedProduct?.commissionAmount || 0);
       const newBalance = Number(takeRes?.data?.newBalance || availableBalance);
       const newCommission = Number(takeRes?.data?.newCommission || dailyCommission);
 
