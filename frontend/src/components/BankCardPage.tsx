@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { ArrowLeft, CreditCard, Plus, Trash2, Check, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import api from "../services/api";
+import { internationalBanks } from "../data/banks";
 
 interface BankCard {
   id: string;
@@ -52,6 +53,40 @@ export function BankCardPage({ onBack }: BankCardPageProps) {
     cardNumber: '',
     holderName: ''
   });
+  const [filteredBanks, setFilteredBanks] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestionRef = React.useRef<HTMLDivElement>(null);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (suggestionRef.current && !suggestionRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleBankNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setNewCard({ ...newCard, bankName: value });
+
+    if (value.trim()) {
+      const filtered = internationalBanks.filter(bank =>
+        bank.toLowerCase().includes(value.toLowerCase())
+      );
+      setFilteredBanks(filtered.slice(0, 5)); // Limit to top 5
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSelectBank = (bankName: string) => {
+    setNewCard({ ...newCard, bankName });
+    setShowSuggestions(false);
+  };
 
   // Fetch saved bank cards
   useEffect(() => {
@@ -172,13 +207,40 @@ export function BankCardPage({ onBack }: BankCardPageProps) {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm text-gray-700 mb-2">Bank Name</label>
-                  <input
-                    type="text"
-                    value={newCard.bankName}
-                    onChange={(e) => setNewCard({ ...newCard, bankName: e.target.value })}
-                    placeholder="e.g. Chase Bank, HSBC, Citibank..."
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  />
+                  <div className="relative" ref={suggestionRef}>
+                    <input
+                      type="text"
+                      value={newCard.bankName}
+                      onChange={handleBankNameChange}
+                      onFocus={() => {
+                        if (newCard.bankName) setShowSuggestions(true);
+                      }}
+                      placeholder="e.g. Chase Bank, HSBC, Citibank..."
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    />
+
+                    {/* Autocomplete Dropdown */}
+                    <AnimatePresence>
+                      {showSuggestions && filteredBanks.length > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="absolute z-50 w-full mt-1 bg-white border border-gray-100 rounded-xl shadow-lg max-h-60 overflow-y-auto"
+                        >
+                          {filteredBanks.map((bank, index) => (
+                            <button
+                              key={index}
+                              onClick={() => handleSelectBank(bank)}
+                              className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors first:rounded-t-xl last:rounded-b-xl"
+                            >
+                              {bank}
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
 
                 <div>
@@ -186,7 +248,11 @@ export function BankCardPage({ onBack }: BankCardPageProps) {
                   <input
                     type="text"
                     value={newCard.cardNumber}
-                    onChange={(e) => setNewCard({ ...newCard, cardNumber: e.target.value })}
+                    onChange={(e) => {
+                      // Chỉ cho phép số
+                      const value = e.target.value.replace(/[^0-9]/g, '');
+                      setNewCard({ ...newCard, cardNumber: value });
+                    }}
                     placeholder="e.g. 1234567890"
                     maxLength={19}
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
@@ -198,7 +264,11 @@ export function BankCardPage({ onBack }: BankCardPageProps) {
                   <input
                     type="text"
                     value={newCard.holderName}
-                    onChange={(e) => setNewCard({ ...newCard, holderName: e.target.value })}
+                    onChange={(e) => {
+                      // Chỉ cho phép chữ và khoảng trắng, tự động viết hoa
+                      const value = e.target.value.replace(/[^a-zA-Z\s]/g, '').toUpperCase();
+                      setNewCard({ ...newCard, holderName: value });
+                    }}
                     placeholder="e.g. NGUYEN VAN A"
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
