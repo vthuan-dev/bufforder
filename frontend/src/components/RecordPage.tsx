@@ -3,6 +3,7 @@ import { PackageOpen } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import api from "../services/api";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { vipThemes, normalizeVipId } from "../constants/vipThemes";
 
 export function RecordPage() {
   const [activeTab, setActiveTab] = useState<'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'>('pending');
@@ -10,6 +11,7 @@ export function RecordPage() {
   const [freezeBalance, setFreezeBalance] = useState(0);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [userVipLevel, setUserVipLevel] = useState<string>('vip-0');
 
   const tabs = [
     { id: 'pending', label: 'Pending' },
@@ -19,12 +21,20 @@ export function RecordPage() {
     { id: 'cancelled', label: 'Cancelled' }
   ] as const;
 
+  // Get VIP theme based on user's VIP level
+  const vipThemeKey = normalizeVipId(userVipLevel);
+  const vipTheme = vipThemes[vipThemeKey];
+
   const loadStats = async () => {
     try {
       const res = await api.userOrderStats();
       if (res.success) {
         setAvailableBalance(res.data.balance || 0);
         setFreezeBalance(res.data.freezeBalance || 0);
+        // Get user VIP level
+        if (res.data.vipLevel) {
+          setUserVipLevel(res.data.vipLevel);
+        }
       }
     } catch {}
   };
@@ -55,23 +65,31 @@ export function RecordPage() {
 
   return (
     <div className="pb-20 bg-white min-h-screen">
-      {/* Header - Soft Blue */}
-      <div className="bg-blue-600 text-white px-6 py-8">
+      {/* Header - Synced with VIP Theme */}
+      <div 
+        className={`${vipTheme.gradient} px-6 py-8 relative overflow-hidden`}
+        style={{
+          backgroundColor: vipTheme.bgColor || undefined,
+          backgroundImage: vipTheme.backgroundPattern || undefined,
+          backgroundSize: vipTheme.backgroundPattern ? '20px 20px' : undefined,
+        }}
+      >
         <motion.h1 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-6 text-lg font-medium"
+          className={`text-center mb-6 text-3xl font-bold relative z-10 ${vipTheme.titleClass}`}
+          style={vipTheme.titleColor ? { color: vipTheme.titleColor } : undefined}
         >
           Order History
         </motion.h1>
         
         {/* Balance Display */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 relative z-10">
           <motion.div 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white rounded-2xl p-4 shadow-lg"
+            className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 shadow-lg"
           >
             <p className="text-gray-500 text-xs mb-1">Available Balance</p>
             <p className="text-green-600 text-2xl font-semibold">${availableBalance.toFixed(2)}</p>
@@ -80,7 +98,7 @@ export function RecordPage() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-white rounded-2xl p-4 shadow-lg"
+            className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 shadow-lg"
           >
             <p className="text-gray-500 text-xs mb-1">Frozen Balance</p>
             <p className="text-red-500 text-2xl font-semibold">${freezeBalance.toFixed(2)}</p>

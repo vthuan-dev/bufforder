@@ -225,7 +225,11 @@ export function MyPage() {
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
             className={`relative overflow-hidden rounded-2xl p-6 shadow-2xl border border-white/20 z-0 ${vipTheme.gradient}`}
-            style={vipTheme.bgColor ? { backgroundColor: vipTheme.bgColor } : undefined}
+            style={{
+              backgroundColor: vipTheme.bgColor || undefined,
+              backgroundImage: vipTheme.backgroundPattern || undefined,
+              backgroundSize: vipTheme.backgroundPattern ? '20px 20px' : undefined,
+            }}
           >
             {/* VIP Background Image - Watermark */}
             {vipTheme.badgeImage && (

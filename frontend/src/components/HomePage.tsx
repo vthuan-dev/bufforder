@@ -123,7 +123,7 @@ export function HomePage({ bannerImage }: HomePageProps) {
 
       {/* Membership Levels */}
       <div className="px-4 pt-5">
-        <h2 className="text-gray-900 mb-4 text-center text-base font-bold tracking-wider uppercase" style={{ letterSpacing: '0.1em' }}>
+        <h2 className="text-gray-900 mb-4 text-center text-xl font-extrabold tracking-wider uppercase" style={{ letterSpacing: '0.15em' }}>
           MEMBERSHIP LEVEL
         </h2>
 
@@ -139,7 +139,11 @@ export function HomePage({ bannerImage }: HomePageProps) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
                 className={`relative overflow-hidden rounded-2xl ${theme.gradient} p-4 ${theme.textColorClass || 'text-white'} shadow-lg`}
-                style={theme.bgColor ? { backgroundColor: theme.bgColor } : undefined}
+                style={{
+                  backgroundColor: theme.bgColor || undefined,
+                  backgroundImage: theme.backgroundPattern || undefined,
+                  backgroundSize: theme.backgroundPattern ? '20px 20px' : undefined,
+                }}
               >
                 {/* VIP Background Image - Watermark */}
                 {hasBadge && (
