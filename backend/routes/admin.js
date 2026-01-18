@@ -674,26 +674,41 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
     if (commissionConfig !== undefined) data.commissionConfig = commissionConfig;
     if (password) data.password = await hashPassword(password);
 
-    // Handle balance increase (treat as deposit)
+    // Handle balance changes (add, set, or subtract)
     let balanceDelta = 0;
+    let balanceChangeType = 'none'; // 'add', 'set', 'subtract', 'none'
+    
     if (balance !== undefined) {
       const newBalance = Number(balance);
-      if (newBalance < currentUser.balance) {
-        return res.status(400).json({ success: false, message: 'Balance decrease not allowed' });
+      const currentBalance = currentUser.balance;
+      
+      // Determine the type of balance change
+      if (newBalance > currentBalance) {
+        balanceChangeType = 'add';
+        balanceDelta = newBalance - currentBalance;
+      } else if (newBalance < currentBalance) {
+        balanceChangeType = 'subtract';
+        balanceDelta = currentBalance - newBalance;
       }
-      balanceDelta = newBalance - currentUser.balance;
-      if (balanceDelta > 0) {
-        data.balance = newBalance;
+      
+      // Always allow balance changes (add, set, or subtract)
+      data.balance = newBalance;
+      
+      // Only update totalDeposited if balance increased (add operation)
+      if (balanceChangeType === 'add') {
         data.totalDeposited = currentUser.totalDeposited + balanceDelta;
         const newVipLevel = getVipLevelByAmount(data.totalDeposited);
         if (newVipLevel) data.vipLevel = newVipLevel.id;
       }
+      // For subtract/set operations, don't change totalDeposited or VIP level
     }
 
-    // Use transaction to update user and create deposit request if balance increased
+    // Use transaction to update user and create appropriate records
     let user;
     let notification;
-    if (balanceDelta > 0) {
+    
+    if (balanceChangeType === 'add') {
+      // Balance increased - create deposit request
       const result = await prisma.$transaction([
         prisma.user.update({
           where: { id: req.params.id },
@@ -740,7 +755,45 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
           });
         }
       } catch (e) { console.error('[Socket] Balance update notify error:', e); }
+    } else if (balanceChangeType === 'subtract') {
+      // Balance decreased - create notification only
+      const result = await prisma.$transaction([
+        prisma.user.update({
+          where: { id: req.params.id },
+          data,
+          include: { addresses: true, bankCards: true }
+        }),
+        prisma.notification.create({
+          data: {
+            userId: req.params.id,
+            title: 'Balance Adjusted',
+            message: `Admin has deducted ${balanceDelta.toLocaleString()} from your account.`,
+            type: 'info'
+          }
+        })
+      ]);
+      user = result[0];
+      notification = result[1];
+
+      // 🔔 Emit notification and balance update to client
+      try {
+        const io = req.app.get('io');
+        if (io) {
+          io.to(`user:${req.params.id}`).emit('notification:new', {
+            id: notification.id,
+            title: 'Balance Adjusted',
+            message: `Admin has deducted ${balanceDelta.toLocaleString()} from your account.`,
+            type: 'info',
+            createdAt: notification.createdAt
+          });
+          io.to(`user:${req.params.id}`).emit('balance:updated', {
+            balance: user.balance,
+            commission: user.commission || 0
+          });
+        }
+      } catch (e) { console.error('[Socket] Balance update notify error:', e); }
     } else {
+      // No balance change or other updates only
       user = await prisma.user.update({
         where: { id: req.params.id },
         data,

@@ -36,6 +36,7 @@ export function OrdersPage() {
   const [progress, setProgress] = useState(0);
   const [commissionRate, setCommissionRate] = useState<number>(0.002); // default 0.2%
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const submittingRef = React.useRef<boolean>(false); // Immediate tracking
   const [lastClientRequestId, setLastClientRequestId] = useState<string | null>(null);
 
   // Products from API
@@ -365,20 +366,30 @@ export function OrdersPage() {
         newCommission: newCommission
       });
 
-      // Update UI: count order grabbed AND completed today
-      setOrdersReceived((prev) => prev + 1);
-      setCompletedToday((prev) => prev + 1); // ✅ Update completed today immediately
+      // Update UI: count order grabbed AND completed today IMMEDIATELY
+      const newOrdersReceived = ordersReceived + 1;
+      const newCompletedToday = completedToday + 1;
+      setOrdersReceived(newOrdersReceived);
+      setCompletedToday(newCompletedToday);
+
+      console.log('[Orders] ✅ Counters updated:', {
+        ordersReceived: newOrdersReceived,
+        completedToday: newCompletedToday
+      });
 
       // Refresh full stats from API to sync everything else (tasks, limits, etc)
       try {
         const stats = await api.userOrderStats();
         if (stats.success) {
-          // Only update these fields, don't overwrite balance/commission we just set
+          // Only update these fields, don't overwrite counters we just incremented
           setTodaysTask(Number(stats.data.totalDailyTasks || 0));
-          setCompletedToday(Number(stats.data.completedToday || 0));
           setTotalOrdersLimit(Number(stats.data.totalDailyTasks || 0));
-          const grabbed = Number(stats.data.ordersGrabbed || 0);
-          setOrdersReceived((prev) => Math.max(prev, grabbed));
+          
+          // Use MAX to ensure we don't go backwards if API is slow
+          const apiCompleted = Number(stats.data.completedToday || 0);
+          const apiGrabbed = Number(stats.data.ordersGrabbed || 0);
+          setCompletedToday((prev) => Math.max(prev, apiCompleted));
+          setOrdersReceived((prev) => Math.max(prev, apiGrabbed));
 
           // Update daily target in case it changed
           const target = Number(stats.data?.dailyTarget || stats.data?.dailyEarnings?.targetTotal || 0);

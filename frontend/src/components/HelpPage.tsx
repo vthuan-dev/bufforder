@@ -45,6 +45,14 @@ export function HelpPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // 🎯 GREETING MESSAGE - Always show at the top (frontend only, not saved to DB)
+  const GREETING_MESSAGE: Message = {
+    id: 'greeting-permanent',
+    text: 'Hello! 👋 Welcome to Ashford Support. How can we help you today?',
+    isUser: false,
+    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages, isTyping]);
@@ -130,6 +138,9 @@ export function HelpPage() {
             isUser: m.senderType === 'user',
             timestamp: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           }));
+          
+          // ❌ REMOVED: Don't add greeting to messages array anymore - it's now permanent in UI
+          
           // For new thread, just set messages (no merge needed)
           setMessages(arr);
           try {
@@ -465,6 +476,41 @@ export function HelpPage() {
       {/* Chat Messages - Scrollable area */}
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
         <div className="space-y-4 max-w-md mx-auto">
+          {/* 🎯 GREETING MESSAGE - Always show first */}
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ type: "spring", stiffness: 200, damping: 20 }}
+            className="flex justify-start items-end gap-2"
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2 }}
+              className="w-8 h-8 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center shadow-lg mb-1"
+            >
+              <span className="text-white text-xs">A</span>
+            </motion.div>
+
+            <div className="flex flex-col items-start max-w-[75%]">
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                className="rounded-3xl px-5 py-3 shadow-lg bg-white text-gray-800 rounded-bl-md border border-gray-100"
+              >
+                <p className="text-sm leading-relaxed">{GREETING_MESSAGE.text}</p>
+              </motion.div>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="text-xs mt-1 px-2 text-gray-500"
+              >
+                {GREETING_MESSAGE.timestamp}
+              </motion.p>
+            </div>
+          </motion.div>
+
+          {/* Regular messages from API/socket */}
           <AnimatePresence>
             {messages.map((message, index) => (
               <motion.div

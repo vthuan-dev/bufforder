@@ -123,7 +123,9 @@ export function HomePage({ bannerImage }: HomePageProps) {
 
       {/* Membership Levels */}
       <div className="px-4 pt-5">
-        <h2 className="text-gray-800 mb-3 text-center text-sm font-semibold">MEMBERSHIP LEVEL</h2>
+        <h2 className="text-gray-900 mb-4 text-center text-base font-bold tracking-wider uppercase" style={{ letterSpacing: '0.1em' }}>
+          MEMBERSHIP LEVEL
+        </h2>
 
         <div className="space-y-3">
           {vipLevels.map((level, index) => {

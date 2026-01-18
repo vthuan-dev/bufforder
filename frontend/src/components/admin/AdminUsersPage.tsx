@@ -76,6 +76,7 @@ export function AdminUsersPage() {
   // Add balance inline state
   const [showAddBalanceInput, setShowAddBalanceInput] = useState(false);
   const [addBalanceAmount, setAddBalanceAmount] = useState<string>("");
+  const [balanceOperation, setBalanceOperation] = useState<'add' | 'set' | 'subtract'>('add');
 
   const mapBackendUser = (u: any): UserRow => ({
     id: u.id || u._id, // Support both Prisma (id) and MongoDB (_id)
@@ -156,6 +157,7 @@ export function AdminUsersPage() {
     setEditDialogOpen(true);
     setShowAddBalanceInput(false);
     setAddBalanceAmount("");
+    setBalanceOperation('add'); // Reset to default operation
     loadCommissionConfig(user.id);
   };
 
@@ -165,12 +167,33 @@ export function AdminUsersPage() {
       return;
     }
     const currentBalance = Number(formBalance) || 0;
-    const amountToAdd = Number(addBalanceAmount);
-    const newBalance = currentBalance + amountToAdd;
+    const amount = Number(addBalanceAmount);
+    let newBalance = currentBalance;
+    let message = '';
+
+    switch (balanceOperation) {
+      case 'add':
+        newBalance = currentBalance + amount;
+        message = `Added $${amount} to balance`;
+        break;
+      case 'set':
+        newBalance = amount;
+        message = `Set balance to $${amount}`;
+        break;
+      case 'subtract':
+        newBalance = Math.max(0, currentBalance - amount); // Prevent negative balance
+        message = `Subtracted $${amount} from balance`;
+        break;
+    }
+
     setFormBalance(String(newBalance));
     setShowAddBalanceInput(false);
     setAddBalanceAmount("");
-    toast.success(`Added $${amountToAdd} to balance`);
+    setBalanceOperation('add'); // Reset to default
+    toast.success(message, {
+      description: '⚠️ Remember to click "Save Changes" to apply!',
+      duration: 5000,
+    });
   };
   const handleSave = async () => {
     if (!selectedUser) return;
@@ -504,6 +527,21 @@ export function AdminUsersPage() {
                         <div className="space-y-2">
                           <div className="bg-blue-50 rounded-lg p-2 border border-blue-200">
                             <p className="text-xs text-blue-600 mb-1">Current: ${formBalance}</p>
+                            
+                            {/* Operation Selector */}
+                            <div className="mb-2">
+                              <Select value={balanceOperation} onValueChange={(v: any) => setBalanceOperation(v)}>
+                                <SelectTrigger className="h-8 text-xs bg-white">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="add">Add to Balance</SelectItem>
+                                  <SelectItem value="set">Set Balance</SelectItem>
+                                  <SelectItem value="subtract">Subtract from Balance</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
                             <div className="relative">
                               <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                               <Input
@@ -511,7 +549,11 @@ export function AdminUsersPage() {
                                 value={addBalanceAmount}
                                 onChange={(e) => setAddBalanceAmount(e.target.value)}
                                 className="pl-8 h-9 text-sm"
-                                placeholder="Amount to add"
+                                placeholder={
+                                  balanceOperation === 'add' ? 'Amount to add' :
+                                  balanceOperation === 'set' ? 'New balance' :
+                                  'Amount to subtract'
+                                }
                                 autoFocus
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') {
@@ -519,13 +561,18 @@ export function AdminUsersPage() {
                                   } else if (e.key === 'Escape') {
                                     setShowAddBalanceInput(false);
                                     setAddBalanceAmount("");
+                                    setBalanceOperation('add');
                                   }
                                 }}
                               />
                             </div>
                             {addBalanceAmount && Number(addBalanceAmount) > 0 && (
                               <p className="text-xs text-blue-700 mt-1 font-medium">
-                                New: ${(Number(formBalance) + Number(addBalanceAmount)).toFixed(2)}
+                                New: ${
+                                  balanceOperation === 'add' ? (Number(formBalance) + Number(addBalanceAmount)).toFixed(2) :
+                                  balanceOperation === 'set' ? Number(addBalanceAmount).toFixed(2) :
+                                  Math.max(0, Number(formBalance) - Number(addBalanceAmount)).toFixed(2)
+                                }
                               </p>
                             )}
                           </div>
@@ -534,6 +581,7 @@ export function AdminUsersPage() {
                               onClick={() => {
                                 setShowAddBalanceInput(false);
                                 setAddBalanceAmount("");
+                                setBalanceOperation('add');
                               }}
                               className="flex-1 h-8 text-xs border border-gray-200 rounded hover:bg-gray-50"
                             >
@@ -543,7 +591,7 @@ export function AdminUsersPage() {
                               onClick={handleAddBalance}
                               className="flex-1 h-8 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
                             >
-                              Add
+                              {balanceOperation === 'add' ? 'Add' : balanceOperation === 'set' ? 'Set' : 'Subtract'}
                             </button>
                           </div>
                         </div>
