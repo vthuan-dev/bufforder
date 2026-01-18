@@ -164,26 +164,11 @@ export function MyPage() {
   }
 
   return (
-    <div className="pb-16 bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30 min-h-screen">
+    <div className="pb-16 bg-white min-h-screen">
       {/* Header with Premium Gradient */}
       <div className="relative overflow-hidden">
         {/* Animated Background Pattern */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600">
-          <motion.div
-            animate={{
-              backgroundPosition: ['0% 0%', '100% 100%'],
-            }}
-            transition={{
-              duration: 20,
-              repeat: Infinity,
-              repeatType: 'reverse'
-            }}
-            className="absolute inset-0 opacity-30"
-            style={{
-              backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(255,255,255,0.3) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(255,255,255,0.3) 0%, transparent 50%)',
-              backgroundSize: '100% 100%',
-            }}
-          />
+        <div className="absolute inset-0 bg-white">
         </div>
 
         <div className="relative px-6 pt-8 pb-20">
@@ -194,8 +179,8 @@ export function MyPage() {
               animate={{ opacity: 1, x: 0 }}
               className="flex items-center gap-2"
             >
-              <Sparkles className="w-5 h-5 text-yellow-300" />
-              <h1 className="text-white drop-shadow-lg font-bold">My Profile</h1>
+              <Sparkles className="w-5 h-5 text-blue-500" />
+              <h1 className="text-gray-800 font-bold">My Profile</h1>
             </motion.div>
 
             {/* Bell Icon for Notifications */}
