@@ -355,6 +355,55 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
           const total = (res?.data?.threads || []).reduce((sum: number, t: any) => sum + (t.unreadForAdmin || 0), 0);
           setChatUnread(total);
 
+          // 💰 Load pending deposit requests as notifications
+          try {
+            const depositRes = await api.adminListDepositRequests({ status: 'pending', page: 1, limit: 50 });
+            const pendingDeposits = (depositRes?.data?.requests || []).map((req: any) => ({
+              id: `deposit-${req.id}`,
+              requestId: req.id,
+              userName: req.user?.fullName || 'Unknown',
+              amount: req.amount,
+              createdAt: new Date(req.requestDate),
+              isRead: false
+            }));
+            
+            // Merge with existing localStorage notifications (avoid duplicates)
+            setDepositNotifications(prev => {
+              const existingIds = new Set(prev.map(n => n.requestId));
+              const newNotifications = pendingDeposits.filter((n: any) => !existingIds.has(n.requestId));
+              const merged = [...newNotifications, ...prev].slice(0, 50);
+              try { localStorage.setItem('admin:depositNotifications', JSON.stringify(merged)); } catch { }
+              return merged;
+            });
+          } catch (e) {
+            console.error('[AdminLayout] Failed to load pending deposits:', e);
+          }
+
+          // 💸 Load pending withdrawal requests as notifications
+          try {
+            const withdrawalRes = await api.adminListWithdrawalRequests({ status: 'pending', page: 1, limit: 50 });
+            const pendingWithdrawals = (withdrawalRes?.data?.requests || []).map((req: any) => ({
+              id: `withdrawal-${req.id}`,
+              requestId: req.id,
+              userName: req.user?.fullName || 'Unknown',
+              amount: req.amount,
+              withdrawalType: req.withdrawalType || 'bank',
+              createdAt: new Date(req.requestDate),
+              isRead: false
+            }));
+            
+            // Merge with existing localStorage notifications (avoid duplicates)
+            setWithdrawalNotifications(prev => {
+              const existingIds = new Set(prev.map(n => n.requestId));
+              const newNotifications = pendingWithdrawals.filter((n: any) => !existingIds.has(n.requestId));
+              const merged = [...newNotifications, ...prev].slice(0, 50);
+              try { localStorage.setItem('admin:withdrawalNotifications', JSON.stringify(merged)); } catch { }
+              return merged;
+            });
+          } catch (e) {
+            console.error('[AdminLayout] Failed to load pending withdrawals:', e);
+          }
+
           // Initialize socket
           const token = localStorage.getItem('adminToken');
           if (token) {
@@ -756,39 +805,39 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <div className="max-h-[350px] overflow-y-auto">
-                    {orderNotifications.length === 0 && depositNotifications.length === 0 ? (
+                    {orderNotifications.length === 0 && depositNotifications.length === 0 && withdrawalNotifications.length === 0 ? (
                       <div className="py-8 text-center text-gray-500 text-sm">
                         No notifications yet
                       </div>
                     ) : (
                       <>
-                        {/* Order Notifications */}
-                        {orderNotifications.length > 0 && (
+                        {/* Deposit Notifications */}
+                        {depositNotifications.length > 0 && (
                           <>
                             <div className="px-2 py-1 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                              Orders ({unreadOrderCount} new)
+                              Deposits ({unreadDepositCount} new)
                             </div>
-                            {orderNotifications.slice(0, 5).map((notification) => (
+                            {depositNotifications.slice(0, 5).map((notification) => (
                               <DropdownMenuItem
                                 key={notification.id}
                                 className="flex flex-col items-start gap-1 py-3 cursor-pointer"
-                                onClick={() => onNavigate('orders')}
+                                onClick={() => onNavigate('deposits')}
                               >
                                 <div className="flex items-center gap-2 w-full">
                                   {!notification.isRead && (
                                     <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />
                                   )}
-                                  <ShoppingBag className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                                  <ArrowDownCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
                                   <span className={`font-medium text-sm ${notification.isRead ? 'text-gray-600' : 'text-gray-900'}`}>
-                                    New Order #{notification.orderNumber}
+                                    New Deposit Request
                                   </span>
                                 </div>
                                 <p className="text-xs text-gray-500 pl-6">
-                                  {notification.userName} - {notification.productName}
+                                  {notification.userName}
                                 </p>
                                 <div className="flex items-center justify-between w-full pl-6">
                                   <span className="text-xs text-green-600 font-medium">
-                                    ${notification.productPrice.toLocaleString()}
+                                    ${notification.amount.toLocaleString()}
                                   </span>
                                   <span className="text-xs text-gray-400">
                                     {formatTimeAgo(notification.createdAt)}
@@ -826,6 +875,43 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
                                 <div className="flex items-center justify-between w-full pl-6">
                                   <span className="text-xs text-orange-600 font-medium lowercase">
                                     ${notification.amount.toLocaleString()} ({notification.withdrawalType})
+                                  </span>
+                                  <span className="text-xs text-gray-400">
+                                    {formatTimeAgo(notification.createdAt)}
+                                  </span>
+                                </div>
+                              </DropdownMenuItem>
+                            ))}
+                          </>
+                        )}
+
+                        {/* Order Notifications */}
+                        {orderNotifications.length > 0 && (
+                          <>
+                            <div className="px-2 py-1 text-xs font-medium text-gray-400 uppercase tracking-wide mt-2">
+                              Orders ({unreadOrderCount} new)
+                            </div>
+                            {orderNotifications.slice(0, 5).map((notification) => (
+                              <DropdownMenuItem
+                                key={notification.id}
+                                className="flex flex-col items-start gap-1 py-3 cursor-pointer"
+                                onClick={() => onNavigate('orders')}
+                              >
+                                <div className="flex items-center gap-2 w-full">
+                                  {!notification.isRead && (
+                                    <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />
+                                  )}
+                                  <ShoppingBag className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                                  <span className={`font-medium text-sm ${notification.isRead ? 'text-gray-600' : 'text-gray-900'}`}>
+                                    New Order #{notification.orderNumber}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-gray-500 pl-6">
+                                  {notification.userName} - {notification.productName}
+                                </p>
+                                <div className="flex items-center justify-between w-full pl-6">
+                                  <span className="text-xs text-green-600 font-medium">
+                                    ${notification.productPrice.toLocaleString()}
                                   </span>
                                   <span className="text-xs text-gray-400">
                                     {formatTimeAgo(notification.createdAt)}

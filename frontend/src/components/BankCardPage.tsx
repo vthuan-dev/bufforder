@@ -112,13 +112,13 @@ export function BankCardPage({ onBack }: BankCardPageProps) {
     }
     setIsLoading(true);
     try {
-      await api.addBankCard({
+      const res = await api.addBankCard({
         bankName: newCard.bankName,
         cardNumber: newCard.cardNumber,
         accountName: newCard.holderName,
         isDefault: cards.length === 0,
       });
-      const res = await api.getBankCards();
+      // Use response data directly instead of making another API call
       const list = (res?.data?.bankCards || []).map((c: any) => ({
         id: c.id,
         bankName: c.bankName,
@@ -132,6 +132,7 @@ export function BankCardPage({ onBack }: BankCardPageProps) {
       setToast({ message: 'Card added successfully!', type: 'success' });
     } catch (e: any) {
       setToast({ message: e?.message || 'Failed to add card', type: 'error' });
+      console.error('Add bank card error:', e);
     } finally {
       setIsLoading(false);
     }
@@ -140,11 +141,20 @@ export function BankCardPage({ onBack }: BankCardPageProps) {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this card?")) return;
     try {
-      await api.deleteBankCard(id);
-      setCards(cards.filter(card => card.id !== id));
+      const res = await api.deleteBankCard(id);
+      // Use response data from backend instead of manual filtering
+      const list = (res?.data?.bankCards || []).map((c: any) => ({
+        id: c.id,
+        bankName: c.bankName,
+        cardNumber: `**** **** **** ${String(c.cardNumber).slice(-4)}`,
+        holderName: c.accountName,
+        isDefault: !!c.isDefault,
+      }));
+      setCards(list);
       setToast({ message: 'Card deleted successfully!', type: 'success' });
     } catch (e: any) {
       setToast({ message: e?.message || 'Failed to delete card', type: 'error' });
+      console.error('Delete bank card error:', e);
     }
   };
 

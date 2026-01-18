@@ -298,16 +298,18 @@ export default {
     return request('/vip/bank-cards', { headers });
   },
   addBankCard({ bankName, cardNumber, accountName, isDefault }: { bankName: string; cardNumber: string; accountName: string; isDefault?: boolean; }, token?: string) {
+    this.clearCache(); // Clear cache before mutation
     const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (t) headers.Authorization = `Bearer ${t}`;
-    return request('/vip/bank-cards', { method: 'POST', headers, body: JSON.stringify({ bankName, cardNumber, accountName, isDefault }) });
+    return request('/vip/bank-cards', { method: 'POST', headers, body: JSON.stringify({ bankName, cardNumber, accountName, isDefault }), useCache: false });
   },
   deleteBankCard(id: string, token?: string) {
+    this.clearCache(); // Clear cache before mutation
     const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
     const headers: Record<string, string> = {};
     if (t) headers.Authorization = `Bearer ${t}`;
-    return request(`/vip/bank-cards/${id}`, { method: 'DELETE', headers });
+    return request(`/vip/bank-cards/${id}`, { method: 'DELETE', headers, useCache: false });
   },
   withdrawal(payload: any) {
     const t = payload.token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
