@@ -127,7 +127,7 @@ export function MyPage() {
   // ⚡ Memoize computed values
   const normalizedVipKey = useMemo(() => normalizeVipId(vipTierId), [vipTierId]);
   const vipTheme = useMemo(() => vipThemes[normalizedVipKey], [normalizedVipKey]);
-  const vipDisplayLabel = vipLabel || vipTheme.label;
+  const vipDisplayLabel = vipTheme.label; // Always use English label from theme
   const vipSubtitle = vipTheme.subtitle;
 
   const handleMenuClick = (id: PageView) => {
@@ -177,10 +177,15 @@ export function MyPage() {
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="flex items-center gap-2"
+              className="flex items-center gap-3"
             >
-              <Sparkles className="w-5 h-5 text-blue-500" />
-              <h1 className="text-gray-800 font-bold">My Profile</h1>
+              <div className="w-10 h-10 bg-gradient-to-br from-gray-900 to-gray-700 rounded-xl flex items-center justify-center shadow-md">
+                <Sparkles className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-gray-900 font-bold text-lg tracking-tight">My Profile</h1>
+                <p className="text-gray-400 text-xs">Manage your account</p>
+              </div>
             </motion.div>
 
             {/* Bell Icon for Notifications */}
@@ -198,7 +203,7 @@ export function MyPage() {
             >
               <button
                 onClick={() => setShowNotifications(true)}
-                className={`p-2 bg-white/20 backdrop-blur-md border border-white/30 rounded-full text-white relative hover:bg-white/30 transition-all active:scale-90 ${bellShake ? 'ring-2 ring-white/50' : ''}`}
+                className={`p-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl text-gray-700 relative transition-all active:scale-95 ${bellShake ? 'ring-2 ring-gray-300' : ''}`}
               >
                 <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
@@ -406,7 +411,7 @@ export function MyPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowNotifications(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/70 backdrop-blur-md"
             />
             <motion.div
               initial={{ y: "100%" }}
