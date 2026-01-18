@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Send, Paperclip, MoreVertical, User, Clock, Trash2, Ban, MessageSquare, X, MapPin, Smile } from "lucide-react";
+import { Search, Send, Paperclip, MoreVertical, User, Clock, Trash2, Ban, MessageSquare, X, MapPin, Smile, ArrowLeft } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import {
@@ -75,6 +75,7 @@ export function AdminChatPage() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [mobileShowChat, setMobileShowChat] = useState(false);
 
   // Fetch location from IP via backend proxy
   const fetchLocationFromIp = async (ip: string) => {
@@ -521,8 +522,8 @@ export function AdminChatPage() {
 
       {/* Chat Interface */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm flex-1 flex min-h-0 h-full overflow-hidden">
-        {/* Threads List */}
-        <div className="w-full md:w-80 border-r border-gray-100 flex flex-col overflow-hidden">
+        {/* Threads List - Hidden on mobile when chat is open */}
+        <div className={`w-full md:w-80 border-r border-gray-100 flex flex-col overflow-hidden ${mobileShowChat ? 'hidden md:flex' : 'flex'}`}>
           {/* Search */}
           <div className="p-4 border-b border-gray-100">
             <div className="relative">
@@ -543,7 +544,10 @@ export function AdminChatPage() {
               {filteredThreads.map((thread) => (
                 <button
                   key={thread.id}
-                  onClick={() => setSelectedThread(thread)}
+                  onClick={() => {
+                    setSelectedThread(thread);
+                    setMobileShowChat(true);
+                  }}
                   className={`w-full p-3 rounded-lg text-left transition-colors mb-1 ${selectedThread?.id === thread.id
                     ? "bg-blue-50 border border-blue-200"
                     : "hover:bg-gray-50 border border-transparent"
@@ -586,12 +590,19 @@ export function AdminChatPage() {
           </div>
         </div>
 
-        {/* Chat Area */}
+        {/* Chat Area - Full width on mobile, hidden when no chat selected */}
         {selectedThread ? (
-          <div className="flex-1 flex flex-col overflow-hidden relative min-h-0 h-full">
+          <div className={`flex-1 flex flex-col overflow-hidden relative min-h-0 h-full ${mobileShowChat ? 'flex' : 'hidden md:flex'}`}>
             {/* Chat Header */}
             <div className="p-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10 flex-shrink-0">
               <div className="flex items-center gap-3">
+                {/* Back button for mobile */}
+                <button
+                  onClick={() => setMobileShowChat(false)}
+                  className="md:hidden p-2 -ml-2 hover:bg-gray-100 rounded-lg"
+                >
+                  <ArrowLeft className="w-5 h-5 text-gray-600" />
+                </button>
                 <div className="relative">
                   <Avatar className="w-10 h-10">
                     <AvatarImage src={selectedThread.user.avatar} />
