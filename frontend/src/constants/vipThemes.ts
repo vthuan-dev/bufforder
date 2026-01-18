@@ -21,6 +21,12 @@ export interface VipTheme {
   badgeSize?: string;
   watermarkOpacity?: string;
   textColorClass?: string;
+  // Actual color values for inline styles (production-safe)
+  titleColor?: string;
+  subtitleColor?: string;
+  idColor?: string;
+  detailLabelColor?: string;
+  detailValueColor?: string;
   titleClass: string;
   subtitleClass: string;
   detailContainerClass: string;
@@ -41,6 +47,11 @@ export const vipThemes: Record<VipThemeKey, VipTheme> = {
     gradient: 'bg-[#11141d]',
     bgColor: '#11141d',
     badgeImage: 'https://img.freepik.com/premium-photo/vip-vip-sign-logo-text-sophisticated-blend-busines-card-banner-background-encapsulating-exclusivity-luxury-elite-distinguished-corporate-identity_771426-46891.jpg?w=360',
+    titleColor: '#fcd34d',
+    subtitleColor: '#fef3c7',
+    idColor: '#fde68a',
+    detailLabelColor: '#fde68a',
+    detailValueColor: '#fcd34d',
     titleClass: 'text-yellow-300 drop-shadow-lg tracking-wide',
     subtitleClass: 'text-yellow-100',
     detailContainerClass: 'text-yellow-50',

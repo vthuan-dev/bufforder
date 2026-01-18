@@ -276,7 +276,8 @@ export function MyPage() {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.1 }}
-                      className={`text-xl font-semibold ${vipTheme.titleClass}`}
+                      className="text-xl font-semibold drop-shadow-lg tracking-wide"
+                      style={{ color: vipTheme.titleColor || '#fcd34d' }}
                     >
                       {vipDisplayLabel}
                     </motion.h2>
@@ -297,7 +298,8 @@ export function MyPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.1 }}
-                    className={`text-sm ${vipTheme.subtitleClass}`}
+                    className="text-sm"
+                    style={{ color: vipTheme.subtitleColor || '#fef3c7' }}
                   >
                     {vipSubtitle}
                   </motion.p>
@@ -305,7 +307,8 @@ export function MyPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.1 }}
-                    className={`text-xs font-medium ${vipTheme.idClass}`}
+                    className="text-xs font-medium"
+                    style={{ color: vipTheme.idColor || '#fde68a' }}
                   >
                     ID: {userId}
                   </motion.p>
@@ -321,8 +324,8 @@ export function MyPage() {
                   className="p-5 relative"
                 >
                   <div className="relative">
-                    <p className={`text-xs mb-2 font-medium ${vipTheme.detailLabelClass}`}>Available Balance</p>
-                    <p className={`text-2xl drop-shadow-md ${vipTheme.detailValueClass}`}>${availableBalance.toFixed(2)}</p>
+                    <p className="text-xs mb-2 font-medium" style={{ color: vipTheme.detailLabelColor || '#fde68a' }}>Available Balance</p>
+                    <p className="text-2xl drop-shadow-md font-medium" style={{ color: vipTheme.detailValueColor || '#fcd34d' }}>${availableBalance.toFixed(2)}</p>
                   </div>
                 </motion.div>
 
@@ -334,8 +337,8 @@ export function MyPage() {
                   className="p-5 relative"
                 >
                   <div className="relative">
-                    <p className={`text-xs mb-2 font-medium ${vipTheme.detailLabelClass}`}>Freeze Balance</p>
-                    <p className={`text-2xl drop-shadow-md ${vipTheme.detailValueClass}`}>${freezeBalance.toFixed(2)}</p>
+                    <p className="text-xs mb-2 font-medium" style={{ color: vipTheme.detailLabelColor || '#fde68a' }}>Freeze Balance</p>
+                    <p className="text-2xl drop-shadow-md font-medium" style={{ color: vipTheme.detailValueColor || '#fcd34d' }}>${freezeBalance.toFixed(2)}</p>
                   </div>
                 </motion.div>
               </div>
