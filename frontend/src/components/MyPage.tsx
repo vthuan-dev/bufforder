@@ -164,9 +164,9 @@ export function MyPage() {
   }
 
   return (
-    <div className="pb-16 bg-white min-h-screen">
+    <div className="pb-16 bg-white min-h-screen relative">
       {/* Header with Premium Gradient */}
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-hidden z-0">
         {/* Animated Background Pattern */}
         <div className="absolute inset-0 bg-white">
         </div>
@@ -224,7 +224,7 @@ export function MyPage() {
             initial={{ y: 10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className={`relative overflow-hidden rounded-2xl p-6 shadow-2xl border border-white/20 ${vipTheme.gradient}`}
+            className={`relative overflow-hidden rounded-2xl p-6 shadow-2xl border border-white/20 z-0 ${vipTheme.gradient}`}
             style={vipTheme.bgColor ? { backgroundColor: vipTheme.bgColor } : undefined}
           >
             {/* VIP Background Image - Watermark */}
@@ -345,7 +345,7 @@ export function MyPage() {
       </div>
 
       {/* Menu Items with Modern Design */}
-      <div className="px-6 -mt-12">
+      <div className="px-6 -mt-12 relative z-0">
         <motion.div
           initial={{ y: 10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
