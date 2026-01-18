@@ -30,24 +30,24 @@ export function HomePage({ bannerImage }: HomePageProps) {
         const levels = (res?.data?.levels || [])
           .filter((lvl: any) => String(lvl.id || lvl.name).toLowerCase() !== 'vip-0' && String(lvl.id || lvl.name).toLowerCase() !== 'vip0')
           .map((lvl: any) => {
-          const key = normalizeVipId(lvl.id || lvl.name);
-          const theme = vipThemes[key];
-          return {
-            id: key,
-            name: theme.label,
-            subtitle: theme.subtitle,
-            amountRequired: `$${Number(lvl.amountRequired || 0).toLocaleString()}`,
-            commission: `${Number(lvl.commissionRate || 0)}%`,
-            orders: Number(lvl.numberOfOrders || 0),
-            theme,
-          } as VIPLevel;
-        });
+            const key = normalizeVipId(lvl.id || lvl.name);
+            const theme = vipThemes[key];
+            return {
+              id: key,
+              name: theme.label,
+              subtitle: theme.subtitle,
+              amountRequired: `$${Number(lvl.amountRequired || 0).toLocaleString()}`,
+              commission: `${(Number(lvl.commissionRate || 0) * 100).toFixed(1)}%`,
+              orders: Number(lvl.numberOfOrders || 0),
+              theme,
+            } as VIPLevel;
+          });
         // Keep display order high -> low
         levels.sort((a: any, b: any) => b.orders - a.orders);
         setVipLevels(levels);
       } catch {
         // Fallback minimal when API fails (avoid blank screen)
-        const fallbackKeys: VipThemeKey[] = ['royal','svip','vip7','vip6','vip5','vip4','vip3','vip2','vip1'];
+        const fallbackKeys: VipThemeKey[] = ['royal', 'svip', 'vip7', 'vip6', 'vip5', 'vip4', 'vip3', 'vip2', 'vip1'];
         setVipLevels(fallbackKeys.map((id) => ({
           id,
           name: vipThemes[id].label,
@@ -71,9 +71,9 @@ export function HomePage({ bannerImage }: HomePageProps) {
       {/* Banner */}
       <div className="px-4 pt-4">
         <div className="rounded-2xl overflow-hidden shadow-lg">
-          <img 
-            src={bannerImage} 
-            alt="Luxury Product" 
+          <img
+            src={bannerImage}
+            alt="Luxury Product"
             className="w-full h-40 object-cover"
           />
         </div>
@@ -82,7 +82,7 @@ export function HomePage({ bannerImage }: HomePageProps) {
       {/* Membership Levels */}
       <div className="px-4 pt-5">
         <h2 className="text-gray-800 mb-3 text-center text-sm font-semibold">MEMBERSHIP LEVEL</h2>
-        
+
         <div className="space-y-3">
           {vipLevels.map((level, index) => {
             const theme = level.theme;
@@ -99,9 +99,9 @@ export function HomePage({ bannerImage }: HomePageProps) {
                 {/* VIP Background Image - Watermark */}
                 {hasBadge && (
                   <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-10 pointer-events-none">
-                    <ImageWithFallback 
-                      src={theme.badgeImage!} 
-                      alt={`${level.name} Background`} 
+                    <ImageWithFallback
+                      src={theme.badgeImage!}
+                      alt={`${level.name} Background`}
                       className="w-28 h-28 object-contain"
                     />
                   </div>
@@ -117,9 +117,9 @@ export function HomePage({ bannerImage }: HomePageProps) {
                   {hasBadge ? (
                     <div className="inline-flex items-center">
                       <div className="w-12 h-14 flex items-center justify-center">
-                        <ImageWithFallback 
-                          src={theme.badgeImage!} 
-                          alt={`${level.name} Badge`} 
+                        <ImageWithFallback
+                          src={theme.badgeImage!}
+                          alt={`${level.name} Badge`}
                           className="w-full h-full object-contain drop-shadow-2xl"
                         />
                       </div>

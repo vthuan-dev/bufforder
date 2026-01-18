@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "motion/react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { toast } from "sonner";
 import api from "../services/api";
-import { normalizeVipId, VipThemeKey } from "../constants/vipThemes";
 const imgEarned = new URL("../assets/orders/Earned.png", import.meta.url).toString();
 const imgAvailable = new URL("../assets/orders/Available.png", import.meta.url).toString();
 const imgToday = new URL("../assets/orders/Today.png", import.meta.url).toString();
@@ -114,29 +113,14 @@ export function OrdersPage() {
           // Get daily target from VIP level or custom config
           const target = Number(stats.data?.dailyTarget || stats.data?.dailyEarnings?.targetTotal || 0);
           setDailyTarget(target);
-        }
-      } catch { }
 
-      // Fetch VIP status to determine commission rate
-      try {
-        const vs = await api.vipStatus();
-        const currentLevel = vs?.data?.currentLevel;
-        const vipKey = normalizeVipId(currentLevel?.id || currentLevel?.name || currentLevel?.label);
-        // VIP commission rates (matching backend vipLevels.js)
-        const vipCommissionRates: Record<VipThemeKey, number> = {
-          royal: 0.025,  // 2.5% → thực nhận 2.25%
-          ssvip: 0.022,  // Extra level? Keep as is or sync with table
-          svip: 0.02,    // 2.0% → thực nhận 1.80%
-          vip7: 0.018,   // 1.8% → thực nhận 1.62%
-          vip6: 0.015,   // 1.5% → thực nhận 1.35%
-          vip5: 0.012,   // 1.2% → thực nhận 1.08%
-          vip4: 0.009,   // 0.9% → thực nhận 0.81%
-          vip3: 0.007,   // 0.7% → thực nhận 0.63%
-          vip2: 0.006,   // 0.6% → thực nhận 0.54%
-          vip1: 0.005,   // 0.5% → thực nhận 0.45%
-          vip0: 0,
-        };
-        setCommissionRate(vipCommissionRates[vipKey] ?? 0);
+          // ✅ Use commission rate from API (resolves from user's commissionConfig or VIP level)
+          // This ensures admin's custom config is applied correctly
+          const apiCommissionRate = Number(stats.data?.commissionRate || 0);
+          if (apiCommissionRate > 0) {
+            setCommissionRate(apiCommissionRate);
+          }
+        }
       } catch { }
     })();
   }, []);

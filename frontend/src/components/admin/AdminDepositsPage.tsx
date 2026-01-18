@@ -120,6 +120,13 @@ export function AdminDepositsPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={loadData}
+            disabled={loading}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+          >
+            {loading ? 'Loading...' : 'Refresh'}
+          </button>
           <Badge variant="secondary" className="bg-orange-100 text-orange-700 px-4 py-2">
             <Clock className="w-4 h-4 mr-2" />
             {pendingCount} Pending
@@ -220,7 +227,7 @@ export function AdminDepositsPage() {
                           </button>
                         </>
                       ) : (
-                        <button 
+                        <button
                           onClick={() => handleViewDetails(deposit)}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
                           title="View Details"

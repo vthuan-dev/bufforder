@@ -11,14 +11,6 @@ interface BankCard {
   isDefault: boolean;
 }
 
-interface SepayBank {
-  name: string;
-  code: string;
-  bin: string;
-  short_name: string;
-  supported: boolean;
-}
-
 interface BankCardPageProps {
   onBack: () => void;
 }
@@ -61,26 +53,6 @@ export function BankCardPage({ onBack }: BankCardPageProps) {
     holderName: ''
   });
 
-  // Bank list from SePay
-  const [bankList, setBankList] = useState<SepayBank[]>([]);
-  const [bankSearchQuery, setBankSearchQuery] = useState('');
-  const [showBankDropdown, setShowBankDropdown] = useState(false);
-
-  // Fetch bank list from SePay on mount
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch('https://qr.sepay.vn/banks.json');
-        const data = await res.json();
-        // Filter to only supported banks for better UX
-        const banks = (data?.data || []).filter((b: SepayBank) => b.supported);
-        setBankList(banks);
-      } catch (e) {
-        console.error('Failed to fetch bank list:', e);
-      }
-    })();
-  }, []);
-
   // Fetch saved bank cards
   useEffect(() => {
     (async () => {
@@ -97,12 +69,6 @@ export function BankCardPage({ onBack }: BankCardPageProps) {
       } catch { }
     })();
   }, []);
-
-  // Filtered bank list based on search query
-  const filteredBanks = bankList.filter(bank =>
-    bank.short_name.toLowerCase().includes(bankSearchQuery.toLowerCase()) ||
-    bank.name.toLowerCase().includes(bankSearchQuery.toLowerCase())
-  );
 
   const handleAddCard = async () => {
     if (!newCard.bankName || !newCard.cardNumber || !newCard.holderName) {
@@ -127,7 +93,6 @@ export function BankCardPage({ onBack }: BankCardPageProps) {
       }));
       setCards(list);
       setNewCard({ bankName: '', cardNumber: '', holderName: '' });
-      setBankSearchQuery(''); // Reset bank search
       setShowAddForm(false);
       setToast({ message: 'Card added successfully!', type: 'success' });
     } catch (e: any) {
@@ -205,40 +170,15 @@ export function BankCardPage({ onBack }: BankCardPageProps) {
               <h3 className="text-gray-800 mb-5 text-base">New Bank Card</h3>
 
               <div className="space-y-4">
-                <div className="relative">
+                <div>
                   <label className="block text-sm text-gray-700 mb-2">Bank Name</label>
                   <input
                     type="text"
-                    value={bankSearchQuery || newCard.bankName}
-                    onChange={(e) => {
-                      setBankSearchQuery(e.target.value);
-                      setNewCard({ ...newCard, bankName: '' }); // Clear selection when typing
-                      setShowBankDropdown(true);
-                    }}
-                    onFocus={() => setShowBankDropdown(true)}
-                    placeholder="Search bank..."
+                    value={newCard.bankName}
+                    onChange={(e) => setNewCard({ ...newCard, bankName: e.target.value })}
+                    placeholder="e.g. Chase Bank, HSBC, Citibank..."
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
-                  {/* Bank Dropdown */}
-                  {showBankDropdown && filteredBanks.length > 0 && (
-                    <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                      {filteredBanks.map((bank) => (
-                        <button
-                          key={bank.bin}
-                          type="button"
-                          onClick={() => {
-                            setNewCard({ ...newCard, bankName: bank.short_name });
-                            setBankSearchQuery(bank.short_name);
-                            setShowBankDropdown(false);
-                          }}
-                          className="w-full px-4 py-2.5 text-left text-sm hover:bg-blue-50 flex items-center gap-2 border-b border-gray-100 last:border-0"
-                        >
-                          <span className="font-medium text-gray-800">{bank.short_name}</span>
-                          <span className="text-gray-400 text-xs truncate">({bank.name})</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
 
                 <div>

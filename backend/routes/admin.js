@@ -716,7 +716,7 @@ router.post('/users/:id/topup', verifyAdminToken, async (req, res) => {
     const newTotalDeposited = user.totalDeposited + add;
     const newVipLevel = getVipLevelByAmount(newTotalDeposited);
 
-    const [updatedUser, depositRequest] = await prisma.$transaction([
+    const [updatedUser, depositRequest, notification] = await prisma.$transaction([
       prisma.user.update({
         where: { id: user.id },
         data: {
@@ -734,8 +734,34 @@ router.post('/users/:id/topup', verifyAdminToken, async (req, res) => {
           approvedAt: new Date(),
           notes: 'Admin top up'
         }
+      }),
+      prisma.notification.create({
+        data: {
+          userId: user.id,
+          title: 'Deposit Received',
+          message: `You have received a deposit of $${add.toLocaleString()}.`,
+          type: 'success'
+        }
       })
     ]);
+
+    // 🔔 Emit notification and balance update to client
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user:${user.id}`).emit('notification:new', {
+          id: notification.id,
+          title: 'Deposit Received',
+          message: `You have received a deposit of $${add.toLocaleString()}.`,
+          type: 'success',
+          createdAt: notification.createdAt
+        });
+        io.to(`user:${user.id}`).emit('balance:updated', {
+          balance: updatedUser.balance,
+          commission: updatedUser.commission || 0
+        });
+      }
+    } catch (e) { console.error('[Socket] Topup notify error:', e); }
 
     res.json({
       success: true,

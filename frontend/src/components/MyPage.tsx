@@ -416,7 +416,7 @@ export function MyPage() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="relative w-full max-w-md bg-white rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.2)] max-h-[90vh] flex flex-col overflow-hidden"
+              className="relative w-full max-w-md bg-white rounded-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.2)] max-h-[90vh] flex flex-col overflow-hidden"
             >
               {/* Drawer Handle */}
               <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto my-4 flex-shrink-0" />
