@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Crown, Lock, TrendingUp, Users, Award, Star, Zap, Gift } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 const logoImage = new URL('../assets/image.png', import.meta.url).toString();
+const videoAds = new URL('../assets/video/ads.mp4', import.meta.url).toString();
 import { vipThemes, VipTheme, VipThemeKey, normalizeVipId } from '../constants/vipThemes';
 import api from '../services/api';
 
@@ -28,6 +29,16 @@ interface HomePageProps {
 
 export function HomePage({ bannerImage }: HomePageProps) {
   const [vipLevels, setVipLevels] = useState<VIPLevel[]>([]);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    // Force video to play
+    if (videoRef.current) {
+      videoRef.current.play().catch(err => {
+        console.log('Video autoplay failed:', err);
+      });
+    }
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -72,6 +83,27 @@ export function HomePage({ bannerImage }: HomePageProps) {
       {/* Logo */}
       <div className="bg-gray-100 py-4 px-6 text-center">
         <img src={logoImage} alt="Ashford" className="inline-block h-10 object-contain" />
+      </div>
+
+      {/* Video Advertisement */}
+      <div className="px-4 pt-4">
+        <div className="overflow-hidden shadow-lg">
+          <video
+            ref={videoRef}
+            src={videoAds}
+            autoPlay
+            loop
+            muted
+            playsInline
+            disablePictureInPicture
+            controlsList="nodownload nofullscreen noremoteplayback"
+            className="w-full h-48 object-cover"
+            style={{ pointerEvents: 'none' }}
+            onLoadedData={() => {
+              videoRef.current?.play();
+            }}
+          />
+        </div>
       </div>
 
       {/* Banner Images - Vertical Stack */}
