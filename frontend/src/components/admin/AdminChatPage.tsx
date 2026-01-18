@@ -288,7 +288,13 @@ export function AdminChatPage() {
         }
         if (!currentId || String(msg.threadId) !== String(currentId)) return;
         const img = msg.imageUrl ? (String(msg.imageUrl).startsWith('/') ? `${API_BASE}${msg.imageUrl}` : msg.imageUrl) : undefined;
-        setMessages(prev => [...prev, { id: Date.now(), sender: msg.senderType === 'admin' ? 'admin' : 'user', text: msg.text || '', imageUrl: img, timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), isRead: true }]);
+        const msgId = msg.id || msg._id || Date.now();
+        // Prevent duplicate messages by checking if message ID already exists
+        setMessages(prev => {
+          const exists = prev.some(m => String(m.id) === String(msgId));
+          if (exists) return prev;
+          return [...prev, { id: msgId, sender: msg.senderType === 'admin' ? 'admin' : 'user', text: msg.text || '', imageUrl: img, timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), isRead: true }];
+        });
       });
       s.on('chat:typing', (evt: any) => {
         if (!selectedThreadIdRef.current || String(evt?.threadId) !== String(selectedThreadIdRef.current)) return;
@@ -561,13 +567,8 @@ export function AdminChatPage() {
                           {thread.user.name.split(" ").map((n) => n[0]).join("")}
                         </AvatarFallback>
                       </Avatar>
-                      {thread.status === "online" ? (
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
-                      ) : (
-                        <div className="absolute bottom-0 right-0 text-[10px] text-gray-500 bg-white/80 px-1 rounded">
-                          {thread.lastSeenAt ? new Date(thread.lastSeenAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-                        </div>
-                      )}
+                      {/* Online = green dot, Offline = gray dot */}
+                      <div className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-white rounded-full ${thread.status === "online" ? 'bg-green-500' : 'bg-gray-400'}`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between mb-1">
@@ -576,7 +577,15 @@ export function AdminChatPage() {
                           {thread.timestamp}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600 truncate">{thread.lastMessage}</p>
+                      <p className="text-sm text-gray-600 truncate">
+                        {thread.lastMessage === '[image]' ? '📷 Sent an image' : thread.lastMessage}
+                      </p>
+                      {/* Last seen time for offline users */}
+                      {thread.status !== "online" && thread.lastSeenAt && (
+                        <p className="text-[10px] text-gray-400 mt-0.5">
+                          Last seen: {new Date(thread.lastSeenAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      )}
                     </div>
                     {thread.unread > 0 && (
                       <Badge variant="secondary" className="bg-red-500 text-white text-xs ml-2">
@@ -666,7 +675,7 @@ export function AdminChatPage() {
 
             {/* Quick Replies Panel */}
             {showQuickReplies && (
-              <div className="absolute top-16 right-4 z-20 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-72">
+              <div className="absolute top-16 right-4 z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-72">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-700">Quick Replies</span>
                   <button onClick={() => setShowQuickReplies(false)} className="p-1 hover:bg-gray-100 rounded">
