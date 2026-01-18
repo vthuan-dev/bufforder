@@ -142,10 +142,13 @@ export function HomePage({ bannerImage }: HomePageProps) {
                 {/* VIP Background Image - Watermark */}
                 {hasBadge && (
                   <div className={`absolute right-0 top-1/2 -translate-y-1/2 ${theme.watermarkOpacity || 'opacity-60'} pointer-events-none`}>
-                    <ImageWithFallback
+                    <img
                       src={theme.badgeImage!}
                       alt={`${level.name} Background`}
                       className="w-36 h-36 object-contain brightness-125 contrast-110 rounded-2xl"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
                     />
                   </div>
                 )}
@@ -160,10 +163,13 @@ export function HomePage({ bannerImage }: HomePageProps) {
                   {hasBadge ? (
                     <div className="inline-flex items-center">
                       <div className={`${theme.badgeSize || 'w-12 h-14'} flex items-center justify-center`}>
-                        <ImageWithFallback
+                        <img
                           src={theme.badgeImage!}
                           alt={`${level.name} Badge`}
                           className="w-full h-full object-contain drop-shadow-2xl rounded-xl"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
                         />
                       </div>
                     </div>

@@ -13,7 +13,8 @@ import {
   Bell,
   X,
   Trash2,
-  CheckCheck
+  CheckCheck,
+  Lock
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import api from "../services/api";
@@ -233,21 +234,28 @@ export function MyPage() {
             initial={{ y: 10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className={`relative overflow-hidden rounded-[2rem] p-6 shadow-2xl border border-white/20 ${vipTheme.gradient}`}
+            className={`relative overflow-hidden rounded-2xl p-6 shadow-2xl border border-white/20 ${vipTheme.gradient}`}
+            style={vipTheme.bgColor ? { backgroundColor: vipTheme.bgColor } : undefined}
           >
-            <div className="absolute inset-0 bg-white/10 mix-blend-overlay" />
-
+            {/* VIP Background Image - Watermark */}
             {vipTheme.badgeImage && (
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-12 pointer-events-none">
-                <ImageWithFallback
+              <div className={`absolute right-0 top-1/2 -translate-y-1/2 ${vipTheme.watermarkOpacity || 'opacity-60'} pointer-events-none`}>
+                <img
                   src={vipTheme.badgeImage}
                   alt={`${vipTheme.label} Background`}
-                  className="w-36 h-36 object-contain"
+                  className="w-36 h-36 object-contain brightness-125 contrast-110 rounded-2xl"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
                 />
               </div>
             )}
-            <div className="absolute -top-24 -right-24 w-52 h-52 bg-white/20 rounded-full blur-3xl opacity-60" />
-            <div className="relative">
+
+            {/* Lock Icon */}
+            <div className={`absolute top-3 right-3 p-1.5 ${vipTheme.chipBgClass} rounded-full`}>
+              <Lock className="w-4 h-4" />
+            </div>
+            <div className="relative z-10">
               <div className="flex items-center gap-4 mb-6">
                 <div className="relative">
                   <motion.div
@@ -283,21 +291,17 @@ export function MyPage() {
                       {vipDisplayLabel}
                     </motion.h2>
                     {vipTheme.badgeImage && (
-                      <div className="w-10 h-12 flex items-center justify-center">
-                        <ImageWithFallback
+                      <div className={`${vipTheme.badgeSize || 'w-10 h-12'} flex items-center justify-center`}>
+                        <img
                           src={vipTheme.badgeImage}
                           alt={`${vipTheme.label} Badge`}
-                          className="w-full h-full object-contain drop-shadow-lg"
+                          className="w-full h-full object-contain drop-shadow-lg rounded-xl"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
                         />
                       </div>
                     )}
-                    <motion.div
-                      initial={{ rotate: -180, opacity: 0 }}
-                      animate={{ rotate: 0, opacity: 1 }}
-                      transition={{ delay: 0.15 }}
-                    >
-                      <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                    </motion.div>
                   </div>
                   <motion.p
                     initial={{ opacity: 0 }}
@@ -324,15 +328,11 @@ export function MyPage() {
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.15 }}
                   whileHover={{ scale: 1.03, y: -2 }}
-                  className="bg-gradient-to-br from-emerald-400 to-teal-500 rounded-[1.5rem] p-5 shadow-lg relative overflow-hidden"
+                  className="p-5 relative"
                 >
-                  {/* Decorative circles */}
-                  <div className="absolute -top-8 -right-8 w-24 h-24 bg-white/20 rounded-full" />
-                  <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-white/20 rounded-full" />
-
                   <div className="relative">
-                    <p className="text-xs text-white/90 mb-2 font-medium">Available Balance</p>
-                    <p className="text-white text-2xl drop-shadow-md">${availableBalance.toFixed(2)}</p>
+                    <p className={`text-xs mb-2 font-medium ${vipTheme.detailLabelClass}`}>Available Balance</p>
+                    <p className={`text-2xl drop-shadow-md ${vipTheme.detailValueClass}`}>${availableBalance.toFixed(2)}</p>
                   </div>
                 </motion.div>
 
@@ -341,15 +341,11 @@ export function MyPage() {
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.2 }}
                   whileHover={{ scale: 1.03, y: -2 }}
-                  className="bg-gradient-to-br from-orange-400 to-orange-500 rounded-[1.5rem] p-5 shadow-lg relative overflow-hidden"
+                  className="p-5 relative"
                 >
-                  {/* Decorative circles */}
-                  <div className="absolute -top-8 -right-8 w-24 h-24 bg-white/20 rounded-full" />
-                  <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-white/20 rounded-full" />
-
                   <div className="relative">
-                    <p className="text-xs text-white/90 mb-2 font-medium">Freeze Balance</p>
-                    <p className="text-white text-2xl drop-shadow-md">${freezeBalance.toFixed(2)}</p>
+                    <p className={`text-xs mb-2 font-medium ${vipTheme.detailLabelClass}`}>Freeze Balance</p>
+                    <p className={`text-2xl drop-shadow-md ${vipTheme.detailValueClass}`}>${freezeBalance.toFixed(2)}</p>
                   </div>
                 </motion.div>
               </div>
