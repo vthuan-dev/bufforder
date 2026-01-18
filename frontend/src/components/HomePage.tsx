@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { Crown, Lock, TrendingUp, Users, Award, Star, Zap, Gift } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { Crown, Lock } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 const logoImage = new URL('../assets/image.png', import.meta.url).toString();

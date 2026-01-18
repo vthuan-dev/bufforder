@@ -1,14 +1,3 @@
-import royalVipImage from 'figma:asset/a9a63246575210f214e0ca2873cbfafd490af67f.png';
-import ssvipImage from 'figma:asset/84c9dc04d54770d11a2606b50e396a6df404a0a7.png';
-import svipImage from 'figma:asset/408e990231cb3dbb51a2ab33beb6e060741fd21c.png';
-import vip7Image from 'figma:asset/5ab06a1c3c590aa59ee8358ae31c41a17d5bc499.png';
-import vip6Image from 'figma:asset/72c3f1ef5f08743fa19d2b89e0f762ec2bed0dd9.png';
-import vip5Image from 'figma:asset/0584538d413199f3ca74fa079ae8a3b97a18dce5.png';
-import vip4Image from 'figma:asset/fe2f721ef7c7f5efe5264129cb18a86b649d7cda.png';
-import vip3Image from 'figma:asset/84c9dc04d54770d11a2606b50e396a6df404a0a7.png';
-import vip2Image from 'figma:asset/0584538d413199f3ca74fa079ae8a3b97a18dce5.png';
-import vip1Image from 'figma:asset/b6671c303674fac37656942b12a467c76ac9e513.png';
-
 export type VipThemeKey =
   | 'royal'
   | 'ssvip'
