@@ -94,15 +94,16 @@ export function HomePage({ bannerImage }: HomePageProps) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className={`relative overflow-hidden rounded-2xl ${theme.gradient} p-4 text-white shadow-lg`}
+                className={`relative overflow-hidden rounded-2xl ${theme.gradient} p-4 ${theme.textColorClass || 'text-white'} shadow-lg`}
+                style={theme.bgColor ? { backgroundColor: theme.bgColor } : undefined}
               >
                 {/* VIP Background Image - Watermark */}
                 {hasBadge && (
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-10 pointer-events-none">
+                  <div className={`absolute right-0 top-1/2 -translate-y-1/2 ${theme.watermarkOpacity || 'opacity-60'} pointer-events-none`}>
                     <ImageWithFallback
                       src={theme.badgeImage!}
                       alt={`${level.name} Background`}
-                      className="w-28 h-28 object-contain"
+                      className="w-36 h-36 object-contain brightness-125 contrast-110 rounded-2xl"
                     />
                   </div>
                 )}
@@ -116,11 +117,11 @@ export function HomePage({ bannerImage }: HomePageProps) {
                 <div className="relative z-10 mb-2">
                   {hasBadge ? (
                     <div className="inline-flex items-center">
-                      <div className="w-12 h-14 flex items-center justify-center">
+                      <div className={`${theme.badgeSize || 'w-12 h-14'} flex items-center justify-center`}>
                         <ImageWithFallback
                           src={theme.badgeImage!}
                           alt={`${level.name} Badge`}
-                          className="w-full h-full object-contain drop-shadow-2xl"
+                          className="w-full h-full object-contain drop-shadow-2xl rounded-xl"
                         />
                       </div>
                     </div>
@@ -143,15 +144,15 @@ export function HomePage({ bannerImage }: HomePageProps) {
 
                 {/* Details */}
                 <div className={`relative z-10 space-y-1.5 text-xs ${theme.detailContainerClass}`}>
-                  <div className="flex justify-between">
+                  <div className="flex gap-2">
                     <span className={theme.detailLabelClass}>Amount Required:</span>
                     <span className={theme.detailValueClass}>{level.amountRequired}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex gap-2">
                     <span className={theme.detailLabelClass}>Commission per order:</span>
                     <span className={theme.detailValueClass}>{level.commission}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex gap-2">
                     <span className={theme.detailLabelClass}>Number of orders:</span>
                     <span className={theme.detailValueClass}>{level.orders}</span>
                   </div>
