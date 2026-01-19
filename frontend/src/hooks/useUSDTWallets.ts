@@ -27,8 +27,15 @@ export function useUSDTWallets() {
       const res = await api.getUsdtWallets();
       setWallets(res?.data?.usdtWallets || []);
     } catch (e: any) {
-      setError(e?.message || 'Failed to fetch USDT wallets');
-      console.error('Fetch USDT wallets error:', e);
+      // Silently handle error if endpoint not available yet (production backend not updated)
+      const errorMsg = e?.message || 'Failed to fetch USDT wallets';
+      if (errorMsg.includes('not available yet')) {
+        console.log('[USDT Wallets] Feature not available in production yet');
+        setWallets([]); // Show empty state
+      } else {
+        setError(errorMsg);
+        console.error('Fetch USDT wallets error:', e);
+      }
     }
   }, []);
 
