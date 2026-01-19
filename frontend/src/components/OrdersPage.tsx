@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { TrendingUp, Wallet, CheckCircle, Target, ShoppingBag, Package, X, Sparkles } from "lucide-react";
+import { TrendingUp, Wallet, CheckCircle, Target, ShoppingBag, Package, X, Sparkles, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useTranslation } from "react-i18next";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
@@ -55,6 +55,11 @@ export function OrdersPage() {
   const [completedToday, setCompletedToday] = useState<number>(0);
   const [totalOrdersLimit, setTotalOrdersLimit] = useState<number>(100);
   const [dailyTarget, setDailyTarget] = useState<number>(0); // Daily commission target from VIP level
+
+  // Freeze status
+  const [isFrozen, setIsFrozen] = useState<boolean>(false);
+  const [frozenBalance, setFrozenBalance] = useState<number>(0);
+  const [frozenReason, setFrozenReason] = useState<string>('');
 
   // Fetch products from API
   useEffect(() => {
@@ -138,6 +143,11 @@ export function OrdersPage() {
           if (apiCommissionRate > 0) {
             setCommissionRate(apiCommissionRate);
           }
+
+          // ✅ Load freeze status
+          setIsFrozen(Boolean(stats.data?.isFrozen));
+          setFrozenBalance(Number(stats.data?.frozenBalance || 0));
+          setFrozenReason(stats.data?.frozenReason || '');
         }
       } catch { }
     })();
@@ -423,7 +433,7 @@ export function OrdersPage() {
           setCompletedToday((prev) => Math.max(prev, apiCompleted));
           setOrdersReceived((prev) => Math.max(prev, apiGrabbed));
 
-          // Update daily target in case it changed
+           // Update daily target in case it changed
           const target = Number(stats.data?.dailyTarget || stats.data?.dailyEarnings?.targetTotal || 0);
           setDailyTarget(target);
         }
@@ -518,6 +528,52 @@ export function OrdersPage() {
           </div>
         </div>
       </div>
+
+      {/* Freeze Warning Banner */}
+      {isFrozen && (
+        <div className="px-6 pt-4">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl p-4 shadow-lg"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                <Lock className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-white font-bold text-sm mb-1">{t('orders:frozen.title')}</h3>
+                <p className="text-white/90 text-xs mb-2">{t('orders:frozen.message')}</p>
+                {frozenBalance > 0 && (
+                  <p className="text-white/90 text-xs mb-2">
+                    {t('orders:frozen.frozenBalance')}: <span className="font-bold">${frozenBalance.toFixed(2)}</span>
+                  </p>
+                )}
+                {frozenReason && (
+                  <p className="text-white/80 text-xs mb-3">
+                    {t('orders:frozen.reason')}: {frozenReason}
+                  </p>
+                )}
+                <p className="text-white/90 text-xs mb-3">{t('orders:frozen.contactAdmin')}</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => window.location.hash = '#/my'}
+                    className="px-4 py-2 bg-white text-red-600 rounded-lg text-xs font-medium hover:bg-white/90 transition-colors"
+                  >
+                    {t('orders:frozen.topUpNow')}
+                  </button>
+                  <button
+                    onClick={() => window.location.hash = '#/help'}
+                    className="px-4 py-2 bg-white/20 text-white rounded-lg text-xs font-medium hover:bg-white/30 transition-colors"
+                  >
+                    {t('orders:frozen.contactSupport')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* Daily Target Warning Banner - REMOVED per user request to focus on task count */}
 

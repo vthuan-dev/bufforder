@@ -70,5 +70,14 @@
     "earnings": "Tổng thu nhập"
   },
   "loadMore": "Xem thêm",
-  "showLess": "Thu gọn"
+  "showLess": "Thu gọn",
+  "frozen": {
+    "title": "Tài khoản bị đóng băng",
+    "message": "Tài khoản của bạn đã bị đóng băng do số dư không đủ.",
+    "frozenBalance": "Số dư bị đóng băng",
+    "reason": "Lý do",
+    "contactAdmin": "Vui lòng liên hệ admin hoặc nạp thêm để mở khóa tài khoản.",
+    "topUpNow": "Nạp tiền ngay",
+    "contactSupport": "Liên hệ hỗ trợ"
+  }
 }

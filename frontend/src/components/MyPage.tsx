@@ -48,6 +48,8 @@ export function MyPage() {
   const [currentView, setCurrentView] = useState<PageView>('main');
   const [availableBalance, setAvailableBalance] = useState(0);
   const [freezeBalance, setFreezeBalance] = useState(0);
+  const [isFrozen, setIsFrozen] = useState(false);
+  const [frozenReason, setFrozenReason] = useState('');
   const [userId, setUserId] = useState('');
   const [vipTierId, setVipTierId] = useState<string>(DEFAULT_VIP_THEME_KEY);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -68,6 +70,8 @@ export function MyPage() {
         setAvailableBalance(Number(user.balance || 0));
         setFreezeBalance(Number(user.freezeBalance || 0));
         setUserId(String(user._id || user.id || '').toUpperCase());
+        setIsFrozen(Boolean(user.isFrozen));
+        setFrozenReason(user.frozenReason || '');
       }
 
       // Handle VIP status
@@ -251,7 +255,11 @@ export function MyPage() {
 
             {/* Lock Icon */}
             <div className={`absolute top-3 right-3 p-1.5 ${vipTheme.chipBgClass} rounded-full`}>
-              <Lock className="w-4 h-4" />
+              {isFrozen ? (
+                <Lock className="w-4 h-4 text-red-500" />
+              ) : (
+                <Lock className="w-4 h-4" />
+              )}
             </div>
             <div className="relative z-10">
               <div className="flex items-center gap-4 mb-6">
@@ -350,6 +358,25 @@ export function MyPage() {
                   </div>
                 </motion.div>
               </div>
+
+              {/* Frozen Status Warning */}
+              {isFrozen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="mt-4 p-3 bg-red-500/20 rounded-xl border border-red-300/30"
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <Lock className="w-4 h-4 text-red-200" />
+                    <p className="text-xs font-bold text-red-100">{t('orders:frozen.title')}</p>
+                  </div>
+                  <p className="text-xs text-red-100/90">{t('orders:frozen.message')}</p>
+                  {frozenReason && (
+                    <p className="text-xs text-red-100/80 mt-1">{t('orders:frozen.reason')}: {frozenReason}</p>
+                  )}
+                </motion.div>
+              )}
             </div>
           </motion.div>
         </div>

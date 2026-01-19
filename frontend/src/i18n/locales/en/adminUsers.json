@@ -19,7 +19,8 @@
   },
   "actions": {
     "edit": "Edit",
-    "delete": "Delete"
+    "delete": "Delete",
+    "unlock": "Unlock Account"
   },
   "pagination": {
     "showing": "Showing",
@@ -103,6 +104,9 @@
     "userCreatedDesc": "The new user can now login to the system.",
     "updateFailed": "Failed to update user",
     "deleteFailed": "Failed to delete user",
-    "createFailed": "Failed to create user"
+    "createFailed": "Failed to create user",
+    "unlockConfirm": "Are you sure you want to unlock {{name}}'s account? Their frozen balance will be restored.",
+    "userUnlocked": "Account unlocked successfully! Balance has been restored.",
+    "unlockFailed": "Failed to unlock account"
   }
 }

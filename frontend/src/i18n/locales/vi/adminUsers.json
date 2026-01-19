@@ -19,7 +19,8 @@
   },
   "actions": {
     "edit": "Chỉnh sửa",
-    "delete": "Xóa"
+    "delete": "Xóa",
+    "unlock": "Mở khóa tài khoản"
   },
   "pagination": {
     "showing": "Hiển thị",
@@ -103,6 +104,9 @@
     "userCreatedDesc": "Người dùng mới có thể đăng nhập vào hệ thống.",
     "updateFailed": "Cập nhật người dùng thất bại",
     "deleteFailed": "Xóa người dùng thất bại",
-    "createFailed": "Tạo người dùng thất bại"
+    "createFailed": "Tạo người dùng thất bại",
+    "unlockConfirm": "Bạn có chắc chắn muốn mở khóa tài khoản của {{name}}? Số dư bị đóng băng sẽ được khôi phục.",
+    "userUnlocked": "Mở khóa tài khoản thành công! Số dư đã được khôi phục.",
+    "unlockFailed": "Mở khóa tài khoản thất bại"
   }
 }

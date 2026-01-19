@@ -41,6 +41,9 @@ interface UserRow {
   balance: number;
   status: "Active" | "Suspended" | "Pending";
   joinDate: string;
+  isFrozen?: boolean;
+  frozenBalance?: number;
+  frozenReason?: string;
 }
 
 export function AdminUsersPage() {
@@ -89,6 +92,9 @@ export function AdminUsersPage() {
     balance: Number(u.balance || 0),
     status: u.isActive === false ? "Suspended" : "Active",
     joinDate: formatSafeDate(u.createdAt),
+    isFrozen: Boolean(u.isFrozen),
+    frozenBalance: Number(u.frozenBalance || 0),
+    frozenReason: u.frozenReason || '',
   });
 
   const loadUsers = async (p: number = page, query: string = searchQuery, status: string = statusFilter) => {
@@ -271,6 +277,18 @@ export function AdminUsersPage() {
     }
   };
 
+  const handleUnlock = async (user: UserRow) => {
+    if (!confirm(t('notifications.unlockConfirm', { name: user.name }))) return;
+    try {
+      await api.adminUnlockUser(user.id);
+      toast.success(t('notifications.userUnlocked'));
+      // Reload users to reflect changes
+      await loadUsers();
+    } catch (e: any) {
+      toast.error(e?.message || t('notifications.unlockFailed'));
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -351,7 +369,17 @@ export function AdminUsersPage() {
                       {user.vipLevel}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-gray-900">${user.balance.toFixed(2)}</TableCell>
+                  <TableCell className="text-gray-900">
+                    <div className="flex items-center gap-2">
+                      <span>${user.balance.toFixed(2)}</span>
+                      {user.isFrozen && (
+                        <Badge variant="secondary" className="bg-red-100 text-red-700 text-xs">
+                          <Lock className="w-3 h-3 mr-1" />
+                          Frozen
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <Badge
                       variant="secondary"
@@ -376,6 +404,12 @@ export function AdminUsersPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
 
+                        {user.isFrozen && (
+                          <DropdownMenuItem onClick={() => handleUnlock(user)} className="text-green-600">
+                            <Lock className="w-4 h-4 mr-2" />
+                            {t('actions.unlock')}
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem onClick={() => handleEdit(user)}>
                           <Edit className="w-4 h-4 mr-2" />
                           {t('actions.edit')}

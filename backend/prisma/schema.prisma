@@ -28,6 +28,12 @@ model User {
   chatBlockedAt      DateTime?
   chatBlockedReason  String?             @db.Text
   isChatBlocked      Boolean             @default(false)
+  isFrozen           Boolean             @default(false)
+  frozenBalance      Float               @default(0)
+  frozenAt           DateTime?
+  frozenReason       String?             @db.Text
+  unfrozenAt         DateTime?
+  unfrozenBy         String?
   addresses          Address[]
   bankCards          BankCard[]
   usdtWallets        UsdtWallet[]

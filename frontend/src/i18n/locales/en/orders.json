@@ -70,5 +70,14 @@
     "earnings": "Total Earnings"
   },
   "loadMore": "Load More",
-  "showLess": "Show Less"
+  "showLess": "Show Less",
+  "frozen": {
+    "title": "Account Frozen",
+    "message": "Your account has been frozen due to insufficient balance.",
+    "frozenBalance": "Frozen Balance",
+    "reason": "Reason",
+    "contactAdmin": "Please contact admin or top up to unlock your account.",
+    "topUpNow": "Top Up Now",
+    "contactSupport": "Contact Support"
+  }
 }

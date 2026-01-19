@@ -785,6 +785,12 @@ export default {
     if (t) headers.Authorization = `Bearer ${t}`;
     return request(`/usdt-wallets/${id}`, { method: 'DELETE', headers, useCache: false });
   },
+
+  // Admin - Unlock frozen user account
+  adminUnlockUser(userId: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json', ...adminTokenHeader() } as Record<string, string>;
+    return request(`/admin/users/${userId}/unlock`, { method: 'POST', headers, useCache: false });
+  },
 };
 
 

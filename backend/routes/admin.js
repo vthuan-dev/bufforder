@@ -349,14 +349,28 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
     const newBalance = user.balance + amount;
     const newVipLevel = getVipLevelByAmount(newTotalDeposited);
 
+    // ============================================
+    // 🔓 AUTO-UNLOCK if account is frozen
+    // ============================================
+    const updateData = {
+      balance: newBalance,
+      totalDeposited: newTotalDeposited,
+      vipLevel: newVipLevel?.id || user.vipLevel
+    };
+
+    if (user.isFrozen) {
+      console.log('[Admin] Auto-unlocking frozen account:', user.id);
+      updateData.isFrozen = false;
+      updateData.balance = user.frozenBalance + amount; // Restore frozen + new deposit
+      updateData.frozenBalance = 0;
+      updateData.unfrozenAt = new Date();
+      updateData.unfrozenBy = req.adminId;
+    }
+
     await prisma.$transaction([
       prisma.user.update({
         where: { id: user.id },
-        data: {
-          balance: newBalance,
-          totalDeposited: newTotalDeposited,
-          vipLevel: newVipLevel?.id || user.vipLevel
-        }
+        data: updateData
       }),
       prisma.depositRequest.update({
         where: { id: requestId },
@@ -916,6 +930,91 @@ router.post('/users/:id/topup', verifyAdminToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Admin topup error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// POST /api/admin/users/:id/unlock - Unlock frozen account
+router.post('/users/:id/unlock', verifyAdminToken, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { restoreBalance = true } = req.body; // Option to restore frozen balance
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (!user.isFrozen) {
+      return res.status(400).json({ success: false, message: 'Account is not frozen' });
+    }
+
+    // Unlock account and restore balance
+    const updateData = {
+      isFrozen: false,
+      unfrozenAt: new Date(),
+      unfrozenBy: req.adminId
+    };
+
+    if (restoreBalance) {
+      updateData.balance = user.frozenBalance;
+      updateData.frozenBalance = 0;
+    }
+
+    const [updatedUser, notification] = await prisma.$transaction([
+      prisma.user.update({
+        where: { id: userId },
+        data: updateData
+      }),
+      prisma.notification.create({
+        data: {
+          userId: userId,
+          title: 'Account Unlocked',
+          message: restoreBalance 
+            ? `Your account has been unlocked. Balance restored: $${user.frozenBalance.toFixed(2)}`
+            : 'Your account has been unlocked by admin.',
+          type: 'success'
+        }
+      })
+    ]);
+
+    // 🔔 Emit notification to user
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user:${userId}`).emit('notification:new', {
+          id: notification.id,
+          title: notification.title,
+          message: notification.message,
+          type: notification.type,
+          createdAt: notification.createdAt
+        });
+        io.to(`user:${userId}`).emit('account:unlocked', {
+          balance: updatedUser.balance,
+          frozenBalance: updatedUser.frozenBalance,
+          isFrozen: false
+        });
+      }
+    } catch (e) {
+      console.error('[Socket] Unlock notify error:', e);
+    }
+
+    console.log('[Admin] Account unlocked:', {
+      userId,
+      adminId: req.adminId,
+      restoredBalance: restoreBalance ? user.frozenBalance : 0
+    });
+
+    res.json({
+      success: true,
+      message: 'Account unlocked successfully',
+      data: {
+        user: excludeFromUser(updatedUser),
+        restoredBalance: restoreBalance ? user.frozenBalance : 0
+      }
+    });
+  } catch (error) {
+    console.error('Unlock account error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
