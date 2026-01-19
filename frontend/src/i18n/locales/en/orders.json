@@ -12,7 +12,7 @@
   "popup": {
     "title": "Order is processing",
     "queueMessage": "Many users are competing for orders at your current level. The system is allocating orders and you are currently in queue position 11. Please wait patiently.",
-    "vipTip": "Tip: Upgrading your VIP level may help you receive orders faster.",
+    "vipTip": "Tip: Upgrading your VIP level may help you receive orders faster and unlock more benefits.",
     "cancelQueue": "Cancel queue"
   },
   "confirmation": {

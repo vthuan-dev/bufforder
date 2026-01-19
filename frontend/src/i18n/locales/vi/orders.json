@@ -12,7 +12,7 @@
   "popup": {
     "title": "Đơn hàng đang xử lý",
     "queueMessage": "Nhiều người dùng đang cạnh tranh đơn hàng ở cấp độ hiện tại của bạn. Hệ thống đang phân bổ đơn hàng và bạn hiện đang ở vị trí hàng đợi 11. Vui lòng đợi kiên nhẫn.",
-    "vipTip": "Mẹo: Nâng cấp cấp VIP của bạn có thể giúp bạn nhận đơn hàng nhanh hơn.",
+    "vipTip": "Mẹo: Nâng cấp cấp VIP của bạn có thể giúp bạn nhận đơn hàng nhanh hơn, và hòa hồng được nhiều hơn",
     "cancelQueue": "Hủy hàng đợi"
   },
   "confirmation": {

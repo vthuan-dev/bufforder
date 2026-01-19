@@ -245,7 +245,7 @@ export function MyPage() {
                 <img
                   src={vipTheme.badgeImage}
                   alt={`${vipTheme.label} Background`}
-                  className="w-20 h-20 object-contain brightness-110 contrast-100 rounded-2xl"
+                  className="w-24 h-24 object-contain brightness-110 contrast-100 rounded-2xl"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                   }}
@@ -277,14 +277,7 @@ export function MyPage() {
                       className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
                       style={{ transform: 'skewX(-20deg)' }}
                     />
-                    <span className="text-white relative">A</span>
                   </motion.div>
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.6, type: "spring", stiffness: 300 }}
-                    className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full border-3 border-white shadow-lg"
-                  />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-0.5 flex-wrap">
@@ -298,7 +291,7 @@ export function MyPage() {
                       {vipDisplayLabel}
                     </motion.h2>
                     {vipTheme.badgeImage && (
-                      <div className={`${vipTheme.badgeSize || 'w-6 h-7'} flex items-center justify-center`}>
+                      <div className={`${vipTheme.badgeSize || 'w-8 h-9'} flex items-center justify-center`}>
                         <img
                           src={vipTheme.badgeImage}
                           alt={`${vipTheme.label} Badge`}
