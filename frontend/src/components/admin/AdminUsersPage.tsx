@@ -1138,17 +1138,17 @@ export function AdminUsersPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2 pt-2">
+              <div className="freeze-threshold-actions">
                 <button
                   onClick={() => setFreezeThresholdDialogOpen(false)}
-                  className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors font-medium"
+                  className="freeze-threshold-btn freeze-threshold-btn-cancel"
                 >
                   {t('freezeThresholdDialog.cancel')}
                 </button>
                 <button
                   onClick={handleConfirmFreezeThreshold}
                   disabled={freezeThresholdLoading}
-                  className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors disabled:opacity-50 font-medium"
+                  className="freeze-threshold-btn freeze-threshold-btn-confirm"
                 >
                   {freezeThresholdValue === '' ? t('freezeThresholdDialog.useDefault') : t('freezeThresholdDialog.setThreshold')}
                 </button>
