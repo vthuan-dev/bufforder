@@ -87,6 +87,14 @@ async function request(endpoint: string, options: RequestOptions = {}) {
           throw new Error(backendMessage);
         }
 
+        // 🔍 Check if this is a new endpoint that might not exist in production yet
+        const isNewEndpoint = endpoint.includes('/usdt-wallets');
+        
+        if (isNewEndpoint) {
+          console.warn('[API] New endpoint not available yet:', endpoint);
+          throw new Error('This feature is not available yet. Please update your backend.');
+        }
+
         // Session expired - clear ALL tokens, data and cache
         if (typeof localStorage !== 'undefined') {
           localStorage.removeItem('token');
@@ -247,7 +255,12 @@ export default {
   profile(token?: string) {
     const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
     const headers: Record<string, string> = {};
-    if (t) headers.Authorization = `Bearer ${t}`;
+    if (t) {
+      headers.Authorization = `Bearer ${t}`;
+      console.log('[API] profile() - Token present:', t.substring(0, 20) + '...');
+    } else {
+      console.log('[API] profile() - NO TOKEN FOUND');
+    }
     return request('/auth/profile', { headers });
   },
 
@@ -294,7 +307,12 @@ export default {
   getBankCards(token?: string) {
     const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
     const headers: Record<string, string> = {};
-    if (t) headers.Authorization = `Bearer ${t}`;
+    if (t) {
+      headers.Authorization = `Bearer ${t}`;
+      console.log('[API] getBankCards() - Token present:', t.substring(0, 20) + '...');
+    } else {
+      console.log('[API] getBankCards() - NO TOKEN FOUND');
+    }
     return request('/vip/bank-cards', { headers });
   },
   addBankCard({ bankName, cardNumber, accountName, isDefault }: { bankName: string; cardNumber: string; accountName: string; isDefault?: boolean; }, token?: string) {
@@ -738,7 +756,12 @@ export default {
   getUsdtWallets(token?: string) {
     const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
     const headers: Record<string, string> = {};
-    if (t) headers.Authorization = `Bearer ${t}`;
+    if (t) {
+      headers.Authorization = `Bearer ${t}`;
+      console.log('[API] getUsdtWallets() - Token present:', t.substring(0, 20) + '...');
+    } else {
+      console.log('[API] getUsdtWallets() - NO TOKEN FOUND');
+    }
     return request('/usdt-wallets', { headers });
   },
   addUsdtWallet({ walletAddress, walletName, network, isDefault }: { walletAddress: string; walletName: string; network: string; isDefault?: boolean; }, token?: string) {

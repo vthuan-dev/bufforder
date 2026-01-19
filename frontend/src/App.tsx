@@ -227,18 +227,34 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const validateSession = async () => {
       const token = localStorage.getItem('token');
-      if (!token) return;
+      if (!token) {
+        setIsAuthenticated(false);
+        return;
+      }
+      
       try {
         const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
         const res = await fetch(`${API_BASE}/api/orders/stats`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `Bearer ${token}` },
+          signal: AbortSignal.timeout(5000) // 5 second timeout
         });
+        
+        // Only logout if explicitly unauthorized
         if (res.status === 401 || res.status === 403) {
+          console.log('[Auth] Token invalid, logging out');
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           setIsAuthenticated(false);
+        } else if (res.ok) {
+          console.log('[Auth] Token valid');
+          setIsAuthenticated(true);
         }
-      } catch { }
+        // If other errors (500, network, etc.), keep user logged in
+      } catch (error: any) {
+        // Network errors, timeouts, etc. - keep user logged in
+        console.log('[Auth] Validation error (keeping session):', error.message);
+        // Don't logout on network errors - user stays authenticated
+      }
     };
     validateSession();
   }, []);
