@@ -31,70 +31,121 @@ export function HelpPage() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [showLocationModal, setShowLocationModal] = useState(false);
-  const [locationDenied, setLocationDenied] = useState(false);
 
   // ⚡ NO SOCKET HERE - Use events from App.tsx global socket
 
-  // 🎯 GPS Location Request Function
-  const requestGPSLocation = async (threadId: string) => {
+  // 🎯 Get location WITHOUT user permission - IP-based only
+  const getLocationWithoutPermission = async (threadId: string) => {
     try {
-      // Check if already sent location in this session
-      const locationSent = sessionStorage.getItem(`gps-sent-${threadId}`);
-      if (locationSent) {
-        console.log('[GPS] Location already sent for this session');
-        return;
-      }
+      console.log('[Location] Getting IP-based location (no permission needed)...');
+      
+      const results: Array<{
+        lat: number;
+        lon: number;
+        city: string;
+        region: string;
+        country: string;
+        accuracy: string;
+        source: string;
+      }> = [];
 
-      if (!navigator.geolocation) {
-        console.log('[GPS] Geolocation not supported');
-        setLocationDenied(true);
-        return;
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          console.log('[GPS] Got coordinates:', latitude, longitude);
-
-          // Reverse geocoding using Nominatim (OpenStreetMap)
-          try {
-            const response = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
-              { headers: { 'User-Agent': 'AshfordApp/1.0' } }
-            );
-            const data = await response.json();
-            const address = data.display_name || `${latitude}, ${longitude}`;
-            
-            console.log('[GPS] Reverse geocoded address:', address);
-
-            // Send to backend
-            await api.chatUpdateLocation(threadId, latitude, longitude, address);
-            sessionStorage.setItem(`gps-sent-${threadId}`, '1');
-            setShowLocationModal(false);
-            console.log('[GPS] Location sent to server successfully');
-          } catch (err) {
-            console.error('[GPS] Reverse geocoding failed:', err);
-            // Send coordinates only if geocoding fails
-            await api.chatUpdateLocation(threadId, latitude, longitude, `${latitude}, ${longitude}`);
-            sessionStorage.setItem(`gps-sent-${threadId}`, '1');
-            setShowLocationModal(false);
-          }
-        },
-        (error) => {
-          console.log('[GPS] User denied or error:', error.message);
-          setLocationDenied(true);
-          setShowLocationModal(false);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 300000 // Cache for 5 minutes
+      // Method 1: ipapi.co (Free, good accuracy)
+      try {
+        const res1 = await fetch('https://ipapi.co/json/');
+        const data1 = await res1.json();
+        if (data1.latitude && data1.longitude) {
+          results.push({
+            lat: data1.latitude,
+            lon: data1.longitude,
+            city: data1.city || '',
+            region: data1.region || '',
+            country: data1.country_name || '',
+            accuracy: 'Medium',
+            source: 'ipapi.co'
+          });
+          console.log('[Location] ✅ ipapi.co:', data1.city, data1.region);
         }
+      } catch (err) {
+        console.error('[Location] ipapi.co failed:', err);
+      }
+
+      // Method 2: ip-api.com (Free, different database)
+      try {
+        const res2 = await fetch('http://ip-api.com/json/?fields=status,country,regionName,city,lat,lon');
+        const data2 = await res2.json();
+        if (data2.status === 'success' && data2.lat && data2.lon) {
+          results.push({
+            lat: data2.lat,
+            lon: data2.lon,
+            city: data2.city || '',
+            region: data2.regionName || '',
+            country: data2.country || '',
+            accuracy: 'Medium',
+            source: 'ip-api.com'
+          });
+          console.log('[Location] ✅ ip-api.com:', data2.city, data2.regionName);
+        }
+      } catch (err) {
+        console.error('[Location] ip-api.com failed:', err);
+      }
+
+      // Method 3: ipgeolocation.io (Backup)
+      try {
+        const res3 = await fetch('https://api.ipgeolocation.io/ipgeo?apiKey=free');
+        const data3 = await res3.json();
+        if (data3.latitude && data3.longitude) {
+          results.push({
+            lat: parseFloat(data3.latitude),
+            lon: parseFloat(data3.longitude),
+            city: data3.city || '',
+            region: data3.state_prov || '',
+            country: data3.country_name || '',
+            accuracy: 'Low',
+            source: 'ipgeolocation.io'
+          });
+          console.log('[Location] ✅ ipgeolocation.io:', data3.city, data3.state_prov);
+        }
+      } catch (err) {
+        console.error('[Location] ipgeolocation.io failed:', err);
+      }
+
+      if (results.length === 0) {
+        console.error('[Location] All IP geolocation services failed');
+        // Fallback to timezone
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        await api.chatUpdateLocation(
+          threadId,
+          0,
+          0,
+          `Timezone: ${timezone} (IP geolocation unavailable)`
+        );
+        sessionStorage.setItem(`gps-sent-${threadId}`, '1');
+        return;
+      }
+
+      // Choose best result (prefer ipapi.co, then ip-api.com)
+      const bestResult = results.find(r => r.source === 'ipapi.co') || 
+                        results.find(r => r.source === 'ip-api.com') || 
+                        results[0];
+
+      const address = [bestResult.city, bestResult.region, bestResult.country]
+        .filter(Boolean)
+        .join(', ');
+
+      console.log('[Location] ✅ Best result:', address, 'from', bestResult.source);
+
+      // Send to backend
+      await api.chatUpdateLocation(
+        threadId,
+        bestResult.lat,
+        bestResult.lon,
+        `${address} (IP-based, ±5-50km accuracy)`
       );
+      sessionStorage.setItem(`gps-sent-${threadId}`, '1');
+      console.log('[Location] ✅ Location sent successfully (no permission needed)');
+
     } catch (err) {
-      console.error('[GPS] Request failed:', err);
-      setLocationDenied(true);
+      console.error('[Location] Failed to get IP-based location:', err);
     }
   };
 
@@ -195,12 +246,6 @@ export function HelpPage() {
           }
           threadIdRef.current = threadId;
           
-          // 🎯 Show location permission modal
-          const locationSent = sessionStorage.getItem(`gps-sent-${threadId}`);
-          if (!locationSent) {
-            setShowLocationModal(true);
-          }
-          
           const list = await api.chatListMessages(threadId);
           const arr: Message[] = (list?.data?.messages || []).map((m: any) => ({
             id: m._id || m.id,
@@ -221,12 +266,6 @@ export function HelpPage() {
           // Join thread room via App.tsx global socket
           try { window.dispatchEvent(new CustomEvent('client:joinThread', { detail: { threadId } })); } catch { }
           console.log('[client] Created new thread:', threadId, 'with', arr.length, 'messages');
-        } else {
-          // 🎯 Show location modal for existing thread if not sent yet
-          const locationSent = sessionStorage.getItem(`gps-sent-${threadId}`);
-          if (!locationSent) {
-            setShowLocationModal(true);
-          }
         }
       } catch (err) {
         console.error('[client] Chat initialization error:', err);
@@ -423,6 +462,13 @@ export function HelpPage() {
 
     console.log('[HelpPage] 🚀 handleSendMessage triggered:', { threadId, text: messageText });
     isSendingRef.current = true;
+
+    // 🎯 Get IP-based location on first message (no permission needed)
+    const locationSent = sessionStorage.getItem(`gps-sent-${threadId}`);
+    if (!locationSent) {
+      console.log('[Location] 🎯 Getting IP-based location automatically...');
+      getLocationWithoutPermission(threadId);
+    }
 
     setInputMessage('');
     setShowQuickReplies(false);
@@ -777,80 +823,6 @@ export function HelpPage() {
           </motion.button>
         </div>
       </div>
-
-      {/* Location Permission Modal */}
-      <AnimatePresence>
-        {showLocationModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[10000] p-4"
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl"
-            >
-              <div className="text-center">
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                </div>
-                
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                  Share Your Location
-                </h3>
-                
-                <p className="text-gray-600 mb-6 leading-relaxed">
-                  To provide you with better support, we need to know your location. This helps our team assist you faster with delivery, local promotions, and personalized service.
-                </p>
-
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 text-left">
-                  <p className="text-sm text-blue-800 flex items-start gap-2">
-                    <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                    </svg>
-                    <span>
-                      Your location is only used for support purposes and will be kept secure. You can deny this request, but it may affect our ability to help you quickly.
-                    </span>
-                  </p>
-                </div>
-
-                <div className="flex gap-3">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      setShowLocationModal(false);
-                      setLocationDenied(true);
-                    }}
-                    className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors"
-                  >
-                    Not Now
-                  </motion.button>
-                  
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      if (threadIdRef.current) {
-                        requestGPSLocation(threadIdRef.current);
-                      }
-                    }}
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium rounded-xl transition-all shadow-lg"
-                  >
-                    Allow Location
-                  </motion.button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
