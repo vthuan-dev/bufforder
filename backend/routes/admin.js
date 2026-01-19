@@ -346,17 +346,12 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
     const user = depositRequest.user;
     const amount = depositRequest.amount;
     const newTotalDeposited = user.totalDeposited + amount;
-    
-    // If user is frozen, use frozenBalance instead of balance
-    const currentBalance = user.isFrozen ? user.frozenBalance : user.balance;
-    const newBalance = currentBalance + amount;
     const newVipLevel = getVipLevelByAmount(newTotalDeposited);
 
     // ============================================
     // 🔓 AUTO-UNLOCK if account is frozen
     // ============================================
     const updateData = {
-      balance: newBalance,
       totalDeposited: newTotalDeposited,
       vipLevel: newVipLevel?.id || user.vipLevel
     };
@@ -444,6 +439,9 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
         updateData.unfrozenBy = req.adminId;
         updateData.commissionConfig = JSON.stringify(currentConfig); // Clear target product
       }
+    } else {
+      // User is NOT frozen - normal deposit
+      updateData.balance = user.balance + amount;
     }
 
     await prisma.$transaction([
