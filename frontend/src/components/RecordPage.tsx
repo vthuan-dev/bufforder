@@ -79,8 +79,7 @@ export function RecordPage() {
         <motion.h1 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`text-center mb-6 text-3xl font-bold relative z-10 ${vipTheme.titleClass}`}
-          style={vipTheme.titleColor ? { color: vipTheme.titleColor } : undefined}
+          className="text-center mb-6 text-3xl font-bold relative z-10 text-blue-600 drop-shadow-lg"
         >
           {t('record:title')}
         </motion.h1>
