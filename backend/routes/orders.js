@@ -102,6 +102,25 @@ router.get('/stats', authenticateToken, async (req, res) => {
       ? dailyEarnings.numberOfOrders
       : numberOfOrders;
 
+    // Calculate freeze threshold for frontend
+    let freezeThreshold = null;
+    let freezeTargetProductId = null;
+    
+    if (user.vipLevel !== 'vip-0' && !user.isFrozen && effectiveNumberOfOrders > 0) {
+      const customThreshold = resolveAutoFreezeThreshold(user);
+      const commissionConfig = parseJsonField(user.commissionConfig, {});
+      
+      if (customThreshold != null && customThreshold > 0) {
+        freezeThreshold = customThreshold;
+      } else {
+        // Use 85% as average for display (actual is random 80-90%)
+        freezeThreshold = Math.floor(effectiveNumberOfOrders * 0.85);
+      }
+      
+      // Get target product ID if admin specified one
+      freezeTargetProductId = commissionConfig.freezeTargetProductId || null;
+    }
+
     res.json({
       success: true,
       data: {
@@ -115,7 +134,11 @@ router.get('/stats', authenticateToken, async (req, res) => {
         commissionRate, // Percentage rate (e.g., 0.012 = 1.2%)
         dailyTarget,
         commissionConfig: parseJsonField(user.commissionConfig, {}),
-        dailyEarnings: dailyEarningsToday
+        dailyEarnings: dailyEarningsToday,
+        freezeThreshold, // Threshold order number where freeze may trigger
+        freezeTargetProductId, // Admin-specified product for freeze
+        isFrozen: user.isFrozen,
+        frozenReason: user.frozenReason
       }
     });
   } catch (error) {
@@ -166,16 +189,36 @@ router.post('/take', authenticateToken, async (req, res) => {
       return res.status(400).json({ success: false, message: `Daily order limit reached (${effectiveOrdersLimit} orders)` });
     }
 
+    // Get commission rate
+    const commissionRate = resolveCommissionRate(user, vipLevel);
+
+    // Require client to send product
+    if (!clientProduct) {
+      return res.status(400).json({ success: false, message: 'Product is required' });
+    }
+
+    const { id, name, price, brand, category, image } = clientProduct;
+    if (!id || !name || !price || !brand || !category || !image) {
+      return res.status(400).json({ success: false, message: 'Invalid product payload' });
+    }
+    // Note: We allow price > balance at freeze threshold (frontend filters this)
+    // Backend will check both conditions: order count + price > balance
+    const randomProduct = { id, name, price: Number(price), brand, category, image };
+
     // ============================================
     // 🔒 FREEZE MECHANISM - ALL VIP LEVELS
     // ============================================
-    // Trigger freeze when user reaches custom threshold OR 80-90% of max orders (random)
+    // Trigger freeze when BOTH conditions are met:
+    // 1. User reaches custom threshold OR 80-90% of max orders (random)
+    // 2. Product price > user's current balance
     // Applied to all VIP levels (except VIP 0)
+    let shouldFreeze = false;
+    let freezeTrigger = null;
+    
     if (user.vipLevel !== 'vip-0' && !user.isFrozen && effectiveOrdersLimit > 0) {
       // Check if admin set custom freeze threshold
       const customThreshold = resolveAutoFreezeThreshold(user);
       
-      let freezeTrigger;
       if (customThreshold != null && customThreshold > 0) {
         // Use admin's custom threshold
         freezeTrigger = customThreshold;
@@ -189,40 +232,14 @@ router.post('/take', authenticateToken, async (req, res) => {
         console.log(`[Orders/take] ${user.vipLevel.toUpperCase()} freeze check: ${todayOrders.length}/${freezeTrigger} orders (${Math.round(randomPercent * 100)}% of ${effectiveOrdersLimit})`);
       }
       
-      if (todayOrders.length >= freezeTrigger) {
-        // Freeze account immediately
-        console.log('[Orders/take] 🔒 Triggering freeze mechanism...');
-        
-        await prisma.user.update({
-          where: { id: userId },
-          data: {
-            isFrozen: true,
-            frozenBalance: user.balance,
-            balance: 0,
-            frozenAt: new Date(),
-            frozenReason: 'Insufficient balance for order. Please contact admin or top up to unlock.'
-          }
-        });
-        
-        console.log('[Orders/take] ✅ Account frozen:', {
-          userId,
-          vipLevel: user.vipLevel,
-          frozenBalance: user.balance,
-          ordersCompleted: todayOrders.length,
-          maxOrders: effectiveOrdersLimit,
-          freezeTrigger: freezeTrigger,
-          customThreshold: customThreshold != null
-        });
-        
-        return res.status(400).json({
-          success: false,
-          message: 'Account frozen due to insufficient balance',
-          error: {
-            code: 'ACCOUNT_FROZEN',
-            frozenBalance: user.balance,
-            reason: 'Your account has been frozen. Please contact admin or top up to unlock your account.'
-          }
-        });
+      // Check BOTH conditions: order count reached AND product price exceeds balance
+      // Note: todayOrders.length is BEFORE creating new order, so we check if NEXT order reaches threshold
+      const nextOrderNumber = todayOrders.length + 1; // This will be the order number after creation
+      
+      if (nextOrderNumber >= freezeTrigger && Number(randomProduct.price) > user.balance) {
+        shouldFreeze = true;
+        console.log('[Orders/take] 🔒 Will trigger freeze mechanism after creating suspended order...');
+        console.log(`[Orders/take] Freeze conditions met: nextOrder=${nextOrderNumber} >= threshold=${freezeTrigger}, productPrice=${randomProduct.price} > balance=${user.balance}`);
       }
     }
 
@@ -239,23 +256,6 @@ router.post('/take', authenticateToken, async (req, res) => {
         }
       });
     }
-
-    // Get commission rate
-    const commissionRate = resolveCommissionRate(user, vipLevel);
-
-    // Require client to send product
-    if (!clientProduct) {
-      return res.status(400).json({ success: false, message: 'Product is required' });
-    }
-
-    const { id, name, price, brand, category, image } = clientProduct;
-    if (!id || !name || !price || !brand || !category || !image) {
-      return res.status(400).json({ success: false, message: 'Invalid product payload' });
-    }
-    if (Number(price) > user.balance) {
-      return res.status(400).json({ success: false, message: 'Selected product exceeds current balance' });
-    }
-    const randomProduct = { id, name, price: Number(price), brand, category, image };
 
     // Initialize/reset daily earnings for today - SNAPSHOT config at first order of day
     const todayKey = getDateKey();
@@ -320,6 +320,9 @@ router.post('/take', authenticateToken, async (req, res) => {
     let result;
     try {
       result = await prisma.$transaction(async (tx) => {
+        // Determine order status based on freeze condition
+        const orderStatus = shouldFreeze ? 'suspended' : 'pending';
+        
         const newOrder = await tx.order.create({
           data: {
             userId,
@@ -333,24 +336,52 @@ router.post('/take', authenticateToken, async (req, res) => {
             brand: randomProduct.brand,
             category: randomProduct.category,
             image: randomProduct.image,
-            status: 'pending',
+            status: orderStatus, // 'suspended' if freeze triggered, otherwise 'pending'
             orderDate: new Date()
           }
         });
 
-        // Credit user
-        const creditedCommission = commissionAmount;
-        currentDailyEarnings.totalCommission = Math.round((currentDailyEarnings.totalCommission + commissionAmount) * 100) / 100;
-        currentDailyEarnings.ordersCount = (currentDailyEarnings.ordersCount || 0) + 1;
+        // Only credit user if NOT freezing
+        let updatedUser;
+        if (!shouldFreeze) {
+          const creditedCommission = commissionAmount;
+          currentDailyEarnings.totalCommission = Math.round((currentDailyEarnings.totalCommission + commissionAmount) * 100) / 100;
+          currentDailyEarnings.ordersCount = (currentDailyEarnings.ordersCount || 0) + 1;
 
-        const updatedUser = await tx.user.update({
-          where: { id: userId },
-          data: {
-            balance: { increment: creditedCommission },
-            commission: { increment: commissionAmount },
-            dailyEarnings: JSON.stringify(currentDailyEarnings)
-          }
-        });
+          updatedUser = await tx.user.update({
+            where: { id: userId },
+            data: {
+              balance: { increment: creditedCommission },
+              commission: { increment: commissionAmount },
+              dailyEarnings: JSON.stringify(currentDailyEarnings)
+            }
+          });
+        } else {
+          // Freeze account - move balance to frozen balance
+          updatedUser = await tx.user.update({
+            where: { id: userId },
+            data: {
+              isFrozen: true,
+              frozenBalance: user.balance,
+              balance: 0,
+              frozenAt: new Date(),
+              frozenReason: `Account frozen due to insufficient balance for order. Product price (${randomProduct.price}) exceeds available balance (${user.balance}). Order is suspended. Please contact admin or top up to unlock.`,
+              dailyEarnings: JSON.stringify(currentDailyEarnings)
+            }
+          });
+          
+          console.log('[Orders/take] ✅ Account frozen with suspended order:', {
+            userId,
+            orderId: newOrder.id,
+            orderNumber: newOrder.orderNumber,
+            vipLevel: user.vipLevel,
+            frozenBalance: user.balance,
+            ordersCompleted: todayOrders.length,
+            freezeTrigger: freezeTrigger,
+            productPrice: randomProduct.price,
+            userBalance: user.balance
+          });
+        }
 
         return { newOrder, updatedUser };
       });
@@ -446,7 +477,19 @@ router.post('/take', authenticateToken, async (req, res) => {
           status: result.newOrder.status,
           orderDate: result.newOrder.orderDate
         },
-        dailyEarnings: currentDailyEarnings
+        dailyEarnings: currentDailyEarnings,
+        // Add freeze notification if account was frozen
+        ...(shouldFreeze && {
+          accountFrozen: true,
+          freezeNotification: {
+            title: 'Tài khoản bị đóng băng',
+            message: `Đơn hàng của bạn đã bị treo do số dư không đủ. Giá sản phẩm ($${randomProduct.price}) vượt quá số dư khả dụng ($${user.balance}). Vui lòng nạp tiền để mở khóa tài khoản.`,
+            frozenBalance: user.balance,
+            orderStatus: 'suspended',
+            productPrice: randomProduct.price,
+            availableBalance: user.balance
+          }
+        })
       }
     });
   } catch (error) {

@@ -358,13 +358,63 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
       vipLevel: newVipLevel?.id || user.vipLevel
     };
 
+    let suspendedOrderProcessed = null;
+
     if (user.isFrozen) {
       console.log('[Admin] Auto-unlocking frozen account:', user.id);
-      updateData.isFrozen = false;
-      updateData.balance = user.frozenBalance + amount; // Restore frozen + new deposit
-      updateData.frozenBalance = 0;
-      updateData.unfrozenAt = new Date();
-      updateData.unfrozenBy = req.adminId;
+      const totalBalance = user.frozenBalance + amount; // Frozen + new deposit
+      
+      // Find suspended order
+      const suspendedOrder = await prisma.order.findFirst({
+        where: {
+          userId: user.id,
+          status: 'suspended'
+        },
+        orderBy: { orderDate: 'desc' }
+      });
+
+      if (suspendedOrder && totalBalance >= suspendedOrder.productPrice) {
+        console.log('[Admin] Processing suspended order:', suspendedOrder.id);
+        console.log(`[Admin] Total balance: ${totalBalance}, Product price: ${suspendedOrder.productPrice}`);
+        
+        // Update order to pending and deduct product price
+        await prisma.order.update({
+          where: { id: suspendedOrder.id },
+          data: { status: 'pending' }
+        });
+        
+        // Calculate final balance after deducting product price
+        const finalBalance = totalBalance - suspendedOrder.productPrice + suspendedOrder.commissionAmount;
+        
+        updateData.isFrozen = false;
+        updateData.balance = finalBalance;
+        updateData.frozenBalance = 0;
+        updateData.commission = { increment: suspendedOrder.commissionAmount };
+        updateData.unfrozenAt = new Date();
+        updateData.unfrozenBy = req.adminId;
+        
+        suspendedOrderProcessed = {
+          orderId: suspendedOrder.id,
+          orderNumber: suspendedOrder.orderNumber,
+          productPrice: suspendedOrder.productPrice,
+          commission: suspendedOrder.commissionAmount,
+          newStatus: 'pending'
+        };
+        
+        console.log('[Admin] ✅ Suspended order processed and account unlocked');
+      } else if (suspendedOrder) {
+        console.log('[Admin] ⚠️ Insufficient balance to process suspended order');
+        console.log(`[Admin] Need: ${suspendedOrder.productPrice}, Have: ${totalBalance}`);
+        // Still frozen, just add to frozen balance
+        updateData.frozenBalance = totalBalance;
+      } else {
+        // No suspended order, just unlock
+        updateData.isFrozen = false;
+        updateData.balance = totalBalance;
+        updateData.frozenBalance = 0;
+        updateData.unfrozenAt = new Date();
+        updateData.unfrozenBy = req.adminId;
+      }
     }
 
     await prisma.$transaction([
@@ -401,7 +451,12 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
     res.json({
       success: true,
       message: 'Deposit approved',
-      data: { requestId, amount, user: { id: user.id, newBalance, newTotalDeposited, newVipLevel: newVipLevel?.id } }
+      data: { 
+        requestId, 
+        amount, 
+        user: { id: user.id, newBalance: updateData.balance, newTotalDeposited, newVipLevel: newVipLevel?.id },
+        suspendedOrderProcessed // Include info if suspended order was processed
+      }
     });
   } catch (error) {
     console.error('Approve deposit error:', error);
@@ -1506,6 +1561,61 @@ router.get('/products/:id', verifyAdminToken, async (req, res) => {
     res.json({ success: true, data: product });
   } catch (error) {
     console.error('Get product error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Find product by price (for freeze target product selection)
+router.get('/products/find-by-price/:targetPrice', verifyAdminToken, async (req, res) => {
+  try {
+    const targetPrice = parseFloat(req.params.targetPrice);
+    
+    if (isNaN(targetPrice) || targetPrice <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid price' });
+    }
+
+    // Find products closest to target price (within ±20% range)
+    const minPrice = targetPrice * 0.8;
+    const maxPrice = targetPrice * 1.2;
+
+    const products = await prisma.product.findMany({
+      where: {
+        price: {
+          gte: minPrice,
+          lte: maxPrice
+        },
+        isActive: true
+      },
+      orderBy: {
+        price: 'asc'
+      },
+      take: 10
+    });
+
+    if (products.length === 0) {
+      return res.json({ 
+        success: true, 
+        data: null,
+        message: 'No products found in price range'
+      });
+    }
+
+    // Find closest product to target price
+    const closestProduct = products.reduce((prev, curr) => {
+      const prevDiff = Math.abs(prev.price - targetPrice);
+      const currDiff = Math.abs(curr.price - targetPrice);
+      return currDiff < prevDiff ? curr : prev;
+    });
+
+    res.json({ 
+      success: true, 
+      data: {
+        product: closestProduct,
+        alternatives: products.filter(p => p.id !== closestProduct.id).slice(0, 3)
+      }
+    });
+  } catch (error) {
+    console.error('Find product by price error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });

@@ -804,16 +804,23 @@ export default {
   },
 
   // Admin - Set auto freeze threshold for user
-  adminSetFreezeThreshold(userId: string, threshold: number | null) {
+  adminSetFreezeThreshold(userId: string, threshold: number | null, config?: any) {
     const headers: Record<string, string> = { 'Content-Type': 'application/json', ...adminTokenHeader() } as Record<string, string>;
+    const commissionConfig = config || { autoFreezeThreshold: threshold };
     return request(`/admin/users/${userId}/commission-config`, {
       method: 'PATCH',
       headers,
-      body: JSON.stringify({ 
-        commissionConfig: { 
-          autoFreezeThreshold: threshold 
-        } 
-      }),
+      body: JSON.stringify({ commissionConfig }),
+      useCache: false
+    });
+  },
+
+  // Admin - Find product by price
+  adminFindProductByPrice(targetPrice: number) {
+    const headers: Record<string, string> = adminTokenHeader() as Record<string, string>;
+    return request(`/admin/products/find-by-price/${targetPrice}`, {
+      method: 'GET',
+      headers,
       useCache: false
     });
   },

@@ -38,13 +38,15 @@
     "all": "All",
     "pending": "Pending",
     "completed": "Completed",
-    "cancelled": "Cancelled"
+    "cancelled": "Cancelled",
+    "suspended": "Suspended"
   },
   "status": {
     "pending": "Pending",
     "completed": "Completed",
     "cancelled": "Cancelled",
-    "processing": "Processing"
+    "processing": "Processing",
+    "suspended": "Suspended"
   },
   "details": {
     "orderNumber": "Order #",
@@ -78,6 +80,9 @@
     "reason": "Reason",
     "contactAdmin": "Please contact admin or top up to unlock your account.",
     "topUpNow": "Top Up Now",
-    "contactSupport": "Contact Support"
+    "contactSupport": "Contact Support",
+    "orderSuspended": "Order Suspended",
+    "orderSuspendedMessage": "Your order has been suspended due to reaching order limit. Please contact admin or top up to unlock your account.",
+    "orderStatus": "Order Status"
   }
 }

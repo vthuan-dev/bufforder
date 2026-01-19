@@ -493,8 +493,25 @@ export function AdminOrdersPage() {
               <div>
                 <Label>{t('viewDialog.updateStatus')}</Label>
                 {(() => {
-                  const allStatuses = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
                   const currentStatus = selectedOrder.status;
+                  
+                  // Disable status change for suspended orders
+                  if (currentStatus.toLowerCase() === 'suspended') {
+                    return (
+                      <div className="space-y-2">
+                        <Select value={currentStatus} disabled>
+                          <SelectTrigger className="opacity-60 cursor-not-allowed">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </Select>
+                        <p className="text-sm text-orange-600">
+                          {t('viewDialog.suspendedNote', { defaultValue: 'Suspended orders cannot be manually updated. They will automatically change to Pending when user tops up sufficient balance.' })}
+                        </p>
+                      </div>
+                    );
+                  }
+                  
+                  const allStatuses = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
                   const options = allStatuses.filter(s => s !== currentStatus);
 
                   return (

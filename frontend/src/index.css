@@ -4608,80 +4608,111 @@ html {
   }
 }
 
-/* Freeze Threshold Dialog Buttons */
-.freeze-threshold-actions {
+/* Freeze Threshold Dialog - Removed old CSS, using inline styles now */
+
+/* Product Search Button - Custom styling to avoid conflicts */
+.product-search-wrapper {
   display: flex;
-  gap: 12px;
-  padding-top: 16px;
-  margin-top: 8px;
+  gap: 0.5rem;
+  align-items: center;
 }
 
-.freeze-threshold-btn {
-  flex: 1;
-  height: 44px;
-  padding: 0 20px;
-  font-size: 14px;
+.product-search-btn {
+  flex-shrink: 0;
+  height: 2.5rem;
+  padding: 0 1.25rem;
+  background: linear-gradient(to right, #16a34a, #15803d) !important;
+  color: white !important;
+  font-size: 0.875rem;
   font-weight: 600;
-  border-radius: 12px;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   border: none;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  position: relative;
-  overflow: hidden;
 }
 
-.freeze-threshold-btn:active {
-  transform: scale(0.98);
+.product-search-btn:hover:not(:disabled) {
+  background: linear-gradient(to right, #15803d, #166534) !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
-.freeze-threshold-btn-cancel {
-  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-  color: #374151;
-  border: 1px solid #d1d5db;
+.product-search-btn:active:not(:disabled) {
+  transform: scale(0.95);
 }
 
-.freeze-threshold-btn-cancel:hover {
-  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.freeze-threshold-btn-confirm {
-  background: linear-gradient(135deg, #9333ea 0%, #7e22ce 100%);
-  color: white;
-  box-shadow: 0 4px 12px rgba(147, 51, 234, 0.3);
-}
-
-.freeze-threshold-btn-confirm:hover {
-  background: linear-gradient(135deg, #7e22ce 0%, #6b21a8 100%);
-  box-shadow: 0 6px 16px rgba(147, 51, 234, 0.4);
-}
-
-.freeze-threshold-btn-confirm:disabled {
-  opacity: 0.5;
+.product-search-btn:disabled {
+  background: linear-gradient(to right, #9ca3af, #9ca3af) !important;
   cursor: not-allowed;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
 }
 
-.freeze-threshold-btn-confirm:disabled:active {
-  transform: none;
+/* Freeze Modal Action Buttons */
+.freeze-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  margin-top: 1rem;
+  border-top: 1px solid #e5e7eb;
 }
 
-/* Ripple effect */
-.freeze-threshold-btn::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
-  transform: translate(-50%, -50%);
-  transition: width 0.6s, height 0.6s;
+.freeze-cancel-btn {
+  flex: 1;
+  height: 2.75rem;
+  padding: 0 1rem;
+  background: linear-gradient(to right, #16a34a, #15803d) !important;
+  color: white !important;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s;
+  border: none;
+  cursor: pointer;
 }
 
-.freeze-threshold-btn:active::before {
-  width: 300px;
-  height: 300px;
+.freeze-cancel-btn:hover {
+  background: linear-gradient(to right, #15803d, #166534) !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
+
+.freeze-cancel-btn:active {
+  transform: scale(0.95);
+}
+
+.freeze-confirm-btn {
+  flex: 1;
+  height: 2.75rem;
+  padding: 0 1rem;
+  background: linear-gradient(to right, #9333ea, #7e22ce) !important;
+  color: white !important;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(147, 51, 234, 0.3), 0 2px 4px -1px rgba(147, 51, 234, 0.2);
+  transition: all 0.2s;
+  border: none;
+  cursor: pointer;
+}
+
+.freeze-confirm-btn:hover:not(:disabled) {
+  background: linear-gradient(to right, #7e22ce, #6b21a8) !important;
+  box-shadow: 0 10px 15px -3px rgba(147, 51, 234, 0.4), 0 4px 6px -2px rgba(147, 51, 234, 0.3);
+}
+
+.freeze-confirm-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.freeze-confirm-btn:disabled {
+  background: linear-gradient(to right, #9ca3af, #9ca3af) !important;
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.5;
+}
+
+
+

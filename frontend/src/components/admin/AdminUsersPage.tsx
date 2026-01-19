@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, Plus, MoreHorizontal, Edit, Trash2, Filter, User, Phone, Mail, DollarSign, Shield, Target, TrendingUp, Calendar, Lock, CheckCircle2, XCircle } from "lucide-react";
+import { Search, Plus, MoreHorizontal, Edit, Trash2, Filter, User, Phone, Mail, DollarSign, Shield, Target, TrendingUp, Calendar, Lock, CheckCircle2, XCircle, Loader2, X } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { toast } from "sonner";
 import {
@@ -88,6 +88,13 @@ export function AdminUsersPage() {
   const [freezeThresholdValue, setFreezeThresholdValue] = useState("");
   const [freezeThresholdCurrentOrders, setFreezeThresholdCurrentOrders] = useState(0);
   const [freezeThresholdLoading, setFreezeThresholdLoading] = useState(false);
+  
+  // Target Product for Freeze
+  const [targetProductPrice, setTargetProductPrice] = useState("");
+  const [targetProduct, setTargetProduct] = useState<any>(null);
+  const [searchingProduct, setSearchingProduct] = useState(false);
+  const [productSearchError, setProductSearchError] = useState("");
+  
   const [createPhone, setCreatePhone] = useState("");
   const [createPassword, setCreatePassword] = useState("");
   const [creating, setCreating] = useState(false);
@@ -354,6 +361,37 @@ export function AdminUsersPage() {
     }
   };
 
+  // Search for target product by price
+  const handleSearchProductByPrice = async () => {
+    const price = parseFloat(targetProductPrice);
+    
+    if (isNaN(price) || price <= 0) {
+      setProductSearchError('Vui lòng nhập giá hợp lệ');
+      return;
+    }
+    
+    try {
+      setSearchingProduct(true);
+      setProductSearchError('');
+      setTargetProduct(null);
+      
+      const response = await api.adminFindProductByPrice(price);
+      
+      if (response.success && response.data?.product) {
+        setTargetProduct(response.data.product);
+        setProductSearchError('');
+      } else {
+        setProductSearchError('Không tìm thấy sản phẩm phù hợp trong khoảng giá này');
+        setTargetProduct(null);
+      }
+    } catch (error: any) {
+      setProductSearchError(error?.message || 'Lỗi khi tìm sản phẩm');
+      setTargetProduct(null);
+    } finally {
+      setSearchingProduct(false);
+    }
+  };
+
   const handleConfirmFreezeThreshold = async () => {
     if (!freezeThresholdUser) return;
     
@@ -379,11 +417,26 @@ export function AdminUsersPage() {
         }
       }
       
-      await api.adminSetFreezeThreshold(freezeThresholdUser.id, threshold);
+      // Build commission config with freeze settings
+      const config: any = {
+        autoFreezeThreshold: threshold
+      };
+      
+      // Add target product if specified
+      if (targetProduct) {
+        config.freezeTargetProductId = targetProduct.id;
+        config.freezeTargetPrice = targetProduct.price;
+      }
+      
+      await api.adminSetFreezeThreshold(freezeThresholdUser.id, threshold, config);
+      
       toast.success(threshold === null 
         ? t('freezeThresholdDialog.successDefault')
-        : t('freezeThresholdDialog.successCustom', { threshold })
+        : targetProduct 
+          ? `Đã đặt ngưỡng ${threshold} với sản phẩm ${targetProduct.name}`
+          : t('freezeThresholdDialog.successCustom', { threshold })
       );
+      
       setFreezeThresholdDialogOpen(false);
       setTimeout(() => window.location.reload(), 500);
     } catch (e: any) {
@@ -1137,18 +1190,93 @@ export function AdminUsersPage() {
                 )}
               </div>
 
+              {/* Target Product Selection */}
+              <div className="border-t border-gray-200 pt-4 mt-4">
+                <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                  💰 Số tiền sản phẩm treo (tùy chọn)
+                </Label>
+                <div className="product-search-wrapper">
+                  <Input
+                    type="number"
+                    value={targetProductPrice}
+                    onChange={(e) => {
+                      setTargetProductPrice(e.target.value);
+                      setProductSearchError('');
+                    }}
+                    placeholder="Ví dụ: 2000"
+                    className="flex-1"
+                    min={0}
+                  />
+                  <button
+                    onClick={handleSearchProductByPrice}
+                    disabled={searchingProduct || !targetProductPrice}
+                    className="product-search-btn"
+                  >
+                    {searchingProduct ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Đang tìm...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Search className="w-4 h-4" />
+                        <span>Tìm kiếm</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Nhập giá sản phẩm mong muốn, hệ thống sẽ tìm sản phẩm gần nhất
+                </p>
+
+                {/* Product Search Error */}
+                {productSearchError && (
+                  <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-600">
+                    {productSearchError}
+                  </div>
+                )}
+
+                {/* Target Product Display */}
+                {targetProduct && (
+                  <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-xs text-green-800 font-medium mb-2">✓ Sản phẩm đã chọn:</p>
+                    <div className="flex gap-3">
+                      <img 
+                        src={targetProduct.image} 
+                        alt={targetProduct.name}
+                        className="w-16 h-16 object-cover rounded border border-green-300"
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-gray-900">{targetProduct.name}</p>
+                        <p className="text-xs text-gray-600">{targetProduct.brand}</p>
+                        <p className="text-sm font-bold text-green-600 mt-1">${targetProduct.price.toLocaleString()}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setTargetProduct(null);
+                          setTargetProductPrice('');
+                        }}
+                        className="text-gray-400 hover:text-red-500"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Action Buttons */}
-              <div className="freeze-threshold-actions">
+              <div className="freeze-modal-actions">
                 <button
                   onClick={() => setFreezeThresholdDialogOpen(false)}
-                  className="freeze-threshold-btn freeze-threshold-btn-cancel"
+                  className="freeze-cancel-btn"
                 >
                   {t('freezeThresholdDialog.cancel')}
                 </button>
                 <button
                   onClick={handleConfirmFreezeThreshold}
                   disabled={freezeThresholdLoading}
-                  className="freeze-threshold-btn freeze-threshold-btn-confirm"
+                  className="freeze-confirm-btn"
                 >
                   {freezeThresholdValue === '' ? t('freezeThresholdDialog.useDefault') : t('freezeThresholdDialog.setThreshold')}
                 </button>

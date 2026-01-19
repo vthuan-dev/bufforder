@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { PackageOpen } from "lucide-react";
+import { PackageOpen, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useTranslation } from "react-i18next";
 import api from "../services/api";
@@ -7,7 +7,7 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { vipThemes, normalizeVipId } from "../constants/vipThemes";
 
 export function RecordPage() {
-  const { t } = useTranslation(['common', 'record']);
+  const { t } = useTranslation(['common', 'record', 'orders']);
   const [activeTab, setActiveTab] = useState<'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'>('pending');
   const [availableBalance, setAvailableBalance] = useState(0);
   const [freezeBalance, setFreezeBalance] = useState(0);
@@ -190,13 +190,25 @@ export function RecordPage() {
                       className="w-12 h-12 rounded-lg object-cover"
                     />
                     <div>
-                      <p className="text-gray-900 text-sm">{o.productName}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-gray-900 text-sm">{o.productName}</p>
+                        {o.status === 'suspended' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-medium rounded-full">
+                            <Lock className="w-3 h-3" />
+                            {t('orders:status.suspended')}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-gray-500">{new Date(o.orderDate).toLocaleString()}</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="text-gray-900 text-sm">${o.productPrice.toFixed(2)}</p>
-                    <p className="text-green-600 text-xs">+${o.commissionAmount.toFixed(2)}</p>
+                    {o.status === 'suspended' ? (
+                      <p className="text-orange-600 text-xs">{t('orders:frozen.orderSuspended')}</p>
+                    ) : (
+                      <p className="text-green-600 text-xs">+${o.commissionAmount.toFixed(2)}</p>
+                    )}
                   </div>
                 </div>
               ))}

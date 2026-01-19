@@ -38,13 +38,15 @@
     "all": "Tất cả",
     "pending": "Chờ xử lý",
     "completed": "Hoàn thành",
-    "cancelled": "Đã hủy"
+    "cancelled": "Đã hủy",
+    "suspended": "Bị treo"
   },
   "status": {
     "pending": "Chờ xử lý",
     "completed": "Hoàn thành",
     "cancelled": "Đã hủy",
-    "processing": "Đang xử lý"
+    "processing": "Đang xử lý",
+    "suspended": "Bị treo"
   },
   "details": {
     "orderNumber": "Đơn hàng #",
@@ -78,6 +80,9 @@
     "reason": "Lý do",
     "contactAdmin": "Vui lòng liên hệ admin hoặc nạp thêm để mở khóa tài khoản.",
     "topUpNow": "Nạp tiền ngay",
-    "contactSupport": "Liên hệ hỗ trợ"
+    "contactSupport": "Liên hệ hỗ trợ",
+    "orderSuspended": "Đơn hàng bị treo",
+    "orderSuspendedMessage": "Đơn hàng của bạn đã bị treo do đạt giới hạn đơn hàng. Vui lòng liên hệ admin hoặc nạp tiền để mở khóa tài khoản.",
+    "orderStatus": "Trạng thái đơn hàng"
   }
 }
