@@ -408,6 +408,12 @@ export default {
     if (t) headers.Authorization = `Bearer ${t}`;
     return request('/chat/thread', { method: 'POST', headers, body: JSON.stringify({}) });
   },
+  chatUpdateLocation(threadId: string, latitude: number, longitude: number, address: string, token?: string) {
+    const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (t) headers.Authorization = `Bearer ${t}`;
+    return request(`/chat/thread/${threadId}/location`, { method: 'POST', headers, body: JSON.stringify({ latitude, longitude, address }) });
+  },
   chatListMessages(threadId: string, token?: string) {
     const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
     const headers: Record<string, string> = {};

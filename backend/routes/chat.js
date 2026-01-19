@@ -52,29 +52,56 @@ router.post('/thread', authenticateToken, async (req, res) => {
       });
     }
 
+    // Always get current IP from request
+    const rawIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString();
+    const currentIp = rawIp.split(',')[0].trim();
+
     let thread = await prisma.chatThread.findFirst({
       where: { userId: req.userId },
       orderBy: [{ updatedAt: 'desc' }, { lastMessageAt: 'desc' }]
     });
 
     if (!thread) {
-      const rawIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString();
-      const ip = rawIp.split(',')[0].trim();
       thread = await prisma.chatThread.create({
-        data: { userId: req.userId, userIp: ip }
+        data: { userId: req.userId, userIp: currentIp }
       });
-    } else if (!thread.userIp) {
-      const rawIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString();
-      const ip = rawIp.split(',')[0].trim();
+    } else {
+      // Always update IP to reflect current connection
       thread = await prisma.chatThread.update({
         where: { id: thread.id },
-        data: { userIp: ip }
+        data: { userIp: currentIp }
       });
     }
 
     res.json({ success: true, data: { threadId: thread.id } });
   } catch (e) {
     console.error('open thread error', e);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// User: update GPS location
+router.post('/thread/:id/location', authenticateToken, async (req, res) => {
+  try {
+    const { latitude, longitude, address } = req.body;
+    const thread = await prisma.chatThread.findFirst({
+      where: { id: req.params.id, userId: req.userId }
+    });
+    if (!thread) return res.status(404).json({ success: false, message: 'Thread not found' });
+
+    await prisma.chatThread.update({
+      where: { id: thread.id },
+      data: {
+        userLatitude: latitude,
+        userLongitude: longitude,
+        userGpsLocation: address,
+        userGpsUpdatedAt: new Date()
+      }
+    });
+
+    res.json({ success: true });
+  } catch (e) {
+    console.error('update location error', e);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
@@ -115,12 +142,17 @@ router.post('/thread/:id/messages', authenticateToken, async (req, res) => {
       data: { threadId: thread.id, senderType: 'user', senderId: req.userId, text }
     });
 
+    // Update IP on every message to track current location
+    const rawIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString();
+    const currentIp = rawIp.split(',')[0].trim();
+
     await prisma.chatThread.update({
       where: { id: thread.id },
       data: {
         lastMessageAt: new Date(),
         lastMessageText: text,
-        unreadForAdmin: { increment: 1 }
+        unreadForAdmin: { increment: 1 },
+        userIp: currentIp
       }
     });
 
@@ -426,12 +458,17 @@ router.post('/thread/:id/images', authenticateToken, upload.single('image'), asy
       data: { threadId: thread.id, senderType: 'user', senderId: req.userId, imageUrl }
     });
 
+    // Update IP on image send
+    const rawIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString();
+    const currentIp = rawIp.split(',')[0].trim();
+
     await prisma.chatThread.update({
       where: { id: thread.id },
       data: {
         lastMessageAt: new Date(),
         lastMessageText: '[image]',
-        unreadForAdmin: { increment: 1 }
+        unreadForAdmin: { increment: 1 },
+        userIp: currentIp
       }
     });
 

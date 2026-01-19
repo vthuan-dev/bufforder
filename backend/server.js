@@ -236,9 +236,9 @@ io.on('connection', (socket) => {
       }
       if (!thread) return;
 
-      // Record IP if missing
+      // Record IP and update on every message from user
       try {
-        if (!thread.userIp) {
+        if (socket.data.role === 'user') {
           const rawIp = (socket.handshake.headers['x-forwarded-for'] || socket.handshake.address || '').toString();
           const ip = rawIp.split(',')[0].trim();
           if (ip) {

@@ -23,6 +23,10 @@ interface ChatThread {
   unread: number;
   status: "online" | "offline";
   userIp?: string;
+  userLatitude?: number;
+  userLongitude?: number;
+  userGpsLocation?: string;
+  userGpsUpdatedAt?: string;
   lastSeenAt?: string | null;
 }
 
@@ -341,6 +345,10 @@ export function AdminChatPage() {
       unread: Number(t.unreadForAdmin || 0),
       status: t.userOnline ? 'online' : 'offline',
       userIp: t.userIp || '',
+      userLatitude: t.userLatitude,
+      userLongitude: t.userLongitude,
+      userGpsLocation: t.userGpsLocation,
+      userGpsUpdatedAt: t.userGpsUpdatedAt,
       // carry last seen for UI (optional)
       lastSeenAt: t.userLastSeenAt || null
     }));
@@ -632,16 +640,39 @@ export function AdminChatPage() {
                   </div>
                   <p className="text-sm text-gray-500">{typingHeader ? 'Typing…' : selectedThread.user.email}</p>
                   {selectedThread.userIp && (
-                    <div className="flex items-center gap-2 text-xs text-gray-400">
-                      <span>IP: {selectedThread.userIp}</span>
-                      {userLocation && (
-                        <span
-                          className="flex items-center gap-1 cursor-help"
-                          title="Data retrieved from ip-api.com and securely processed through our server"
+                    <div className="flex flex-col gap-1 text-xs text-gray-400">
+                      <div className="flex items-center gap-2">
+                        <span>IP: {selectedThread.userIp}</span>
+                        {userLocation && (
+                          <span
+                            className="flex items-center gap-1 cursor-help"
+                            title="⚠️ Location is approximate based on ISP data. May be inaccurate if user is on mobile data, VPN, or shared network. Data from ip-api.com"
+                          >
+                            <MapPin className="w-3 h-3" />
+                            {userLocation} <span className="text-orange-400">⚠️</span>
+                          </span>
+                        )}
+                      </div>
+                      {selectedThread.userGpsLocation && (
+                        <div className="flex items-center gap-2 text-green-600">
+                          <MapPin className="w-3 h-3 fill-green-600" />
+                          <span className="font-medium">GPS: {selectedThread.userGpsLocation}</span>
+                          {selectedThread.userGpsUpdatedAt && (
+                            <span className="text-gray-400">
+                              ({new Date(selectedThread.userGpsUpdatedAt).toLocaleString()})
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {selectedThread.userLatitude && selectedThread.userLongitude && (
+                        <a
+                          href={`https://www.google.com/maps?q=${selectedThread.userLatitude},${selectedThread.userLongitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:underline text-xs"
                         >
-                          <MapPin className="w-3 h-3" />
-                          {userLocation}
-                        </span>
+                          📍 View on Google Maps
+                        </a>
                       )}
                     </div>
                   )}

@@ -34,6 +34,63 @@ export function HelpPage() {
 
   // ⚡ NO SOCKET HERE - Use events from App.tsx global socket
 
+  // 🎯 GPS Location Request Function
+  const requestGPSLocation = async (threadId: string) => {
+    try {
+      // Check if already sent location in this session
+      const locationSent = sessionStorage.getItem(`gps-sent-${threadId}`);
+      if (locationSent) {
+        console.log('[GPS] Location already sent for this session');
+        return;
+      }
+
+      if (!navigator.geolocation) {
+        console.log('[GPS] Geolocation not supported');
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          console.log('[GPS] Got coordinates:', latitude, longitude);
+
+          // Reverse geocoding using Nominatim (OpenStreetMap)
+          try {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+              { headers: { 'User-Agent': 'AshfordApp/1.0' } }
+            );
+            const data = await response.json();
+            const address = data.display_name || `${latitude}, ${longitude}`;
+            
+            console.log('[GPS] Reverse geocoded address:', address);
+
+            // Send to backend
+            await api.chatUpdateLocation(threadId, latitude, longitude, address);
+            sessionStorage.setItem(`gps-sent-${threadId}`, '1');
+            console.log('[GPS] Location sent to server successfully');
+          } catch (err) {
+            console.error('[GPS] Reverse geocoding failed:', err);
+            // Send coordinates only if geocoding fails
+            await api.chatUpdateLocation(threadId, latitude, longitude, `${latitude}, ${longitude}`);
+            sessionStorage.setItem(`gps-sent-${threadId}`, '1');
+          }
+        },
+        (error) => {
+          console.log('[GPS] User denied or error:', error.message);
+          // Don't show error to user - GPS is optional
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000 // Cache for 5 minutes
+        }
+      );
+    } catch (err) {
+      console.error('[GPS] Request failed:', err);
+    }
+  };
+
   const quickReplies = [
     "📦 Track my order",
     "💳 Payment issue",
@@ -130,6 +187,10 @@ export function HelpPage() {
             return;
           }
           threadIdRef.current = threadId;
+          
+          // 🎯 Request GPS location for accurate tracking
+          requestGPSLocation(threadId);
+          
           const list = await api.chatListMessages(threadId);
           const arr: Message[] = (list?.data?.messages || []).map((m: any) => ({
             id: m._id || m.id,
@@ -150,6 +211,9 @@ export function HelpPage() {
           // Join thread room via App.tsx global socket
           try { window.dispatchEvent(new CustomEvent('client:joinThread', { detail: { threadId } })); } catch { }
           console.log('[client] Created new thread:', threadId, 'with', arr.length, 'messages');
+        } else {
+          // 🎯 Also request GPS for existing thread to update location
+          requestGPSLocation(threadId);
         }
       } catch (err) {
         console.error('[client] Chat initialization error:', err);

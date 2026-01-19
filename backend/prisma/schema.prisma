@@ -118,6 +118,10 @@ model ChatThread {
   id              String        @id @default(cuid())
   userId          String
   userIp          String?       @default("")
+  userLatitude    Float?
+  userLongitude   Float?
+  userGpsLocation String?       @db.Text
+  userGpsUpdatedAt DateTime?
   lastMessageAt   DateTime      @default(now())
   lastMessageText String?       @db.Text
   unreadForAdmin  Int           @default(0)
