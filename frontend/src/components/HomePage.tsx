@@ -6,6 +6,7 @@ const logoImage = new URL('../assets/image.png', import.meta.url).toString();
 const videoAds = new URL('../assets/video/ads.mp4', import.meta.url).toString();
 import { vipThemes, VipTheme, VipThemeKey, normalizeVipId } from '../constants/vipThemes';
 import api from '../services/api';
+import { PartnerBrands } from './PartnerBrands';
 
 const bannerImages = [
   'https://i.ibb.co/84zLyNTL/istockphoto-1135934992-612x612.jpg',
@@ -217,6 +218,47 @@ export function HomePage({ }: HomePageProps) {
           })}
         </div>
       </div>
+
+      {/* Partner Brands Marquee */}
+      <PartnerBrands />
     </div>
   );
 }
+
+// Partner brands data - Mixed sources for best compatibility
+const partnerBrands = [
+  { name: 'Starbucks', logo: 'https://cdn.simpleicons.org/starbucks/00704A' },
+  { name: 'Amazon', logo: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg' },
+  { name: 'Target', logo: 'https://cdn.simpleicons.org/target/CC0000' },
+  { name: 'Apple', logo: 'https://cdn.simpleicons.org/apple/000000' },
+  { name: 'Best Buy', logo: 'https://upload.wikimedia.org/wikipedia/commons/f/f5/Best_Buy_Logo.svg' },
+  { name: 'Nike', logo: 'https://cdn.simpleicons.org/nike/000000' },
+  { name: 'Adidas', logo: 'https://cdn.simpleicons.org/adidas/000000' },
+  { name: 'Puma', logo: 'https://cdn.simpleicons.org/puma/000000' },
+  { name: 'Under Armour', logo: 'https://cdn.simpleicons.org/underarmour/1D1D1D' },
+  { name: 'Reebok', logo: 'https://cdn.simpleicons.org/reebok/000000' },
+  { name: 'New Balance', logo: 'https://cdn.simpleicons.org/newbalance/CC0000' },
+  { name: 'Converse', logo: 'https://upload.wikimedia.org/wikipedia/commons/3/30/Converse_logo.svg' },
+  { name: 'Gucci', logo: 'https://cdn.simpleicons.org/gucci/000000' },
+  { name: 'H&M', logo: 'https://upload.wikimedia.org/wikipedia/commons/5/53/H%26M-Logo.svg' },
+  { name: 'Zara', logo: 'https://cdn.simpleicons.org/zara/000000' },
+  { name: 'Uniqlo', logo: 'https://cdn.simpleicons.org/uniqlo/ED1C24' },
+  { name: 'Gap', logo: 'https://cdn.simpleicons.org/gap/003087' },
+  { name: 'Lululemon', logo: 'https://upload.wikimedia.org/wikipedia/commons/2/22/Lululemon_Athletica_logo.svg' },
+  { name: 'Sephora', logo: 'https://cdn.simpleicons.org/sephora/000000' },
+  { name: 'eBay', logo: 'https://cdn.simpleicons.org/ebay/E53238' },
+  { name: 'Etsy', logo: 'https://cdn.simpleicons.org/etsy/F16521' },
+  { name: 'Shopify', logo: 'https://cdn.simpleicons.org/shopify/7AB55C' },
+  { name: 'Alibaba', logo: 'https://cdn.simpleicons.org/alibabadotcom/FF6A00' },
+  { name: 'AliExpress', logo: 'https://cdn.simpleicons.org/aliexpress/FF4747' },
+  { name: 'Ikea', logo: 'https://cdn.simpleicons.org/ikea/0058A3' },
+  { name: 'Costco', logo: 'https://upload.wikimedia.org/wikipedia/commons/5/59/Costco_Wholesale_logo_2010-10-26.svg' },
+  { name: 'Samsung', logo: 'https://cdn.simpleicons.org/samsung/1428A0' },
+  { name: 'Sony', logo: 'https://cdn.simpleicons.org/sony/000000' },
+  { name: 'LG', logo: 'https://cdn.simpleicons.org/lg/A50034' },
+  { name: 'Dell', logo: 'https://cdn.simpleicons.org/dell/007DB8' },
+  { name: 'HP', logo: 'https://cdn.simpleicons.org/hp/0096D6' },
+  { name: 'Lenovo', logo: 'https://cdn.simpleicons.org/lenovo/E2231A' },
+  { name: 'Microsoft', logo: 'https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg' },
+  { name: 'Google', logo: 'https://cdn.simpleicons.org/google/4285F4' },
+];

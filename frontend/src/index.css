@@ -4716,3 +4716,63 @@ html {
 
 
 
+
+/* ============================================
+   PARTNER BRANDS MARQUEE
+   ============================================ */
+.partner-marquee {
+  display: flex;
+  overflow: hidden;
+  user-select: none;
+  gap: 0;
+}
+
+.partner-marquee-content {
+  display: flex;
+  animation: scroll-left 60s linear infinite;
+  gap: 2rem;
+  padding: 0 1rem;
+}
+
+.partner-item {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 60px;
+  height: 32px;
+  background: transparent;
+  padding: 0;
+  transition: all 0.3s ease;
+}
+
+.partner-item:hover {
+  transform: translateY(-1px) scale(1.05);
+}
+
+.partner-logo {
+  max-width: 45px;
+  max-height: 24px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  transition: all 0.3s ease;
+}
+
+.partner-logo:hover {
+  transform: scale(1.1);
+}
+
+@keyframes scroll-left {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* Pause animation on hover */
+.partner-marquee:hover .partner-marquee-content {
+  animation-play-state: paused;
+}
