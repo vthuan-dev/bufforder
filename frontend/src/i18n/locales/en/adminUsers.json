@@ -20,7 +20,8 @@
   "actions": {
     "edit": "Edit",
     "delete": "Delete",
-    "unlock": "Unlock Account"
+    "unlock": "Unlock Account",
+    "freeze": "Freeze Balance"
   },
   "pagination": {
     "showing": "Showing",
@@ -107,6 +108,10 @@
     "createFailed": "Failed to create user",
     "unlockConfirm": "Are you sure you want to unlock {{name}}'s account? Their frozen balance will be restored.",
     "userUnlocked": "Account unlocked successfully! Balance has been restored.",
-    "unlockFailed": "Failed to unlock account"
+    "unlockFailed": "Failed to unlock account",
+    "freezeConfirm": "Are you sure you want to freeze {{name}}'s account and balance?",
+    "freezeReasonPrompt": "Enter reason for freezing (optional):",
+    "userFrozen": "Account frozen successfully! Balance has been moved to frozen balance.",
+    "freezeFailed": "Failed to freeze account"
   }
 }

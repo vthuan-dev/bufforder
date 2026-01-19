@@ -281,7 +281,7 @@ export function OrdersPage() {
     console.log('[Orders] Generated new idempotency key:', newClientRequestId);
 
     // Optimized progress animation - faster and smoother
-    const duration = 2000; // Reduced from 3000ms to 2000ms
+    const duration = 2000; // Fast animation for better UX
     const steps = 50; // Reduced steps for better performance
     const stepDuration = duration / steps;
 
@@ -894,17 +894,21 @@ export function OrdersPage() {
                       </motion.div>
                     </div>
 
-                    {/* Description Text */}
+                    {/* Description Text - More Prominent */}
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.4 }}
                       className="space-y-3 mb-6"
                     >
-                      <p className="text-xs text-gray-600 leading-relaxed">
-                        {t('orders:popup.queueMessage')}
-                      </p>
-                      <p className="text-xs text-orange-600">
+                      {/* Main message - Very prominent with background */}
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border-2 border-blue-200">
+                        <p className="text-base font-extrabold text-gray-900 leading-relaxed text-center">
+                          {t('orders:popup.queueMessage')}
+                        </p>
+                      </div>
+                      {/* VIP tip - Orange highlight */}
+                      <p className="text-sm text-orange-600 font-bold text-center">
                         {t('orders:popup.vipTip')}
                       </p>
                     </motion.div>

@@ -282,10 +282,25 @@ export function AdminUsersPage() {
     try {
       await api.adminUnlockUser(user.id);
       toast.success(t('notifications.userUnlocked'));
-      // Reload users to reflect changes
-      await loadUsers();
+      // Reload page to reflect changes immediately
+      setTimeout(() => window.location.reload(), 500);
     } catch (e: any) {
       toast.error(e?.message || t('notifications.unlockFailed'));
+    }
+  };
+
+  const handleFreeze = async (user: UserRow) => {
+    const reason = prompt(t('notifications.freezeReasonPrompt'));
+    if (reason === null) return; // User cancelled
+    
+    if (!confirm(t('notifications.freezeConfirm', { name: user.name }))) return;
+    try {
+      await api.adminFreezeUser(user.id, reason || undefined);
+      toast.success(t('notifications.userFrozen'));
+      // Reload page to reflect changes immediately
+      setTimeout(() => window.location.reload(), 500);
+    } catch (e: any) {
+      toast.error(e?.message || t('notifications.freezeFailed'));
     }
   };
 
@@ -404,10 +419,15 @@ export function AdminUsersPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
 
-                        {user.isFrozen && (
+                        {user.isFrozen ? (
                           <DropdownMenuItem onClick={() => handleUnlock(user)} className="text-green-600">
                             <Lock className="w-4 h-4 mr-2" />
                             {t('actions.unlock')}
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem onClick={() => handleFreeze(user)} className="text-orange-600">
+                            <Lock className="w-4 h-4 mr-2" />
+                            {t('actions.freeze')}
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem onClick={() => handleEdit(user)}>

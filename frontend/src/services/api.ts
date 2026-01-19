@@ -791,6 +791,17 @@ export default {
     const headers: Record<string, string> = { 'Content-Type': 'application/json', ...adminTokenHeader() } as Record<string, string>;
     return request(`/admin/users/${userId}/unlock`, { method: 'POST', headers, useCache: false });
   },
+
+  // Admin - Freeze user account and balance
+  adminFreezeUser(userId: string, reason?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json', ...adminTokenHeader() } as Record<string, string>;
+    return request(`/admin/users/${userId}/freeze`, { 
+      method: 'POST', 
+      headers, 
+      body: JSON.stringify({ reason: reason || 'Frozen by admin' }),
+      useCache: false 
+    });
+  },
 };
 
 

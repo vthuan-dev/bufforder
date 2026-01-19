@@ -1019,6 +1019,88 @@ router.post('/users/:id/unlock', verifyAdminToken, async (req, res) => {
   }
 });
 
+// POST /api/admin/users/:id/freeze - Freeze user account and balance
+router.post('/users/:id/freeze', verifyAdminToken, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { reason = 'Frozen by admin' } = req.body;
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.isFrozen) {
+      return res.status(400).json({ success: false, message: 'Account is already frozen' });
+    }
+
+    // Freeze account and move balance to frozenBalance
+    const updateData = {
+      isFrozen: true,
+      frozenBalance: user.balance,
+      balance: 0,
+      frozenAt: new Date(),
+      frozenReason: reason
+    };
+
+    const [updatedUser, notification] = await prisma.$transaction([
+      prisma.user.update({
+        where: { id: userId },
+        data: updateData
+      }),
+      prisma.notification.create({
+        data: {
+          userId: userId,
+          title: 'Account Frozen',
+          message: `Your account has been frozen by admin. Reason: ${reason}`,
+          type: 'error'
+        }
+      })
+    ]);
+
+    // 🔔 Emit notification to user
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user:${userId}`).emit('notification:new', {
+          id: notification.id,
+          title: notification.title,
+          message: notification.message,
+          type: notification.type,
+          createdAt: notification.createdAt
+        });
+        io.to(`user:${userId}`).emit('account:frozen', {
+          balance: 0,
+          frozenBalance: updatedUser.frozenBalance,
+          isFrozen: true,
+          frozenReason: reason
+        });
+      }
+    } catch (e) {
+      console.error('[Socket] Freeze notify error:', e);
+    }
+
+    console.log('[Admin] Account frozen:', {
+      userId,
+      adminId: req.adminId,
+      frozenBalance: user.balance,
+      reason
+    });
+
+    res.json({
+      success: true,
+      message: 'Account frozen successfully',
+      data: {
+        user: excludeFromUser(updatedUser),
+        frozenBalance: user.balance
+      }
+    });
+  } catch (error) {
+    console.error('Freeze account error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 router.patch('/users/:id/status', verifyAdminToken, async (req, res) => {
   try {
     const { isActive } = req.body;

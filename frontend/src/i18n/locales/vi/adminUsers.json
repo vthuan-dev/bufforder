@@ -20,7 +20,8 @@
   "actions": {
     "edit": "Chỉnh sửa",
     "delete": "Xóa",
-    "unlock": "Mở khóa tài khoản"
+    "unlock": "Mở khóa tài khoản",
+    "freeze": "Đóng băng số dư"
   },
   "pagination": {
     "showing": "Hiển thị",
@@ -107,6 +108,10 @@
     "createFailed": "Tạo người dùng thất bại",
     "unlockConfirm": "Bạn có chắc chắn muốn mở khóa tài khoản của {{name}}? Số dư bị đóng băng sẽ được khôi phục.",
     "userUnlocked": "Mở khóa tài khoản thành công! Số dư đã được khôi phục.",
-    "unlockFailed": "Mở khóa tài khoản thất bại"
+    "unlockFailed": "Mở khóa tài khoản thất bại",
+    "freezeConfirm": "Bạn có chắc chắn muốn đóng băng tài khoản và số dư của {{name}}?",
+    "freezeReasonPrompt": "Nhập lý do đóng băng (tùy chọn):",
+    "userFrozen": "Đóng băng tài khoản thành công! Số dư đã được chuyển sang số dư đóng băng.",
+    "freezeFailed": "Đóng băng tài khoản thất bại"
   }
 }
