@@ -45,6 +45,7 @@ export function OrdersPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [displayedProductsCount, setDisplayedProductsCount] = useState(8); // Initial: show 8 products
+  const [shuffledProducts, setShuffledProducts] = useState<Product[]>([]); // Shuffled products for display
 
   // Daily stats with auto-reset at new day
   const [dailyCommission, setDailyCommission] = useState<number>(0);
@@ -71,6 +72,8 @@ export function OrdersPage() {
             image: p.image || '',
           }));
           setProducts(apiProducts);
+          // Initial shuffle
+          setShuffledProducts([...apiProducts].sort(() => Math.random() - 0.5));
         }
       } catch (err) {
         console.error('Failed to load products:', err);
@@ -79,6 +82,17 @@ export function OrdersPage() {
       }
     })();
   }, [commissionRate]);
+
+  // Auto-shuffle products every 5 seconds
+  useEffect(() => {
+    if (products.length === 0) return;
+    
+    const interval = setInterval(() => {
+      setShuffledProducts([...products].sort(() => Math.random() - 0.5));
+    }, 5000); // Shuffle every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [products]);
 
   useEffect(() => {
     const today = new Date();
@@ -599,9 +613,12 @@ export function OrdersPage() {
       <div className="px-4 pb-4">
         <p className="text-sm font-medium text-gray-700 mb-3">{t('orders:availableProducts')}</p>
         <div className="grid grid-cols-2 gap-2">
-          {products.slice(0, displayedProductsCount).map((product) => (
-            <div
+          {shuffledProducts.slice(0, displayedProductsCount).map((product) => (
+            <motion.div
               key={product.id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
               className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100"
             >
               <div className="aspect-square bg-gray-50">
@@ -619,26 +636,26 @@ export function OrdersPage() {
                   <span className="text-[10px] text-green-600">+${product.commission.toFixed(2)}</span>
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
 
         {/* Load More / Show Less Button */}
-        {products.length > 8 && (
+        {shuffledProducts.length > 8 && (
           <div className="mt-4 flex justify-center">
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => {
-                if (displayedProductsCount >= products.length) {
+                if (displayedProductsCount >= shuffledProducts.length) {
                   setDisplayedProductsCount(8); // Reset to initial count
                 } else {
-                  setDisplayedProductsCount(prev => Math.min(prev + 8, products.length)); // Load 8 more
+                  setDisplayedProductsCount(prev => Math.min(prev + 8, shuffledProducts.length)); // Load 8 more
                 }
               }}
               className="px-6 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
             >
-              {displayedProductsCount >= products.length ? t('orders:showLess') : t('orders:loadMore')}
+              {displayedProductsCount >= shuffledProducts.length ? t('orders:showLess') : t('orders:loadMore')}
             </motion.button>
           </div>
         )}
