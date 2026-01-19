@@ -524,7 +524,7 @@ export function OrdersPage() {
                     ? 'Wait for Tomorrow'
                     : (showOrderPopup || submitting)
                       ? 'Processing...'
-                      : 'Submit'}
+                      : 'Purchase Order'}
               </span>
             </div>
           </motion.button>
