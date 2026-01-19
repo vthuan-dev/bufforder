@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from
 import { BottomNav } from './components/BottomNav';
 import { Toaster } from './components/ui/sonner';
 import { io, Socket } from 'socket.io-client';
+import './i18n'; // Initialize i18n
 
 // Lazy load components for better performance
 const HomePage = lazy(() => import('./components/HomePage').then(module => ({ default: module.HomePage })));

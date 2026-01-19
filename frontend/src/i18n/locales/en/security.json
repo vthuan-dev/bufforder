@@ -1,0 +1,39 @@
+{
+  "title": "Security Center",
+  "securityTips": {
+    "title": "Keep your account secure",
+    "tip1": "Use a strong password with letters, numbers and symbols",
+    "tip2": "Don't share your password with anyone",
+    "tip3": "Change your password regularly"
+  },
+  "changePassword": {
+    "title": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm New Password",
+    "placeholders": {
+      "currentPassword": "Enter current password",
+      "newPassword": "Enter new password",
+      "confirmPassword": "Re-enter new password"
+    },
+    "strength": {
+      "label": "Password strength:",
+      "weak": "Weak",
+      "fair": "Fair",
+      "good": "Good",
+      "strong": "Strong"
+    },
+    "match": {
+      "yes": "✓ Passwords match",
+      "no": "✗ Passwords do not match"
+    },
+    "submit": "Change Password"
+  },
+  "alerts": {
+    "fillAllFields": "Please fill in all fields",
+    "passwordTooShort": "New password must be at least 6 characters",
+    "passwordsNotMatch": "New passwords do not match",
+    "success": "Password changed successfully!",
+    "error": "Failed to change password"
+  }
+}

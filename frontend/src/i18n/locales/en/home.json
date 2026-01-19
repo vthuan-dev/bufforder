@@ -1,0 +1,35 @@
+{
+  "welcome": "Welcome",
+  "membershipLevel": "MEMBERSHIP LEVEL",
+  "amountRequired": "Amount Required",
+  "commissionPerOrder": "Commission per order",
+  "numberOfOrders": "Number of orders",
+  "vip": {
+    "currentLevel": "Current VIP Level",
+    "upgrade": "Upgrade VIP",
+    "benefits": "VIP Benefits",
+    "progress": "Progress to next level"
+  },
+  "balance": {
+    "total": "Total Balance",
+    "available": "Available",
+    "frozen": "Frozen"
+  },
+  "tasks": {
+    "daily": "Daily Tasks",
+    "completed": "Completed",
+    "remaining": "Remaining",
+    "todayTasks": "Today's Tasks",
+    "completedToday": "Completed Today"
+  },
+  "quickActions": {
+    "deposit": "Deposit",
+    "withdraw": "Withdraw",
+    "orders": "Orders"
+  },
+  "products": {
+    "title": "Products",
+    "noProducts": "No products available",
+    "loading": "Loading products..."
+  }
+}

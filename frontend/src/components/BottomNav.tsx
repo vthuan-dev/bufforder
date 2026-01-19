@@ -1,5 +1,6 @@
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { TABS_CONFIG, getEnabledTabs } from "../config/tabs.config";
 
 interface BottomNavProps {
@@ -8,6 +9,7 @@ interface BottomNavProps {
 }
 
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
+  const { t } = useTranslation(['common']);
   const [helpUnread, setHelpUnread] = useState<number>(0);
 
   useEffect(() => {
@@ -125,7 +127,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
                       y: 0
                     }}
                   >
-                    {tab.label}
+                    {t(tab.labelKey)}
                   </motion.span>
                 </motion.div>
 

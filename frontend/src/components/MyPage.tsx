@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, lazy, Suspense } from "react";
+import { useEffect, useState, useMemo, lazy, Suspense } from "react";
 import {
   MapPin,
   Wallet,
@@ -8,7 +8,6 @@ import {
   Shield,
   LogOut,
   ChevronRight,
-  Star,
   Sparkles,
   Bell,
   X,
@@ -18,9 +17,11 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import api from "../services/api";
-import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { DEFAULT_VIP_THEME_KEY, normalizeVipId, vipThemes } from "../constants/vipThemes";
 import { BottomNav } from "./BottomNav";
+import { LanguageSwitcher } from "./LanguageSwitcher";
+import { useTranslation } from 'react-i18next';
+import { translateNotification } from '../utils/notificationTranslator';
 
 // ⚡ Lazy load sub-pages for faster initial load
 const ShippingAddressPage = lazy(() => import('./ShippingAddressPage').then(m => ({ default: m.ShippingAddressPage })));
@@ -43,11 +44,11 @@ const PageLoader = () => (
 );
 
 export function MyPage() {
+  const { t } = useTranslation(['common', 'my']);
   const [currentView, setCurrentView] = useState<PageView>('main');
   const [availableBalance, setAvailableBalance] = useState(0);
   const [freezeBalance, setFreezeBalance] = useState(0);
   const [userId, setUserId] = useState('');
-  const [vipLabel, setVipLabel] = useState<string>(vipThemes[DEFAULT_VIP_THEME_KEY].label);
   const [vipTierId, setVipTierId] = useState<string>(DEFAULT_VIP_THEME_KEY);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -71,7 +72,6 @@ export function MyPage() {
 
       // Handle VIP status
       const currentLevel = vipRes?.data?.currentLevel;
-      if (currentLevel?.name) setVipLabel(currentLevel.name);
       if (currentLevel?.id) setVipTierId(String(currentLevel.id));
 
       // Handle notifications
@@ -116,19 +116,19 @@ export function MyPage() {
   };
 
   const menuItems = [
-    { id: 'address' as PageView, label: 'Shipping Address', icon: MapPin, color: 'text-blue-600', bgColor: 'bg-gradient-to-br from-blue-50 to-blue-100' },
-    { id: 'topup' as PageView, label: 'Top up', icon: Wallet, color: 'text-green-600', bgColor: 'bg-gradient-to-br from-green-50 to-green-100' },
-    { id: 'withdrawal' as PageView, label: 'Withdrawal', icon: DollarSign, color: 'text-purple-600', bgColor: 'bg-gradient-to-br from-purple-50 to-purple-100' },
-    { id: 'history' as PageView, label: 'Deposit and Withdrawal Records', icon: FileText, color: 'text-orange-600', bgColor: 'bg-gradient-to-br from-orange-50 to-orange-100' },
-    { id: 'withdrawal-methods' as PageView, label: 'Withdrawal Methods', icon: CreditCard, color: 'text-indigo-600', bgColor: 'bg-gradient-to-br from-indigo-50 to-indigo-100' },
-    { id: 'security' as PageView, label: 'Security Center', icon: Shield, color: 'text-teal-600', bgColor: 'bg-gradient-to-br from-teal-50 to-teal-100' },
+    { id: 'address' as PageView, labelKey: 'my:menu.shippingAddress', icon: MapPin, color: 'text-blue-600', bgColor: 'bg-gradient-to-br from-blue-50 to-blue-100' },
+    { id: 'topup' as PageView, labelKey: 'my:menu.topUp', icon: Wallet, color: 'text-green-600', bgColor: 'bg-gradient-to-br from-green-50 to-green-100' },
+    { id: 'withdrawal' as PageView, labelKey: 'my:menu.withdrawal', icon: DollarSign, color: 'text-purple-600', bgColor: 'bg-gradient-to-br from-purple-50 to-purple-100' },
+    { id: 'history' as PageView, labelKey: 'my:menu.history', icon: FileText, color: 'text-orange-600', bgColor: 'bg-gradient-to-br from-orange-50 to-orange-100' },
+    { id: 'withdrawal-methods' as PageView, labelKey: 'my:menu.withdrawalMethods', icon: CreditCard, color: 'text-indigo-600', bgColor: 'bg-gradient-to-br from-indigo-50 to-indigo-100' },
+    { id: 'security' as PageView, labelKey: 'my:menu.securityCenter', icon: Shield, color: 'text-teal-600', bgColor: 'bg-gradient-to-br from-teal-50 to-teal-100' },
   ];
 
   // ⚡ Memoize computed values
   const normalizedVipKey = useMemo(() => normalizeVipId(vipTierId), [vipTierId]);
   const vipTheme = useMemo(() => vipThemes[normalizedVipKey], [normalizedVipKey]);
   const vipDisplayLabel = vipTheme.label; // Always use English label from theme
-  const vipSubtitle = vipTheme.subtitle;
+  const vipSubtitle = useMemo(() => t(`my:vip.subtitles.${normalizedVipKey}`), [t, normalizedVipKey]);
 
   const handleMenuClick = (id: PageView) => {
     setCurrentView(id);
@@ -183,40 +183,44 @@ export function MyPage() {
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-gray-900 font-bold text-lg tracking-tight">My Profile</h1>
-                <p className="text-gray-400 text-xs">Manage your account</p>
+                <h1 className="text-gray-900 font-bold text-lg tracking-tight">{t('my:title')}</h1>
+                <p className="text-gray-400 text-xs">{t('my:manageAccount')}</p>
               </div>
             </motion.div>
 
-            {/* Bell Icon for Notifications */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ 
-                opacity: 1, 
-                scale: 1,
-                rotate: bellShake ? [0, -15, 15, -15, 15, 0] : 0
-              }}
-              transition={{ 
-                delay: 0.2,
-                rotate: { duration: 0.5, ease: "easeInOut" }
-              }}
-            >
-              <button
-                onClick={() => setShowNotifications(true)}
-                className={`p-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl text-gray-700 relative transition-all active:scale-95 ${bellShake ? 'ring-2 ring-gray-300' : ''}`}
+            {/* Bell Icon for Notifications + Language Switcher */}
+            <div className="flex items-center gap-2">
+              <LanguageSwitcher />
+              
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ 
+                  opacity: 1, 
+                  scale: 1,
+                  rotate: bellShake ? [0, -15, 15, -15, 15, 0] : 0
+                }}
+                transition={{ 
+                  delay: 0.2,
+                  rotate: { duration: 0.5, ease: "easeInOut" }
+                }}
               >
-                <Bell className="w-5 h-5" />
-                {unreadCount > 0 && (
-                  <motion.span 
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-white shadow-lg"
-                  >
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </motion.span>
-                )}
-              </button>
-            </motion.div>
+                <button
+                  onClick={() => setShowNotifications(true)}
+                  className={`p-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl text-gray-700 relative transition-all active:scale-95 ${bellShake ? 'ring-2 ring-gray-300' : ''}`}
+                >
+                  <Bell className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <motion.span 
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-white shadow-lg"
+                    >
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </motion.span>
+                  )}
+                </button>
+              </motion.div>
+            </div>
           </div>
 
           {/* VIP overview card synced with Home VIP element */}
@@ -314,7 +318,7 @@ export function MyPage() {
                     className="text-xs font-medium"
                     style={{ color: vipTheme.idColor || '#fde68a' }}
                   >
-                    ID: {userId}
+                    {t('my:vip.id')}: {userId}
                   </motion.p>
                 </div>
               </div>
@@ -328,7 +332,7 @@ export function MyPage() {
                   className="p-5 relative"
                 >
                   <div className="relative">
-                    <p className="text-xs mb-2 font-medium" style={{ color: vipTheme.detailLabelColor || '#fde68a' }}>Available Balance</p>
+                    <p className="text-xs mb-2 font-medium" style={{ color: vipTheme.detailLabelColor || '#fde68a' }}>{t('my:balance.available')}</p>
                     <p className="text-2xl drop-shadow-md font-medium" style={{ color: vipTheme.detailValueColor || '#fcd34d' }}>${availableBalance.toFixed(2)}</p>
                   </div>
                 </motion.div>
@@ -341,7 +345,7 @@ export function MyPage() {
                   className="p-5 relative"
                 >
                   <div className="relative">
-                    <p className="text-xs mb-2 font-medium" style={{ color: vipTheme.detailLabelColor || '#fde68a' }}>Freeze Balance</p>
+                    <p className="text-xs mb-2 font-medium" style={{ color: vipTheme.detailLabelColor || '#fde68a' }}>{t('my:balance.freeze')}</p>
                     <p className="text-2xl drop-shadow-md font-medium" style={{ color: vipTheme.detailValueColor || '#fcd34d' }}>${freezeBalance.toFixed(2)}</p>
                   </div>
                 </motion.div>
@@ -378,7 +382,7 @@ export function MyPage() {
                 >
                   <Icon className={`w-5 h-5 ${item.color}`} />
                 </motion.div>
-                <span className="flex-1 text-left text-gray-700">{item.label}</span>
+                <span className="flex-1 text-left text-gray-700">{t(item.labelKey)}</span>
                 <ChevronRight className="w-5 h-5 text-gray-400" />
               </motion.button>
             );
@@ -403,7 +407,7 @@ export function MyPage() {
             style={{ transform: 'skewX(-20deg)' }}
           />
           <LogOut className="w-5 h-5 relative z-10" />
-          <span className="relative z-10">Logout</span>
+          <span className="relative z-10">{t('common:buttons.logout')}</span>
         </motion.button>
       </div>
 
@@ -435,14 +439,14 @@ export function MyPage() {
                   <div className="p-2 bg-blue-50 rounded-xl">
                     <Bell className="w-5 h-5 text-blue-600" />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900">Notifications</h3>
+                  <h3 className="text-xl font-bold text-gray-900">{t('my:notifications.title')}</h3>
                 </div>
                 <div className="flex items-center gap-2">
                   {notifications.length > 0 && (
                     <button
                       onClick={clearAll}
                       className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                      title="Clear all"
+                      title={t('my:notifications.clearAll')}
                     >
                       <Trash2 className="w-5 h-5" />
                     </button>
@@ -462,13 +466,15 @@ export function MyPage() {
                     <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6">
                       <Bell className="w-10 h-10 text-gray-200" />
                     </div>
-                    <p className="text-gray-900 font-bold text-lg">No notifications yet</p>
+                    <p className="text-gray-900 font-bold text-lg">{t('my:notifications.noNotifications')}</p>
                     <p className="text-gray-400 text-sm max-w-[200px] mt-2">
-                      When you have updates about your requests, they will appear here.
+                      {t('my:notifications.noNotificationsDesc')}
                     </p>
                   </div>
                 ) : (
-                  notifications.map((n) => (
+                  notifications.map((n) => {
+                    const translated = translateNotification({ title: n.title, message: n.message });
+                    return (
                     <motion.div
                       layout
                       initial={{ opacity: 0, y: 10 }}
@@ -484,9 +490,9 @@ export function MyPage() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             {!n.isRead && <div className="w-2 h-2 bg-blue-500 rounded-full" />}
-                            <p className={`font-bold text-sm ${n.isRead ? 'text-gray-600' : 'text-blue-900'}`}>{n.title}</p>
+                            <p className={`font-bold text-sm ${n.isRead ? 'text-gray-600' : 'text-blue-900'}`}>{translated.title}</p>
                           </div>
-                          <p className="text-sm text-gray-600 mt-1 leading-relaxed">{n.message}</p>
+                          <p className="text-sm text-gray-600 mt-1 leading-relaxed">{translated.message}</p>
                           <p className="text-[10px] text-gray-400 mt-2 flex items-center gap-1">
                             <Sparkles className="w-3 h-3" />
                             {new Date(n.createdAt).toLocaleString()}
@@ -505,7 +511,8 @@ export function MyPage() {
                         )}
                       </div>
                     </motion.div>
-                  ))
+                    );
+                  })
                 )}
               </div>
               <div className="p-6 bg-white border-t border-gray-50 flex-shrink-0">
@@ -513,7 +520,7 @@ export function MyPage() {
                   onClick={() => setShowNotifications(false)}
                   className="w-full py-4 bg-gray-900 hover:bg-black text-white rounded-2xl font-bold shadow-lg active:scale-[0.98] transition-all"
                 >
-                  Close
+                  {t('my:notifications.close')}
                 </button>
               </div>
             </motion.div>

@@ -1,0 +1,56 @@
+{
+  "title": "My Profile",
+  "manageAccount": "Manage your account",
+  "vip": {
+    "level": "VIP Level",
+    "id": "ID",
+    "subtitles": {
+      "royal": "Royal member",
+      "ssvip": "Super Supreme member",
+      "svip": "Super member",
+      "vip7": "Sapphire member",
+      "vip6": "Emerald member",
+      "vip5": "Ruby member",
+      "vip4": "Platinum member",
+      "vip3": "Diamond member",
+      "vip2": "Gold member",
+      "vip1": "Silver member",
+      "vip0": "New member"
+    }
+  },
+  "balance": {
+    "available": "Available Balance",
+    "freeze": "Freeze Balance"
+  },
+  "menu": {
+    "shippingAddress": "Shipping Address",
+    "topUp": "Top up",
+    "withdrawal": "Withdrawal",
+    "history": "Deposit and Withdrawal Records",
+    "withdrawalMethods": "Withdrawal Methods",
+    "securityCenter": "Security Center"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "noNotifications": "No notifications yet",
+    "noNotificationsDesc": "When you have updates about your requests, they will appear here.",
+    "markAsRead": "Mark as read",
+    "clearAll": "Clear all",
+    "close": "Close",
+    "types": {
+      "balanceAdjusted": "Balance Adjusted",
+      "depositApproved": "Deposit Approved",
+      "withdrawalApproved": "Withdrawal Approved",
+      "withdrawalRejected": "Withdrawal Rejected",
+      "orderCompleted": "Order Completed",
+      "commissionEarned": "Commission Earned"
+    },
+    "messages": {
+      "adminDeducted": "Admin has deducted {{amount}} from your account.",
+      "adminAdded": "Admin has added {{amount}} to your account.",
+      "depositApproved": "Your deposit of {{amount}} has been approved.",
+      "withdrawalApproved": "Your withdrawal of {{amount}} has been approved.",
+      "withdrawalRejected": "Your withdrawal of {{amount}} has been rejected."
+    }
+  }
+}

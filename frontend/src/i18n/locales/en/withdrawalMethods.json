@@ -1,0 +1,76 @@
+{
+  "title": "Withdrawal Methods",
+  "tabs": {
+    "bankCards": "Bank Cards",
+    "usdtWallets": "USDT Wallets"
+  },
+  "bankCards": {
+    "title": "Bank Cards",
+    "addNew": "Add New Card",
+    "noBankCard": "No bank card yet",
+    "addBankCardDesc": "Add your bank card for withdrawal",
+    "form": {
+      "title": "New Bank Card",
+      "bankName": "Bank Name",
+      "cardNumber": "Card Number",
+      "accountName": "Account Name",
+      "setDefault": "Set as default",
+      "placeholders": {
+        "bankName": "e.g. Vietcombank",
+        "cardNumber": "Enter card number",
+        "accountName": "Enter account holder name"
+      }
+    },
+    "actions": {
+      "setDefault": "Set Default",
+      "delete": "Delete"
+    },
+    "toasts": {
+      "fillAllFields": "Please fill in all fields",
+      "addSuccess": "Bank card added successfully!",
+      "addError": "Failed to add bank card",
+      "deleteConfirm": "Are you sure you want to delete this card?",
+      "deleteSuccess": "Bank card deleted successfully!",
+      "deleteError": "Failed to delete bank card"
+    }
+  },
+  "usdtWallets": {
+    "title": "USDT Wallets",
+    "addNew": "Add New Wallet",
+    "noWallet": "No USDT wallet yet",
+    "addWalletDesc": "Add your USDT wallet for withdrawal",
+    "form": {
+      "title": "New USDT Wallet",
+      "walletName": "Wallet Name",
+      "network": "Network",
+      "walletAddress": "Wallet Address",
+      "placeholders": {
+        "walletName": "e.g. My Main Wallet",
+        "walletAddress": "Enter wallet address"
+      },
+      "networkHints": {
+        "trc20": "Tron address (starts with T, 34 chars)",
+        "erc20": "Ethereum address (starts with 0x, 42 chars)",
+        "bep20": "BSC address (starts with 0x, 42 chars)",
+        "polygon": "Polygon address (starts with 0x, 42 chars)",
+        "arbitrum": "Arbitrum address (starts with 0x, 42 chars)",
+        "optimism": "Optimism address (starts with 0x, 42 chars)",
+        "avalanche": "Avalanche C-Chain address (starts with 0x, 42 chars)",
+        "solana": "Solana address (Base58, 32-44 chars)"
+      }
+    },
+    "actions": {
+      "setDefault": "Set Default",
+      "delete": "Delete",
+      "default": "Default"
+    },
+    "toasts": {
+      "fillAllFields": "Please fill in all fields",
+      "addSuccess": "Wallet added successfully!",
+      "addError": "Failed to add wallet",
+      "deleteConfirm": "Are you sure you want to delete this wallet?",
+      "deleteSuccess": "Wallet deleted successfully!",
+      "deleteError": "Failed to delete wallet"
+    }
+  }
+}

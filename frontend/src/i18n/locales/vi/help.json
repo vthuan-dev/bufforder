@@ -1,0 +1,15 @@
+{
+  "title": "Hỗ trợ Ashford",
+  "status": "Trực tuyến • Phản hồi trong ~1 phút",
+  "welcome": "Xin chào! 👋 Chào mừng đến với Hỗ trợ Ashford.",
+  "welcomeQuestion": "Chúng tôi có thể giúp gì cho bạn hôm nay?",
+  "quickActions": {
+    "trackOrder": "Theo dõi đơn hàng",
+    "paymentIssue": "Vấn đề thanh toán",
+    "returnRequest": "Yêu cầu trả hàng"
+  },
+  "inputPlaceholder": "Nhập tin nhắn của bạn...",
+  "sending": "Đang gửi...",
+  "messageSent": "Đã gửi tin nhắn",
+  "messageError": "Không thể gửi tin nhắn"
+}

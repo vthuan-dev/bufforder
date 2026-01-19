@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, CheckCircle, XCircle } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { useTranslation } from "react-i18next";
 import { useTabState } from "../hooks/useTabState";
 import { TabNavigation } from "./TabNavigation";
 import { BankCardsTab } from "./BankCardsTab";
@@ -43,6 +44,7 @@ function Toast({ message, type, onClose }: ToastState & { onClose: () => void })
 }
 
 export function WithdrawalMethodsPage({ onBack }: WithdrawalMethodsPageProps) {
+  const { t } = useTranslation(['common', 'withdrawalMethods']);
   const { activeTab, switchTab } = useTabState();
   const [toast, setToast] = useState<ToastState | null>(null);
 
@@ -72,7 +74,7 @@ export function WithdrawalMethodsPage({ onBack }: WithdrawalMethodsPageProps) {
           >
             <ArrowLeft className="w-5 h-5" />
           </motion.button>
-          <h1 className="text-lg">Withdrawal Methods</h1>
+          <h1 className="text-lg">{t('withdrawalMethods:title')}</h1>
         </div>
       </div>
 

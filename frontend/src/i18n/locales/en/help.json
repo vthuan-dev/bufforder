@@ -1,0 +1,15 @@
+{
+  "title": "Ashford Support",
+  "status": "Online • Reply in ~1 min",
+  "welcome": "Hello! 👋 Welcome to Ashford Support.",
+  "welcomeQuestion": "How can we help you today?",
+  "quickActions": {
+    "trackOrder": "Track my order",
+    "paymentIssue": "Payment issue",
+    "returnRequest": "Return request"
+  },
+  "inputPlaceholder": "Type your message...",
+  "sending": "Sending...",
+  "messageSent": "Message sent",
+  "messageError": "Failed to send message"
+}

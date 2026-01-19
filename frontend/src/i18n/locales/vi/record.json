@@ -1,0 +1,17 @@
+{
+  "title": "Lịch sử đơn hàng",
+  "availableBalance": "Số dư khả dụng",
+  "frozenBalance": "Số dư đóng băng",
+  "tabs": {
+    "pending": "Chờ xử lý",
+    "processing": "Đang xử lý",
+    "shipped": "Đã gửi",
+    "delivered": "Đã giao",
+    "cancelled": "Đã hủy"
+  },
+  "empty": {
+    "title": "Chưa có đơn hàng",
+    "description": "Hoàn thành đơn hàng để xem lịch sử tại đây"
+  },
+  "loading": "Đang tải..."
+}

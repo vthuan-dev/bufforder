@@ -1,0 +1,19 @@
+{
+  "title": "Nạp tiền",
+  "currentBalance": "Số dư hiện tại",
+  "enterAmount": "Nhập số tiền",
+  "quickSelect": "Chọn nhanh",
+  "submitRequest": "Gửi yêu cầu",
+  "pending": {
+    "title": "Yêu cầu đang chờ",
+    "status": "Đang chờ"
+  },
+  "placeholders": {
+    "amount": "0.00"
+  },
+  "toasts": {
+    "enterAmount": "Vui lòng nhập số tiền hợp lệ",
+    "success": "Yêu cầu nạp tiền đã được gửi! Vui lòng chờ admin phê duyệt.",
+    "error": "Gửi yêu cầu nạp tiền thất bại"
+  }
+}

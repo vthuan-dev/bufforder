@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Wallet, Plus, Trash2, Check, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { useTranslation } from "react-i18next";
 import { useUSDTWallets, USDTWalletInput } from "../hooks/useUSDTWallets";
 
 interface USDTWalletsTabProps {
@@ -8,6 +9,7 @@ interface USDTWalletsTabProps {
 }
 
 export function USDTWalletsTab({ onShowToast }: USDTWalletsTabProps) {
+  const { t } = useTranslation(['common', 'withdrawalMethods']);
   const { wallets, isLoading, addWallet, deleteWallet, setDefault } = useUSDTWallets();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newWallet, setNewWallet] = useState({
@@ -18,7 +20,7 @@ export function USDTWalletsTab({ onShowToast }: USDTWalletsTabProps) {
 
   const handleAddWallet = async () => {
     if (!newWallet.walletAddress || !newWallet.walletName || !newWallet.network) {
-      onShowToast('Please fill in all fields', 'error');
+      onShowToast(t('withdrawalMethods:usdtWallets.toasts.fillAllFields'), 'error');
       return;
     }
 
@@ -31,20 +33,20 @@ export function USDTWalletsTab({ onShowToast }: USDTWalletsTabProps) {
     if (result.success) {
       setNewWallet({ walletAddress: '', walletName: '', network: 'TRC20' });
       setShowAddForm(false);
-      onShowToast('Wallet added successfully!', 'success');
+      onShowToast(t('withdrawalMethods:usdtWallets.toasts.addSuccess'), 'success');
     } else {
-      onShowToast(result.error || 'Failed to add wallet', 'error');
+      onShowToast(result.error || t('withdrawalMethods:usdtWallets.toasts.addError'), 'error');
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this wallet?")) return;
+    if (!confirm(t('withdrawalMethods:usdtWallets.toasts.deleteConfirm'))) return;
 
     const result = await deleteWallet(id);
     if (result.success) {
-      onShowToast('Wallet deleted successfully!', 'success');
+      onShowToast(t('withdrawalMethods:usdtWallets.toasts.deleteSuccess'), 'success');
     } else {
-      onShowToast(result.error || 'Failed to delete wallet', 'error');
+      onShowToast(result.error || t('withdrawalMethods:usdtWallets.toasts.deleteError'), 'error');
     }
   };
 
@@ -62,7 +64,7 @@ export function USDTWalletsTab({ onShowToast }: USDTWalletsTabProps) {
         className="w-full bg-white rounded-2xl px-4 py-3.5 shadow-sm border border-gray-200 flex items-center justify-center gap-2 text-purple-600 hover:bg-purple-50 transition-colors"
       >
         <Plus className="w-5 h-5" />
-        <span className="text-sm">Add New Wallet</span>
+        <span className="text-sm">{t('withdrawalMethods:usdtWallets.addNew')}</span>
       </motion.button>
 
       {/* Add Wallet Form */}
@@ -74,23 +76,23 @@ export function USDTWalletsTab({ onShowToast }: USDTWalletsTabProps) {
             exit={{ opacity: 0, height: 0 }}
             className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 overflow-hidden"
           >
-            <h3 className="text-gray-800 mb-5 text-base">New USDT Wallet</h3>
+            <h3 className="text-gray-800 mb-5 text-base">{t('withdrawalMethods:usdtWallets.form.title')}</h3>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-700 mb-2">Wallet Name</label>
+                <label className="block text-sm text-gray-700 mb-2">{t('withdrawalMethods:usdtWallets.form.walletName')}</label>
                 <input
                   type="text"
                   value={newWallet.walletName}
                   onChange={(e) => setNewWallet({ ...newWallet, walletName: e.target.value })}
-                  placeholder="e.g. My Main Wallet"
+                  placeholder={t('withdrawalMethods:usdtWallets.form.placeholders.walletName')}
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                 />
               </div>
 
               <div>
                 <label className="block text-sm text-gray-700 mb-2">
-                  Network{newWallet.network && `: ${newWallet.network}`}
+                  {t('withdrawalMethods:usdtWallets.form.network')}{newWallet.network && `: ${newWallet.network}`}
                 </label>
                 <div className="space-y-2">
                   <div className="flex gap-2">
@@ -123,27 +125,16 @@ export function USDTWalletsTab({ onShowToast }: USDTWalletsTabProps) {
               </div>
 
               <div>
-                <label className="block text-sm text-gray-700 mb-2">Wallet Address</label>
+                <label className="block text-sm text-gray-700 mb-2">{t('withdrawalMethods:usdtWallets.form.walletAddress')}</label>
                 <input
                   type="text"
                   value={newWallet.walletAddress}
                   onChange={(e) => setNewWallet({ ...newWallet, walletAddress: e.target.value.trim() })}
-                  placeholder={
-                    newWallet.network === 'TRC20' ? 'T...' :
-                    newWallet.network === 'Solana' ? 'Base58...' :
-                    '0x...'
-                  }
+                  placeholder={t('withdrawalMethods:usdtWallets.form.placeholders.walletAddress')}
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all font-mono"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  {newWallet.network === 'TRC20' && 'Tron address (starts with T, 34 chars)'}
-                  {newWallet.network === 'ERC20' && 'Ethereum address (starts with 0x, 42 chars)'}
-                  {newWallet.network === 'BEP20' && 'BSC address (starts with 0x, 42 chars)'}
-                  {newWallet.network === 'Polygon' && 'Polygon address (starts with 0x, 42 chars)'}
-                  {newWallet.network === 'Arbitrum' && 'Arbitrum address (starts with 0x, 42 chars)'}
-                  {newWallet.network === 'Optimism' && 'Optimism address (starts with 0x, 42 chars)'}
-                  {newWallet.network === 'Avalanche' && 'Avalanche C-Chain address (starts with 0x, 42 chars)'}
-                  {newWallet.network === 'Solana' && 'Solana address (Base58, 32-44 chars)'}
+                  {t(`withdrawalMethods:usdtWallets.form.networkHints.${newWallet.network.toLowerCase()}`)}
                 </p>
               </div>
             </div>
@@ -156,7 +147,7 @@ export function USDTWalletsTab({ onShowToast }: USDTWalletsTabProps) {
                 disabled={isLoading}
                 className="px-8 py-3.5 bg-white border-2 border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
-                Cancel
+                {t('common:buttons.cancel')}
               </motion.button>
               <motion.button
                 whileHover={{ scale: isLoading ? 1 : 1.02 }}
@@ -168,10 +159,10 @@ export function USDTWalletsTab({ onShowToast }: USDTWalletsTabProps) {
                 {isLoading ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin !text-white" />
-                    <span className="!text-white font-semibold">Adding...</span>
+                    <span className="!text-white font-semibold">{t('common:messages.loading')}</span>
                   </>
                 ) : (
-                  <span className="!text-white font-semibold">Add Wallet</span>
+                  <span className="!text-white font-semibold">{t('common:buttons.add')}</span>
                 )}
               </motion.button>
             </div>
@@ -205,7 +196,7 @@ export function USDTWalletsTab({ onShowToast }: USDTWalletsTabProps) {
 
               <div className="flex items-end justify-between">
                 <div>
-                  <p className="text-xs opacity-75 mb-1">Network</p>
+                  <p className="text-xs opacity-75 mb-1">{t('withdrawalMethods:usdtWallets.form.network')}</p>
                   <p className="text-sm font-medium">{wallet.network}</p>
                 </div>
 
@@ -213,7 +204,7 @@ export function USDTWalletsTab({ onShowToast }: USDTWalletsTabProps) {
                   {wallet.isDefault ? (
                     <span className="bg-white/25 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs flex items-center gap-1.5">
                       <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
-                      Default
+                      {t('withdrawalMethods:usdtWallets.actions.default')}
                     </span>
                   ) : (
                     <motion.button
@@ -221,7 +212,7 @@ export function USDTWalletsTab({ onShowToast }: USDTWalletsTabProps) {
                       onClick={() => setDefault(wallet.id)}
                       className="bg-white/20 backdrop-blur-sm hover:bg-white/30 px-3 py-1.5 rounded-full text-xs transition-colors"
                     >
-                      Set Default
+                      {t('withdrawalMethods:usdtWallets.actions.setDefault')}
                     </motion.button>
                   )}
                   <motion.button
@@ -248,8 +239,8 @@ export function USDTWalletsTab({ onShowToast }: USDTWalletsTabProps) {
           <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Wallet className="w-10 h-10 text-gray-400" />
           </div>
-          <p className="text-gray-600 mb-1">No USDT wallet yet</p>
-          <p className="text-sm text-gray-400">Add your USDT wallet for withdrawal</p>
+          <p className="text-gray-600 mb-1">{t('withdrawalMethods:usdtWallets.noWallet')}</p>
+          <p className="text-sm text-gray-400">{t('withdrawalMethods:usdtWallets.addWalletDesc')}</p>
         </motion.div>
       )}
     </div>

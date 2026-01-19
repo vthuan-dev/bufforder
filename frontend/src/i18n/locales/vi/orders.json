@@ -1,0 +1,60 @@
+{
+  "title": "Đơn hàng",
+  "purchaseOrder": "Đặt hàng",
+  "processing": "Đang xử lý...",
+  "clickToOrder": "Nhấn nút để đặt hàng ngay",
+  "commissionEarned": "Hoa hồng kiếm được",
+  "availableBalance": "Số dư khả dụng",
+  "todaysTasks": "Nhiệm vụ hôm nay",
+  "completedToday": "Hoàn thành hôm nay",
+  "ordersReceived": "Đơn hàng đã nhận",
+  "availableProducts": "Sản phẩm có sẵn",
+  "popup": {
+    "title": "Đơn hàng đang xử lý",
+    "queueMessage": "Nhiều người dùng đang cạnh tranh đơn hàng ở cấp độ hiện tại của bạn. Hệ thống đang phân bổ đơn hàng và bạn hiện đang ở vị trí hàng đợi 11. Vui lòng đợi kiên nhẫn.",
+    "vipTip": "Mẹo: Nâng cấp cấp VIP của bạn có thể giúp bạn nhận đơn hàng nhanh hơn.",
+    "cancelQueue": "Hủy hàng đợi"
+  },
+  "notifications": {
+    "noProducts": "Không có sản phẩm nào trong phạm vi số dư của bạn. Vui lòng nạp tiền.",
+    "yourBalance": "Số dư của bạn: ${{balance}}",
+    "insufficientBalance": "Số dư không đủ! Cần ${{need}} nhưng bạn chỉ có ${{have}}. Vui lòng nạp tiền.",
+    "orderSuccess": "Đặt hàng thành công!",
+    "commission": "Hoa hồng: +${{amount}}"
+  },
+  "tabs": {
+    "all": "Tất cả",
+    "pending": "Chờ xử lý",
+    "completed": "Hoàn thành",
+    "cancelled": "Đã hủy"
+  },
+  "status": {
+    "pending": "Chờ xử lý",
+    "completed": "Hoàn thành",
+    "cancelled": "Đã hủy",
+    "processing": "Đang xử lý"
+  },
+  "details": {
+    "orderNumber": "Đơn hàng #",
+    "product": "Sản phẩm",
+    "amount": "Số tiền",
+    "commission": "Hoa hồng",
+    "date": "Ngày",
+    "status": "Trạng thái"
+  },
+  "actions": {
+    "viewDetails": "Xem chi tiết",
+    "complete": "Hoàn thành đơn",
+    "cancel": "Hủy"
+  },
+  "empty": {
+    "title": "Chưa có đơn hàng",
+    "description": "Bắt đầu mua sắm để xem đơn hàng tại đây"
+  },
+  "stats": {
+    "total": "Tổng đơn hàng",
+    "completed": "Hoàn thành",
+    "pending": "Chờ xử lý",
+    "earnings": "Tổng thu nhập"
+  }
+}

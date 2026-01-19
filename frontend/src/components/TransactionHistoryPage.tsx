@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { motion } from "motion/react";
+import { useTranslation } from "react-i18next";
 import { formatSafeDate, formatSafeTime } from "./ui/utils";
 import api from "../services/api";
 
@@ -19,6 +20,7 @@ interface TransactionHistoryPageProps {
 }
 
 export function TransactionHistoryPage({ onBack }: TransactionHistoryPageProps) {
+  const { t } = useTranslation(['common', 'transactionHistory']);
   const [filter, setFilter] = useState<'all' | 'deposit' | 'withdrawal'>('all');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
@@ -76,10 +78,10 @@ export function TransactionHistoryPage({ onBack }: TransactionHistoryPageProps) 
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'completed':
-      case 'approved': return 'Approved';
-      case 'pending': return 'Pending';
+      case 'approved': return t('transactionHistory:status.approved');
+      case 'pending': return t('transactionHistory:status.pending');
       case 'failed':
-      case 'rejected': return 'Rejected';
+      case 'rejected': return t('transactionHistory:status.rejected');
       default: return status;
     }
   };
@@ -96,7 +98,7 @@ export function TransactionHistoryPage({ onBack }: TransactionHistoryPageProps) 
           >
             <ArrowLeft className="w-5 h-5" />
           </motion.button>
-          <h1 className="text-lg">Transaction History</h1>
+          <h1 className="text-lg">{t('transactionHistory:title')}</h1>
         </div>
       </div>
 
@@ -113,7 +115,7 @@ export function TransactionHistoryPage({ onBack }: TransactionHistoryPageProps) 
                 : 'text-gray-600 hover:bg-gray-50'
                 }`}
             >
-              {tab}
+              {t(`transactionHistory:filters.${tab}`)}
             </motion.button>
           ))}
         </div>
@@ -127,7 +129,7 @@ export function TransactionHistoryPage({ onBack }: TransactionHistoryPageProps) 
           >
             <div className="flex items-center gap-2 mb-2">
               <ArrowDownRight className="w-4 h-4" strokeWidth={2.5} />
-              <p className="text-xs opacity-90">Total Deposits</p>
+              <p className="text-xs opacity-90">{t('transactionHistory:summary.totalDeposits')}</p>
             </div>
             <p className="text-2xl">${totalDeposits.toLocaleString()}</p>
           </motion.div>
@@ -140,7 +142,7 @@ export function TransactionHistoryPage({ onBack }: TransactionHistoryPageProps) 
           >
             <div className="flex items-center gap-2 mb-2">
               <ArrowUpRight className="w-4 h-4" strokeWidth={2.5} />
-              <p className="text-xs opacity-90">Total Withdrawals</p>
+              <p className="text-xs opacity-90">{t('transactionHistory:summary.totalWithdrawals')}</p>
             </div>
             <p className="text-2xl">${totalWithdrawals.toLocaleString()}</p>
           </motion.div>
@@ -172,7 +174,7 @@ export function TransactionHistoryPage({ onBack }: TransactionHistoryPageProps) 
 
                   {/* Info */}
                   <div className="flex-1">
-                    <p className="text-gray-800 capitalize mb-0.5">{transaction.type}</p>
+                    <p className="text-gray-800 capitalize mb-0.5">{t(`transactionHistory:filters.${transaction.type}`)}</p>
                     <p className="text-xs text-gray-500">
                       {transaction.date} • {transaction.time}
                     </p>
@@ -195,7 +197,7 @@ export function TransactionHistoryPage({ onBack }: TransactionHistoryPageProps) 
               {(transaction.status === 'failed' || transaction.status === 'rejected') && transaction.rejectionReason && (
                 <div className="mt-3 pt-3 border-t border-gray-100">
                   <p className="text-xs text-red-500">
-                    <span className="font-medium">Reason:</span> {transaction.rejectionReason}
+                    <span className="font-medium">{t('transactionHistory:rejectionReason')}</span> {transaction.rejectionReason}
                   </p>
                 </div>
               )}
@@ -213,8 +215,8 @@ export function TransactionHistoryPage({ onBack }: TransactionHistoryPageProps) 
             <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <ArrowDownRight className="w-10 h-10 text-gray-400" />
             </div>
-            <p className="text-gray-600 mb-1">No transactions found</p>
-            <p className="text-sm text-gray-400">Try changing the filter</p>
+            <p className="text-gray-600 mb-1">{t('transactionHistory:empty.title')}</p>
+            <p className="text-sm text-gray-400">{t('transactionHistory:empty.description')}</p>
           </motion.div>
         )}
       </div>

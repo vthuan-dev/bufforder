@@ -1,0 +1,17 @@
+{
+  "title": "Order History",
+  "availableBalance": "Available Balance",
+  "frozenBalance": "Frozen Balance",
+  "tabs": {
+    "pending": "Pending",
+    "processing": "Processing",
+    "shipped": "Shipped",
+    "delivered": "Delivered",
+    "cancelled": "Cancelled"
+  },
+  "empty": {
+    "title": "No orders yet",
+    "description": "Complete orders to see your history here"
+  },
+  "loading": "Loading..."
+}

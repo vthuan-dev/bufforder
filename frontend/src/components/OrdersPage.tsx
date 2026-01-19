@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { TrendingUp, Wallet, CheckCircle, Target, ShoppingBag, Package, X, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { useTranslation } from "react-i18next";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { toast } from "sonner";
 import api from "../services/api";
@@ -29,6 +30,7 @@ interface ProductFromAPI {
 }
 
 export function OrdersPage() {
+  const { t } = useTranslation(['common', 'orders']);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showOrderPopup, setShowOrderPopup] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -270,8 +272,8 @@ export function OrdersPage() {
 
         if (affordableProducts.length === 0) {
           console.error('[Orders] No affordable products available');
-          toast.error('No products available within your balance. Please top up.', {
-            description: `Your balance: $${availableBalance.toFixed(2)}`,
+          toast.error(t('orders:notifications.noProducts'), {
+            description: t('orders:notifications.yourBalance', { balance: availableBalance.toFixed(2) }),
             duration: 5000,
           });
           setShowOrderPopup(false);
@@ -308,7 +310,10 @@ export function OrdersPage() {
     // Check if user has enough balance
     if (availableBalance < selectedProduct.price) {
       console.error('[Orders] Insufficient balance:', availableBalance, '<', selectedProduct.price);
-      toast.error(`Insufficient balance! Need $${selectedProduct.price.toLocaleString()} but you only have $${availableBalance.toFixed(2)}. Please top up.`);
+      toast.error(t('orders:notifications.insufficientBalance', { 
+        need: selectedProduct.price.toLocaleString(), 
+        have: availableBalance.toFixed(2) 
+      }));
       return;
     }
 
@@ -358,8 +363,8 @@ export function OrdersPage() {
           }
         });
       } else {
-        toast.success('Order placed successfully!', {
-          description: `Commission: +$${commissionEarned.toFixed(2)}`,
+        toast.success(t('orders:notifications.orderSuccess'), {
+          description: t('orders:notifications.commission', { amount: commissionEarned.toFixed(2) }),
           duration: 3000,
         });
       }
@@ -523,13 +528,13 @@ export function OrdersPage() {
                   : ordersReceived >= totalOrdersLimit
                     ? 'Wait for Tomorrow'
                     : (showOrderPopup || submitting)
-                      ? 'Processing...'
-                      : 'Purchase Order'}
+                      ? t('orders:processing')
+                      : t('orders:purchaseOrder')}
               </span>
             </div>
           </motion.button>
           <p className="text-center text-xs text-gray-500 mt-2">
-            Click the button to place an order now
+            {t('orders:clickToOrder')}
           </p>
         </div>
       </div>
@@ -541,7 +546,7 @@ export function OrdersPage() {
           <div className="bg-white rounded-lg p-2 shadow-sm border border-gray-100 flex items-center gap-2">
             <img src={imgEarned} alt="Earned" className="w-10 h-10 object-contain" />
             <div>
-              <p className="text-[9px] text-gray-500 leading-tight">Commission Earned</p>
+              <p className="text-[9px] text-gray-500 leading-tight">{t('orders:commissionEarned')}</p>
               <p className="text-xs font-semibold text-red-500">{dailyCommission.toFixed(2)} USD</p>
             </div>
           </div>
@@ -550,7 +555,7 @@ export function OrdersPage() {
           <div className="bg-white rounded-lg p-2 shadow-sm border border-gray-100 flex items-center gap-2">
             <img src={imgAvailable} alt="Available" className="w-10 h-10 object-contain" />
             <div>
-              <p className="text-[9px] text-gray-500 leading-tight">Available Balance</p>
+              <p className="text-[9px] text-gray-500 leading-tight">{t('orders:availableBalance')}</p>
               <p className="text-xs font-semibold text-red-500">{availableBalance.toFixed(2)} USD</p>
             </div>
           </div>
@@ -559,7 +564,7 @@ export function OrdersPage() {
           <div className="bg-white rounded-lg p-2 shadow-sm border border-gray-100 flex items-center gap-2">
             <img src={imgToday} alt="Today" className="w-10 h-10 object-contain" />
             <div>
-              <p className="text-[9px] text-gray-500 leading-tight">Today's Tasks</p>
+              <p className="text-[9px] text-gray-500 leading-tight">{t('orders:todaysTasks')}</p>
               <p className="text-xs font-semibold text-red-500">{todaysTask.toFixed(2)}</p>
             </div>
           </div>
@@ -568,7 +573,7 @@ export function OrdersPage() {
           <div className="bg-white rounded-lg p-2 shadow-sm border border-gray-100 flex items-center gap-2">
             <img src={imgCompleted} alt="Completed" className="w-10 h-10 object-contain" />
             <div>
-              <p className="text-[9px] text-gray-500 leading-tight">Completed Today</p>
+              <p className="text-[9px] text-gray-500 leading-tight">{t('orders:completedToday')}</p>
               <p className="text-xs font-semibold text-red-500">{completedToday}</p>
             </div>
           </div>
@@ -577,7 +582,7 @@ export function OrdersPage() {
         {/* Progress Bar - More Compact */}
         <div className="bg-white rounded-lg p-2 mt-2 shadow-sm border border-gray-100">
           <div className="flex justify-between items-center mb-1">
-            <p className="text-[10px] text-gray-600">Orders Received</p>
+            <p className="text-[10px] text-gray-600">{t('orders:ordersReceived')}</p>
             <p className="text-[10px] font-semibold text-red-500">{ordersReceived} / {totalOrdersLimit}</p>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-1">
@@ -591,7 +596,7 @@ export function OrdersPage() {
 
       {/* Products List */}
       <div className="px-4 pb-4">
-        <p className="text-sm font-medium text-gray-700 mb-3">Available Products</p>
+        <p className="text-sm font-medium text-gray-700 mb-3">{t('orders:availableProducts')}</p>
         <div className="grid grid-cols-2 gap-2">
           {products.map((product) => (
             <div
@@ -752,7 +757,7 @@ export function OrdersPage() {
                   <div className="p-6">
                     {/* Title */}
                     <h2 className="text-center text-lg text-gray-800 mb-6">
-                      Order is processing
+                      {t('orders:popup.title')}
                     </h2>
 
                     {/* Circular Progress */}
@@ -803,10 +808,10 @@ export function OrdersPage() {
                       className="space-y-3 mb-6"
                     >
                       <p className="text-xs text-gray-600 leading-relaxed">
-                        Many users are competing for orders at your current level. The system is allocating orders and you are currently in queue position 11. Please wait patiently.
+                        {t('orders:popup.queueMessage')}
                       </p>
                       <p className="text-xs text-orange-600">
-                        Tip: Upgrading your VIP level may help you receive orders faster.
+                        {t('orders:popup.vipTip')}
                       </p>
                     </motion.div>
 
@@ -820,7 +825,7 @@ export function OrdersPage() {
                       onClick={handleCancelQueue}
                       className="w-full py-3 rounded-xl border-2 border-gray-300 text-gray-700 text-sm hover:bg-gray-50 transition-colors"
                     >
-                      Cancel queue
+                      {t('orders:popup.cancelQueue')}
                     </motion.button>
                   </div>
                 ) : (

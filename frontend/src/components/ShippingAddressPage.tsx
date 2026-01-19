@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, Plus, MapPin, Trash2, Edit } from "lucide-react";
 import { motion } from "motion/react";
+import { useTranslation } from "react-i18next";
 import api from "../services/api";
 
 interface Address {
@@ -16,6 +17,7 @@ interface ShippingAddressPageProps {
 }
 
 export function ShippingAddressPage({ onBack }: ShippingAddressPageProps) {
+  const { t } = useTranslation(['common', 'shippingAddress']);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAddress, setNewAddress] = useState({ name: '', phone: '', address: '' });
@@ -38,7 +40,7 @@ export function ShippingAddressPage({ onBack }: ShippingAddressPageProps) {
 
   const handleAddAddress = async () => {
     if (!newAddress.name || !newAddress.phone || !newAddress.address) {
-      alert("Please fill in all fields");
+      alert(t('common:validation.fillAllFields'));
       return;
     }
     try {
@@ -74,16 +76,17 @@ export function ShippingAddressPage({ onBack }: ShippingAddressPageProps) {
       setNewAddress({ name: '', phone: '', address: '' });
       setShowAddForm(false);
     } catch (e: any) {
-      alert(e?.message || 'Failed to add address');
+      alert(e?.message || t('common:error.failed'));
     }
   };
 
   const handleDelete = async (id: string) => {
+    if (!confirm(t('shippingAddress:confirmDelete'))) return;
     try {
       await api.deleteAddress(id);
       setAddresses(addresses.filter(addr => addr.id !== id));
     } catch (e: any) {
-      alert(e?.message || 'Delete failed');
+      alert(e?.message || t('common:error.failed'));
     }
   };
 
@@ -99,7 +102,7 @@ export function ShippingAddressPage({ onBack }: ShippingAddressPageProps) {
           >
             <ArrowLeft className="w-5 h-5" />
           </motion.button>
-          <h1>Shipping Address</h1>
+          <h1>{t('shippingAddress:title')}</h1>
         </div>
       </div>
 
@@ -111,7 +114,7 @@ export function ShippingAddressPage({ onBack }: ShippingAddressPageProps) {
           className="w-full bg-white rounded-2xl p-4 shadow-md mb-4 flex items-center justify-center gap-2 text-blue-600 hover:bg-blue-50 transition-colors"
         >
           <Plus className="w-5 h-5" />
-          <span>Add New Address</span>
+          <span>{t('shippingAddress:addNew')}</span>
         </motion.button>
 
         {/* Add Address Form */}
@@ -121,37 +124,37 @@ export function ShippingAddressPage({ onBack }: ShippingAddressPageProps) {
             animate={{ opacity: 1, height: 'auto' }}
             className="bg-white rounded-2xl p-5 shadow-md mb-4"
           >
-            <h3 className="text-gray-800 mb-4">New Address</h3>
+            <h3 className="text-gray-800 mb-4">{t('shippingAddress:addNew')}</h3>
             
             <div className="space-y-3">
               <div>
-                <label className="block text-xs text-gray-600 mb-1.5">Full Name</label>
+                <label className="block text-xs text-gray-600 mb-1.5">{t('shippingAddress:form.fullName')}</label>
                 <input
                   type="text"
                   value={newAddress.name}
                   onChange={(e) => setNewAddress({ ...newAddress, name: e.target.value })}
-                  placeholder="Enter your name"
+                  placeholder={t('shippingAddress:form.fullName')}
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               
               <div>
-                <label className="block text-xs text-gray-600 mb-1.5">Phone Number</label>
+                <label className="block text-xs text-gray-600 mb-1.5">{t('shippingAddress:form.phone')}</label>
                 <input
                   type="tel"
                   value={newAddress.phone}
                   onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value })}
-                  placeholder="Enter phone number"
+                  placeholder={t('shippingAddress:form.phone')}
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               
               <div>
-                <label className="block text-xs text-gray-600 mb-1.5">Address</label>
+                <label className="block text-xs text-gray-600 mb-1.5">{t('shippingAddress:form.address')}</label>
                 <textarea
                   value={newAddress.address}
                   onChange={(e) => setNewAddress({ ...newAddress, address: e.target.value })}
-                  placeholder="Enter full address"
+                  placeholder={t('shippingAddress:form.address')}
                   rows={3}
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 />
@@ -163,13 +166,13 @@ export function ShippingAddressPage({ onBack }: ShippingAddressPageProps) {
                 onClick={() => setShowAddForm(false)}
                 className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-600 hover:bg-gray-50"
               >
-                Cancel
+                {t('shippingAddress:form.cancel')}
               </button>
               <button
                 onClick={handleAddAddress}
                 className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700"
               >
-                Save
+                {t('shippingAddress:form.save')}
               </button>
             </div>
           </motion.div>
@@ -177,9 +180,9 @@ export function ShippingAddressPage({ onBack }: ShippingAddressPageProps) {
 
         {/* Address List */}
         <div className="space-y-4">
-          {addresses.map((address) => (
+          {addresses.map((address, index) => (
             <motion.div
-              key={address.id}
+              key={address.id || `address-${index}`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="bg-white rounded-2xl p-5 shadow-md"
@@ -190,7 +193,7 @@ export function ShippingAddressPage({ onBack }: ShippingAddressPageProps) {
                   <span className="text-gray-800">{address.name}</span>
                   {address.isDefault && (
                     <span className="bg-blue-100 text-blue-600 text-xs px-2 py-0.5 rounded-full">
-                      Default
+                      {t('shippingAddress:default')}
                     </span>
                   )}
                 </div>
@@ -213,11 +216,11 @@ export function ShippingAddressPage({ onBack }: ShippingAddressPageProps) {
           ))}
         </div>
 
-        {addresses.length === 0 && (
+        {addresses.length === 0 && !showAddForm && (
           <div className="text-center py-20">
             <MapPin className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">No address yet</p>
-            <p className="text-sm text-gray-400 mt-2">Add your shipping address</p>
+            <p className="text-gray-500">{t('shippingAddress:empty.title')}</p>
+            <p className="text-sm text-gray-400 mt-2">{t('shippingAddress:empty.description')}</p>
           </div>
         )}
       </div>

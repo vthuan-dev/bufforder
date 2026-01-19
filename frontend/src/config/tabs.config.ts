@@ -8,7 +8,7 @@ import { Home, FileText, ShoppingBag, HelpCircle, User, Wallet, Gift, Star, Sett
 
 export interface TabConfig {
   id: string;
-  label: string;
+  labelKey: string; // Translation key instead of hardcoded label
   icon: LucideIcon;
   enabled: boolean;
 }
@@ -21,11 +21,11 @@ export interface TabConfig {
 // MAIN TAB CONFIGURATION
 // ============================================
 export const TABS_CONFIG: TabConfig[] = [
-  { id: 'home', label: 'Home', icon: Home, enabled: true },
-  { id: 'record', label: 'Record', icon: FileText, enabled: true },
-  { id: 'orders', label: 'Orders', icon: ShoppingBag, enabled: true },
-  { id: 'help', label: 'Help', icon: HelpCircle, enabled: true },
-  { id: 'my', label: 'My', icon: User, enabled: true },
+  { id: 'home', labelKey: 'common:nav.home', icon: Home, enabled: true },
+  { id: 'record', labelKey: 'common:nav.record', icon: FileText, enabled: true },
+  { id: 'orders', labelKey: 'common:nav.orders', icon: ShoppingBag, enabled: true },
+  { id: 'help', labelKey: 'common:nav.help', icon: HelpCircle, enabled: true },
+  { id: 'my', labelKey: 'common:nav.my', icon: User, enabled: true },
 ];
 
 // ============================================
@@ -34,29 +34,29 @@ export const TABS_CONFIG: TabConfig[] = [
 
 // E-commerce style
 export const ECOMMERCE_TABS: TabConfig[] = [
-  { id: 'home', label: 'Shop', icon: Home, enabled: true },
-  { id: 'orders', label: 'Orders', icon: Package, enabled: true },
-  { id: 'wallet', label: 'Wallet', icon: Wallet, enabled: true },
-  { id: 'help', label: 'Support', icon: MessageCircle, enabled: true },
-  { id: 'my', label: 'Account', icon: User, enabled: true },
+  { id: 'home', labelKey: 'common:nav.home', icon: Home, enabled: true },
+  { id: 'orders', labelKey: 'common:nav.orders', icon: Package, enabled: true },
+  { id: 'wallet', labelKey: 'common:nav.wallet', icon: Wallet, enabled: true },
+  { id: 'help', labelKey: 'common:nav.help', icon: MessageCircle, enabled: true },
+  { id: 'my', labelKey: 'common:nav.my', icon: User, enabled: true },
 ];
 
 // Finance/Trading style
 export const FINANCE_TABS: TabConfig[] = [
-  { id: 'home', label: 'Home', icon: Home, enabled: true },
-  { id: 'record', label: 'History', icon: History, enabled: true },
-  { id: 'orders', label: 'Trade', icon: CreditCard, enabled: true },
-  { id: 'help', label: 'Help', icon: HelpCircle, enabled: true },
-  { id: 'my', label: 'Profile', icon: User, enabled: true },
+  { id: 'home', labelKey: 'common:nav.home', icon: Home, enabled: true },
+  { id: 'record', labelKey: 'common:nav.record', icon: History, enabled: true },
+  { id: 'orders', labelKey: 'common:nav.orders', icon: CreditCard, enabled: true },
+  { id: 'help', labelKey: 'common:nav.help', icon: HelpCircle, enabled: true },
+  { id: 'my', labelKey: 'common:nav.my', icon: User, enabled: true },
 ];
 
 // VIP/Rewards style
 export const VIP_TABS: TabConfig[] = [
-  { id: 'home', label: 'Home', icon: Home, enabled: true },
-  { id: 'record', label: 'Record', icon: FileText, enabled: true },
-  { id: 'orders', label: 'Orders', icon: ShoppingBag, enabled: true },
-  { id: 'rewards', label: 'Rewards', icon: Gift, enabled: true },
-  { id: 'my', label: 'VIP', icon: Star, enabled: true },
+  { id: 'home', labelKey: 'common:nav.home', icon: Home, enabled: true },
+  { id: 'record', labelKey: 'common:nav.record', icon: FileText, enabled: true },
+  { id: 'orders', labelKey: 'common:nav.orders', icon: ShoppingBag, enabled: true },
+  { id: 'rewards', labelKey: 'common:nav.rewards', icon: Gift, enabled: true },
+  { id: 'my', labelKey: 'common:nav.my', icon: Star, enabled: true },
 ];
 
 // ============================================

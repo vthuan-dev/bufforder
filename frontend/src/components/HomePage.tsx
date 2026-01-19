@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Crown, Lock } from 'lucide-react';
 import { motion } from 'motion/react';
-import { ImageWithFallback } from './figma/ImageWithFallback';
+import { useTranslation } from 'react-i18next';
 const logoImage = new URL('../assets/image.png', import.meta.url).toString();
 const videoAds = new URL('../assets/video/ads.mp4', import.meta.url).toString();
 import { vipThemes, VipTheme, VipThemeKey, normalizeVipId } from '../constants/vipThemes';
@@ -24,10 +24,11 @@ interface VIPLevel {
 }
 
 interface HomePageProps {
-  bannerImage: string;
+  bannerImage?: string;
 }
 
-export function HomePage({ bannerImage }: HomePageProps) {
+export function HomePage({ }: HomePageProps) {
+  const { t } = useTranslation(['common', 'home', 'my']);
   const [vipLevels, setVipLevels] = useState<VIPLevel[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -52,7 +53,7 @@ export function HomePage({ bannerImage }: HomePageProps) {
             return {
               id: key,
               name: theme.label,
-              subtitle: theme.subtitle,
+              subtitle: key, // Store the key for translation lookup
               amountRequired: `$${Number(lvl.amountRequired || 0).toLocaleString()}`,
               commission: `${(Number(lvl.commissionRate || 0) * 100).toFixed(1)}%`,
               orders: Number(lvl.numberOfOrders || 0),
@@ -68,7 +69,7 @@ export function HomePage({ bannerImage }: HomePageProps) {
         setVipLevels(fallbackKeys.map((id) => ({
           id,
           name: vipThemes[id].label,
-          subtitle: vipThemes[id].subtitle,
+          subtitle: id, // Store the key for translation lookup
           amountRequired: '-',
           commission: '-',
           orders: 0,
@@ -124,7 +125,7 @@ export function HomePage({ bannerImage }: HomePageProps) {
       {/* Membership Levels */}
       <div className="px-4 pt-5">
         <h2 className="text-gray-900 mb-4 text-center text-xl font-extrabold tracking-wider uppercase" style={{ letterSpacing: '0.15em' }}>
-          MEMBERSHIP LEVEL
+          {t('home:membershipLevel')}
         </h2>
 
         <div className="space-y-3">
@@ -192,22 +193,22 @@ export function HomePage({ bannerImage }: HomePageProps) {
                     {level.name}
                   </h3>
                   <p className={`text-xs mb-3 ${theme.subtitleClass}`}>
-                    {level.subtitle}
+                    {t(`my:vip.subtitles.${level.subtitle}`)}
                   </p>
                 </div>
 
                 {/* Details */}
                 <div className={`relative z-10 space-y-1.5 text-xs ${theme.detailContainerClass}`}>
                   <div className="flex gap-2">
-                    <span className={theme.detailLabelClass}>Amount Required:</span>
+                    <span className={theme.detailLabelClass}>{t('home:amountRequired')}:</span>
                     <span className={theme.detailValueClass}>{level.amountRequired}</span>
                   </div>
                   <div className="flex gap-2">
-                    <span className={theme.detailLabelClass}>Commission per order:</span>
+                    <span className={theme.detailLabelClass}>{t('home:commissionPerOrder')}:</span>
                     <span className={theme.detailValueClass}>{level.commission}</span>
                   </div>
                   <div className="flex gap-2">
-                    <span className={theme.detailLabelClass}>Number of orders:</span>
+                    <span className={theme.detailLabelClass}>{t('home:numberOfOrders')}:</span>
                     <span className={theme.detailValueClass}>{level.orders}</span>
                   </div>
                 </div>

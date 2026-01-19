@@ -1,0 +1,42 @@
+{
+  "title": "Withdrawal",
+  "availableBalance": "Available Balance",
+  "withdrawalAmount": "Withdrawal Amount",
+  "paymentPassword": "Payment Password",
+  "selectBankCard": "Select Bank Card",
+  "selectUsdtWallet": "USDT Wallet",
+  "withdrawalType": {
+    "usdtWallet": "USDT Wallet",
+    "bankCard": "Bank Card"
+  },
+  "placeholders": {
+    "amount": "0.00",
+    "password": "Enter payment password",
+    "chooseCard": "Choose a card"
+  },
+  "warnings": {
+    "completeTasks": "Please complete all tasks for today ({{completed}}/{{total}} orders) before withdrawing.",
+    "alreadyWithdrawn": "You have already submitted a withdrawal request today. Only 1 withdrawal per day is allowed.",
+    "insufficientBalance": "Insufficient balance! You need ${{amount}} more.",
+    "noBankCard": "No bank card found. Please add one first.",
+    "noUsdtWallet": "No USDT wallet found. Please add one first."
+  },
+  "actions": {
+    "withdrawAll": "All",
+    "submitWithdrawal": "Submit Withdrawal",
+    "goToWithdrawalMethods": "→ Go to Withdrawal Methods"
+  },
+  "pending": {
+    "title": "Pending withdrawal requests"
+  },
+  "toasts": {
+    "enterAmount": "Please enter a valid amount",
+    "insufficientBalance": "Insufficient balance",
+    "enterPassword": "Please enter your payment password",
+    "selectWallet": "Please select a USDT wallet",
+    "selectCard": "Please select a bank card",
+    "success": "Withdrawal request submitted! Please wait for admin approval.",
+    "successNote": "Note: Only 1 withdrawal per day is allowed.",
+    "error": "Failed to submit withdrawal request"
+  }
+}

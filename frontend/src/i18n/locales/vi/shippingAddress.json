@@ -1,0 +1,27 @@
+{
+  "title": "Địa chỉ giao hàng",
+  "addNew": "Thêm địa chỉ mới",
+  "empty": {
+    "title": "Chưa có địa chỉ",
+    "description": "Thêm địa chỉ giao hàng của bạn"
+  },
+  "form": {
+    "fullName": "Họ và tên",
+    "phone": "Số điện thoại",
+    "address": "Địa chỉ",
+    "city": "Thành phố",
+    "state": "Tỉnh/Thành",
+    "zipCode": "Mã bưu điện",
+    "country": "Quốc gia",
+    "setDefault": "Đặt làm mặc định",
+    "save": "Lưu",
+    "cancel": "Hủy"
+  },
+  "actions": {
+    "edit": "Sửa",
+    "delete": "Xóa",
+    "setDefault": "Đặt làm mặc định"
+  },
+  "default": "Mặc định",
+  "confirmDelete": "Bạn có chắc chắn muốn xóa địa chỉ này?"
+}

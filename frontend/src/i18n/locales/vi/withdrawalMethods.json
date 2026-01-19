@@ -1,0 +1,76 @@
+{
+  "title": "Phương thức rút tiền",
+  "tabs": {
+    "bankCards": "Thẻ ngân hàng",
+    "usdtWallets": "Ví USDT"
+  },
+  "bankCards": {
+    "title": "Thẻ ngân hàng",
+    "addNew": "Thêm thẻ mới",
+    "noBankCard": "Chưa có thẻ ngân hàng",
+    "addBankCardDesc": "Thêm thẻ ngân hàng để rút tiền",
+    "form": {
+      "title": "Thẻ ngân hàng mới",
+      "bankName": "Tên ngân hàng",
+      "cardNumber": "Số thẻ",
+      "accountName": "Tên chủ thẻ",
+      "setDefault": "Đặt làm mặc định",
+      "placeholders": {
+        "bankName": "VD: Vietcombank",
+        "cardNumber": "Nhập số thẻ",
+        "accountName": "Nhập tên chủ thẻ"
+      }
+    },
+    "actions": {
+      "setDefault": "Đặt mặc định",
+      "delete": "Xóa"
+    },
+    "toasts": {
+      "fillAllFields": "Vui lòng điền đầy đủ thông tin",
+      "addSuccess": "Đã thêm thẻ ngân hàng!",
+      "addError": "Không thể thêm thẻ ngân hàng",
+      "deleteConfirm": "Bạn có chắc chắn muốn xóa thẻ này?",
+      "deleteSuccess": "Đã xóa thẻ ngân hàng!",
+      "deleteError": "Không thể xóa thẻ ngân hàng"
+    }
+  },
+  "usdtWallets": {
+    "title": "Ví USDT",
+    "addNew": "Thêm ví mới",
+    "noWallet": "Chưa có ví USDT",
+    "addWalletDesc": "Thêm ví USDT để rút tiền",
+    "form": {
+      "title": "Ví USDT mới",
+      "walletName": "Tên ví",
+      "network": "Mạng",
+      "walletAddress": "Địa chỉ ví",
+      "placeholders": {
+        "walletName": "VD: Ví chính của tôi",
+        "walletAddress": "Nhập địa chỉ ví"
+      },
+      "networkHints": {
+        "trc20": "Địa chỉ Tron (bắt đầu bằng T, 34 ký tự)",
+        "erc20": "Địa chỉ Ethereum (bắt đầu bằng 0x, 42 ký tự)",
+        "bep20": "Địa chỉ BSC (bắt đầu bằng 0x, 42 ký tự)",
+        "polygon": "Địa chỉ Polygon (bắt đầu bằng 0x, 42 ký tự)",
+        "arbitrum": "Địa chỉ Arbitrum (bắt đầu bằng 0x, 42 ký tự)",
+        "optimism": "Địa chỉ Optimism (bắt đầu bằng 0x, 42 ký tự)",
+        "avalanche": "Địa chỉ Avalanche C-Chain (bắt đầu bằng 0x, 42 ký tự)",
+        "solana": "Địa chỉ Solana (Base58, 32-44 ký tự)"
+      }
+    },
+    "actions": {
+      "setDefault": "Đặt mặc định",
+      "delete": "Xóa",
+      "default": "Mặc định"
+    },
+    "toasts": {
+      "fillAllFields": "Vui lòng điền đầy đủ thông tin",
+      "addSuccess": "Đã thêm ví!",
+      "addError": "Không thể thêm ví",
+      "deleteConfirm": "Bạn có chắc chắn muốn xóa ví này?",
+      "deleteSuccess": "Đã xóa ví!",
+      "deleteError": "Không thể xóa ví"
+    }
+  }
+}

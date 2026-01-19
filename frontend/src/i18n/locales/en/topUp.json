@@ -1,0 +1,19 @@
+{
+  "title": "Top Up",
+  "currentBalance": "Current Balance",
+  "enterAmount": "Enter Amount",
+  "quickSelect": "Quick Select",
+  "submitRequest": "Submit Request",
+  "pending": {
+    "title": "Pending requests",
+    "status": "Pending"
+  },
+  "placeholders": {
+    "amount": "0.00"
+  },
+  "toasts": {
+    "enterAmount": "Please enter a valid amount",
+    "success": "Deposit request submitted! Please wait for admin approval.",
+    "error": "Failed to submit deposit request"
+  }
+}

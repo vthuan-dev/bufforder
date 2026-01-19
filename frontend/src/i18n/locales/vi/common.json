@@ -1,0 +1,44 @@
+{
+  "app": {
+    "name": "Tin Nhắn Chào Mừng"
+  },
+  "nav": {
+    "home": "Trang chủ",
+    "orders": "Đơn hàng",
+    "record": "Lịch sử",
+    "help": "Trợ giúp",
+    "my": "Của tôi"
+  },
+  "buttons": {
+    "submit": "Gửi",
+    "cancel": "Hủy",
+    "save": "Lưu",
+    "delete": "Xóa",
+    "edit": "Sửa",
+    "confirm": "Xác nhận",
+    "back": "Quay lại",
+    "close": "Đóng",
+    "add": "Thêm",
+    "logout": "Đăng xuất",
+    "login": "Đăng nhập",
+    "register": "Đăng ký"
+  },
+  "messages": {
+    "success": "Thành công!",
+    "error": "Đã xảy ra lỗi",
+    "loading": "Đang tải...",
+    "noData": "Không có dữ liệu",
+    "confirmDelete": "Bạn có chắc chắn muốn xóa?"
+  },
+  "validation": {
+    "fillAllFields": "Vui lòng điền đầy đủ thông tin"
+  },
+  "error": {
+    "failed": "Thao tác thất bại"
+  },
+  "language": {
+    "english": "English",
+    "vietnamese": "Tiếng Việt",
+    "switchLanguage": "Chuyển ngôn ngữ"
+  }
+}

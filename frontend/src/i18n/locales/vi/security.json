@@ -1,0 +1,39 @@
+{
+  "title": "Trung tâm bảo mật",
+  "securityTips": {
+    "title": "Giữ tài khoản của bạn an toàn",
+    "tip1": "Sử dụng mật khẩu mạnh với chữ cái, số và ký tự đặc biệt",
+    "tip2": "Không chia sẻ mật khẩu với bất kỳ ai",
+    "tip3": "Thay đổi mật khẩu thường xuyên"
+  },
+  "changePassword": {
+    "title": "Đổi mật khẩu",
+    "currentPassword": "Mật khẩu hiện tại",
+    "newPassword": "Mật khẩu mới",
+    "confirmPassword": "Xác nhận mật khẩu mới",
+    "placeholders": {
+      "currentPassword": "Nhập mật khẩu hiện tại",
+      "newPassword": "Nhập mật khẩu mới",
+      "confirmPassword": "Nhập lại mật khẩu mới"
+    },
+    "strength": {
+      "label": "Độ mạnh mật khẩu:",
+      "weak": "Yếu",
+      "fair": "Trung bình",
+      "good": "Tốt",
+      "strong": "Mạnh"
+    },
+    "match": {
+      "yes": "✓ Mật khẩu khớp",
+      "no": "✗ Mật khẩu không khớp"
+    },
+    "submit": "Đổi mật khẩu"
+  },
+  "alerts": {
+    "fillAllFields": "Vui lòng điền đầy đủ thông tin",
+    "passwordTooShort": "Mật khẩu mới phải có ít nhất 6 ký tự",
+    "passwordsNotMatch": "Mật khẩu mới không khớp",
+    "success": "Đổi mật khẩu thành công!",
+    "error": "Không thể đổi mật khẩu"
+  }
+}

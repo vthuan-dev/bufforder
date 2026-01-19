@@ -1,0 +1,42 @@
+{
+  "title": "Rút tiền",
+  "availableBalance": "Số dư khả dụng",
+  "withdrawalAmount": "Số tiền rút",
+  "paymentPassword": "Mật khẩu thanh toán",
+  "selectBankCard": "Chọn thẻ ngân hàng",
+  "selectUsdtWallet": "Ví USDT",
+  "withdrawalType": {
+    "usdtWallet": "Ví USDT",
+    "bankCard": "Thẻ ngân hàng"
+  },
+  "placeholders": {
+    "amount": "0.00",
+    "password": "Nhập mật khẩu thanh toán",
+    "chooseCard": "Chọn một thẻ"
+  },
+  "warnings": {
+    "completeTasks": "Vui lòng hoàn thành tất cả nhiệm vụ hôm nay ({{completed}}/{{total}} đơn hàng) trước khi rút tiền.",
+    "alreadyWithdrawn": "Bạn đã gửi yêu cầu rút tiền hôm nay. Chỉ được rút 1 lần mỗi ngày.",
+    "insufficientBalance": "Số dư không đủ! Bạn cần thêm ${{amount}}.",
+    "noBankCard": "Không tìm thấy thẻ ngân hàng. Vui lòng thêm thẻ trước.",
+    "noUsdtWallet": "Không tìm thấy ví USDT. Vui lòng thêm ví trước."
+  },
+  "actions": {
+    "withdrawAll": "Tất cả",
+    "submitWithdrawal": "Gửi yêu cầu rút tiền",
+    "goToWithdrawalMethods": "→ Đến Phương thức rút tiền"
+  },
+  "pending": {
+    "title": "Yêu cầu rút tiền đang chờ"
+  },
+  "toasts": {
+    "enterAmount": "Vui lòng nhập số tiền hợp lệ",
+    "insufficientBalance": "Số dư không đủ",
+    "enterPassword": "Vui lòng nhập mật khẩu thanh toán",
+    "selectWallet": "Vui lòng chọn ví USDT",
+    "selectCard": "Vui lòng chọn thẻ ngân hàng",
+    "success": "Đã gửi yêu cầu rút tiền! Vui lòng chờ admin phê duyệt.",
+    "successNote": "Lưu ý: Chỉ được rút 1 lần mỗi ngày.",
+    "error": "Không thể gửi yêu cầu rút tiền"
+  }
+}

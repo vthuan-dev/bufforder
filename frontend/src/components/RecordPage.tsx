@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { PackageOpen } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { useTranslation } from "react-i18next";
 import api from "../services/api";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { vipThemes, normalizeVipId } from "../constants/vipThemes";
 
 export function RecordPage() {
+  const { t } = useTranslation(['common', 'record']);
   const [activeTab, setActiveTab] = useState<'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'>('pending');
   const [availableBalance, setAvailableBalance] = useState(0);
   const [freezeBalance, setFreezeBalance] = useState(0);
@@ -14,11 +16,11 @@ export function RecordPage() {
   const [userVipLevel, setUserVipLevel] = useState<string>('vip-0');
 
   const tabs = [
-    { id: 'pending', label: 'Pending' },
-    { id: 'processing', label: 'Processing' },
-    { id: 'shipped', label: 'Shipped' },
-    { id: 'delivered', label: 'Delivered' },
-    { id: 'cancelled', label: 'Cancelled' }
+    { id: 'pending', labelKey: 'record:tabs.pending' },
+    { id: 'processing', labelKey: 'record:tabs.processing' },
+    { id: 'shipped', labelKey: 'record:tabs.shipped' },
+    { id: 'delivered', labelKey: 'record:tabs.delivered' },
+    { id: 'cancelled', labelKey: 'record:tabs.cancelled' }
   ] as const;
 
   // Get VIP theme based on user's VIP level
@@ -80,7 +82,7 @@ export function RecordPage() {
           className={`text-center mb-6 text-3xl font-bold relative z-10 ${vipTheme.titleClass}`}
           style={vipTheme.titleColor ? { color: vipTheme.titleColor } : undefined}
         >
-          Order History
+          {t('record:title')}
         </motion.h1>
         
         {/* Balance Display */}
@@ -91,7 +93,7 @@ export function RecordPage() {
             transition={{ delay: 0.1 }}
             className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 shadow-lg"
           >
-            <p className="text-gray-500 text-xs mb-1">Available Balance</p>
+            <p className="text-gray-500 text-xs mb-1">{t('record:availableBalance')}</p>
             <p className="text-green-600 text-2xl font-semibold">${availableBalance.toFixed(2)}</p>
           </motion.div>
           <motion.div 
@@ -100,7 +102,7 @@ export function RecordPage() {
             transition={{ delay: 0.2 }}
             className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 shadow-lg"
           >
-            <p className="text-gray-500 text-xs mb-1">Frozen Balance</p>
+            <p className="text-gray-500 text-xs mb-1">{t('record:frozenBalance')}</p>
             <p className="text-red-500 text-2xl font-semibold">${freezeBalance.toFixed(2)}</p>
           </motion.div>
         </div>
@@ -120,7 +122,7 @@ export function RecordPage() {
               }`}
             >
               <span className="relative inline-block">
-                {tab.label}
+                {t(tab.labelKey)}
                 {activeTab === tab.id && (
                   <motion.div
                     layoutId="activeTab"
@@ -146,7 +148,7 @@ export function RecordPage() {
         >
           {/* Orders list or empty state */}
           {loading ? (
-            <p className="text-gray-500">Loading...</p>
+            <p className="text-gray-500">{t('record:loading')}</p>
           ) : (orders.filter(o => !activeTab || String(o.status).toLowerCase() === activeTab).length === 0) ? (
             <>
             {/* Empty State Illustration */}
@@ -169,9 +171,9 @@ export function RecordPage() {
             transition={{ delay: 0.4 }}
             className="text-center"
           >
-            <p className="text-gray-600 mb-2">No orders yet</p>
+            <p className="text-gray-600 mb-2">{t('record:empty.title')}</p>
             <p className="text-gray-400 text-sm max-w-xs">
-              Complete orders to see your history here
+              {t('record:empty.description')}
             </p>
           </motion.div>
             </>

@@ -1,0 +1,22 @@
+{
+  "title": "Transaction History",
+  "filters": {
+    "all": "All",
+    "deposit": "Deposit",
+    "withdrawal": "Withdrawal"
+  },
+  "summary": {
+    "totalDeposits": "Total Deposits",
+    "totalWithdrawals": "Total Withdrawals"
+  },
+  "status": {
+    "approved": "Approved",
+    "pending": "Pending",
+    "rejected": "Rejected"
+  },
+  "rejectionReason": "Reason:",
+  "empty": {
+    "title": "No transactions found",
+    "description": "Try changing the filter"
+  }
+}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { CreditCard, Plus, Trash2, Check, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { useTranslation } from "react-i18next";
 import { useBankCards, BankCardInput } from "../hooks/useBankCards";
 import { internationalBanks } from "../data/banks";
 
@@ -9,6 +10,7 @@ interface BankCardsTabProps {
 }
 
 export function BankCardsTab({ onShowToast }: BankCardsTabProps) {
+  const { t } = useTranslation(['common', 'withdrawalMethods']);
   const { cards, isLoading, addCard, deleteCard, setDefault } = useBankCards();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newCard, setNewCard] = useState({
@@ -52,7 +54,7 @@ export function BankCardsTab({ onShowToast }: BankCardsTabProps) {
 
   const handleAddCard = async () => {
     if (!newCard.bankName || !newCard.cardNumber || !newCard.holderName) {
-      onShowToast('Please fill in all fields', 'error');
+      onShowToast(t('withdrawalMethods:bankCards.toasts.fillAllFields'), 'error');
       return;
     }
 
@@ -65,20 +67,20 @@ export function BankCardsTab({ onShowToast }: BankCardsTabProps) {
     if (result.success) {
       setNewCard({ bankName: '', cardNumber: '', holderName: '' });
       setShowAddForm(false);
-      onShowToast('Card added successfully!', 'success');
+      onShowToast(t('withdrawalMethods:bankCards.toasts.addSuccess'), 'success');
     } else {
-      onShowToast(result.error || 'Failed to add card', 'error');
+      onShowToast(result.error || t('withdrawalMethods:bankCards.toasts.addError'), 'error');
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this card?")) return;
+    if (!confirm(t('withdrawalMethods:bankCards.toasts.deleteConfirm'))) return;
 
     const result = await deleteCard(id);
     if (result.success) {
-      onShowToast('Card deleted successfully!', 'success');
+      onShowToast(t('withdrawalMethods:bankCards.toasts.deleteSuccess'), 'success');
     } else {
-      onShowToast(result.error || 'Failed to delete card', 'error');
+      onShowToast(result.error || t('withdrawalMethods:bankCards.toasts.deleteError'), 'error');
     }
   };
 
@@ -91,7 +93,7 @@ export function BankCardsTab({ onShowToast }: BankCardsTabProps) {
         className="w-full bg-white rounded-2xl px-4 py-3.5 shadow-sm border border-gray-200 flex items-center justify-center gap-2 text-blue-600 hover:bg-blue-50 transition-colors"
       >
         <Plus className="w-5 h-5" />
-        <span className="text-sm">Add New Card</span>
+        <span className="text-sm">{t('withdrawalMethods:bankCards.addNew')}</span>
       </motion.button>
 
       {/* Add Card Form */}
@@ -103,11 +105,11 @@ export function BankCardsTab({ onShowToast }: BankCardsTabProps) {
             exit={{ opacity: 0, height: 0 }}
             className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 overflow-hidden"
           >
-            <h3 className="text-gray-800 mb-5 text-base">New Bank Card</h3>
+            <h3 className="text-gray-800 mb-5 text-base">{t('withdrawalMethods:bankCards.form.title')}</h3>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-700 mb-2">Bank Name</label>
+                <label className="block text-sm text-gray-700 mb-2">{t('withdrawalMethods:bankCards.form.bankName')}</label>
                 <div className="relative" ref={suggestionRef}>
                   <input
                     type="text"
@@ -116,7 +118,7 @@ export function BankCardsTab({ onShowToast }: BankCardsTabProps) {
                     onFocus={() => {
                       if (newCard.bankName) setShowSuggestions(true);
                     }}
-                    placeholder="e.g. Chase Bank, HSBC, Citibank..."
+                    placeholder={t('withdrawalMethods:bankCards.form.placeholders.bankName')}
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
 
@@ -144,7 +146,7 @@ export function BankCardsTab({ onShowToast }: BankCardsTabProps) {
               </div>
 
               <div>
-                <label className="block text-sm text-gray-700 mb-2">Account Number</label>
+                <label className="block text-sm text-gray-700 mb-2">{t('withdrawalMethods:bankCards.form.cardNumber')}</label>
                 <input
                   type="text"
                   value={newCard.cardNumber}
@@ -152,14 +154,14 @@ export function BankCardsTab({ onShowToast }: BankCardsTabProps) {
                     const value = e.target.value.replace(/[^0-9]/g, '');
                     setNewCard({ ...newCard, cardNumber: value });
                   }}
-                  placeholder="e.g. 1234567890"
+                  placeholder={t('withdrawalMethods:bankCards.form.placeholders.cardNumber')}
                   maxLength={19}
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-700 mb-2">Account Holder Name</label>
+                <label className="block text-sm text-gray-700 mb-2">{t('withdrawalMethods:bankCards.form.accountName')}</label>
                 <input
                   type="text"
                   value={newCard.holderName}
@@ -167,7 +169,7 @@ export function BankCardsTab({ onShowToast }: BankCardsTabProps) {
                     const value = e.target.value.replace(/[^a-zA-Z\s]/g, '').toUpperCase();
                     setNewCard({ ...newCard, holderName: value });
                   }}
-                  placeholder="e.g. NGUYEN VAN A"
+                  placeholder={t('withdrawalMethods:bankCards.form.placeholders.accountName')}
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 />
               </div>
@@ -181,7 +183,7 @@ export function BankCardsTab({ onShowToast }: BankCardsTabProps) {
                 disabled={isLoading}
                 className="px-8 py-3.5 bg-white border-2 border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
-                Cancel
+                {t('common:buttons.cancel')}
               </motion.button>
               <motion.button
                 whileHover={{ scale: isLoading ? 1 : 1.02 }}
@@ -193,10 +195,10 @@ export function BankCardsTab({ onShowToast }: BankCardsTabProps) {
                 {isLoading ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Adding...</span>
+                    <span>{t('common:messages.loading')}</span>
                   </>
                 ) : (
-                  'Add Card'
+                  t('common:buttons.add')
                 )}
               </motion.button>
             </div>
@@ -230,7 +232,7 @@ export function BankCardsTab({ onShowToast }: BankCardsTabProps) {
 
               <div className="flex items-end justify-between">
                 <div>
-                  <p className="text-xs opacity-75 mb-1">Card Holder</p>
+                  <p className="text-xs opacity-75 mb-1">{t('withdrawalMethods:bankCards.form.accountName')}</p>
                   <p className="text-sm">{card.holderName}</p>
                 </div>
 
@@ -238,7 +240,7 @@ export function BankCardsTab({ onShowToast }: BankCardsTabProps) {
                   {card.isDefault ? (
                     <span className="bg-white/25 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs flex items-center gap-1.5">
                       <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
-                      Default
+                      {t('withdrawalMethods:usdtWallets.actions.default')}
                     </span>
                   ) : (
                     <motion.button
@@ -246,7 +248,7 @@ export function BankCardsTab({ onShowToast }: BankCardsTabProps) {
                       onClick={() => setDefault(card.id)}
                       className="bg-white/20 backdrop-blur-sm hover:bg-white/30 px-3 py-1.5 rounded-full text-xs transition-colors"
                     >
-                      Set Default
+                      {t('withdrawalMethods:bankCards.actions.setDefault')}
                     </motion.button>
                   )}
                   <motion.button
@@ -273,8 +275,8 @@ export function BankCardsTab({ onShowToast }: BankCardsTabProps) {
           <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <CreditCard className="w-10 h-10 text-gray-400" />
           </div>
-          <p className="text-gray-600 mb-1">No bank card yet</p>
-          <p className="text-sm text-gray-400">Add your bank card for withdrawal</p>
+          <p className="text-gray-600 mb-1">{t('withdrawalMethods:bankCards.noBankCard')}</p>
+          <p className="text-sm text-gray-400">{t('withdrawalMethods:bankCards.addBankCardDesc')}</p>
         </motion.div>
       )}
     </div>

@@ -1,0 +1,22 @@
+{
+  "title": "Lịch sử giao dịch",
+  "filters": {
+    "all": "Tất cả",
+    "deposit": "Nạp tiền",
+    "withdrawal": "Rút tiền"
+  },
+  "summary": {
+    "totalDeposits": "Tổng nạp",
+    "totalWithdrawals": "Tổng rút"
+  },
+  "status": {
+    "approved": "Đã duyệt",
+    "pending": "Đang chờ",
+    "rejected": "Từ chối"
+  },
+  "rejectionReason": "Lý do:",
+  "empty": {
+    "title": "Không có giao dịch",
+    "description": "Thử thay đổi bộ lọc"
+  }
+}

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { ArrowLeft, DollarSign, Copy, Check } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import api from "../services/api";
 
 interface TopUpPageProps {
@@ -9,6 +10,7 @@ interface TopUpPageProps {
 }
 
 export function TopUpPage({ onBack }: TopUpPageProps) {
+  const { t } = useTranslation(['common', 'topUp']);
   const [amount, setAmount] = useState("");
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [balance, setBalance] = useState<number>(0);
@@ -39,13 +41,13 @@ export function TopUpPage({ onBack }: TopUpPageProps) {
   const handleTopUp = async () => {
     const parsed = parseFloat(amount);
     if (!amount || parsed <= 0) {
-      toast.error("Please enter a valid amount");
+      toast.error(t('topUp:toasts.enterAmount'));
       return;
     }
     try {
       const res = await api.deposit(parsed);
       if (res?.success) {
-        toast.success("Deposit request submitted! Please wait for admin approval.");
+        toast.success(t('topUp:toasts.success'));
         setAmount("");
         setSelectedAmount(null);
         // Refresh pending deposits
@@ -56,7 +58,7 @@ export function TopUpPage({ onBack }: TopUpPageProps) {
         } catch {}
       }
     } catch (e: any) {
-      toast.error(e?.message || "Failed to submit deposit request");
+      toast.error(e?.message || t('topUp:toasts.error'));
     }
   };
 
@@ -72,7 +74,7 @@ export function TopUpPage({ onBack }: TopUpPageProps) {
           >
             <ArrowLeft className="w-5 h-5" />
           </motion.button>
-          <h1 className="text-lg">Top Up</h1>
+          <h1 className="text-lg">{t('topUp:title')}</h1>
         </div>
       </div>
 
@@ -83,13 +85,13 @@ export function TopUpPage({ onBack }: TopUpPageProps) {
           animate={{ opacity: 1, y: 0 }}
           className="bg-gradient-to-br from-purple-500 via-blue-500 to-blue-600 rounded-3xl p-6 text-white mb-6 shadow-lg"
         >
-          <p className="text-sm opacity-90 mb-2">Current Balance</p>
+          <p className="text-sm opacity-90 mb-2">{t('topUp:currentBalance')}</p>
           <p className="text-3xl mb-1">${balance.toFixed(2)}</p>
         </motion.div>
 
         {/* Amount Input */}
         <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 mb-5">
-          <label className="block text-sm text-gray-700 mb-3">Enter Amount</label>
+          <label className="block text-sm text-gray-700 mb-3">{t('topUp:enterAmount')}</label>
           <div className="relative">
             <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
@@ -99,7 +101,7 @@ export function TopUpPage({ onBack }: TopUpPageProps) {
                 setAmount(e.target.value);
                 setSelectedAmount(null);
               }}
-              placeholder="0.00"
+              placeholder={t('topUp:placeholders.amount')}
               className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-2xl text-xl text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -107,7 +109,7 @@ export function TopUpPage({ onBack }: TopUpPageProps) {
 
         {/* Quick Amount Buttons */}
         <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 mb-6">
-          <p className="text-sm text-gray-700 mb-4">Quick Select</p>
+          <p className="text-sm text-gray-700 mb-4">{t('topUp:quickSelect')}</p>
           <div className="grid grid-cols-3 gap-3">
             {quickAmounts.map((value) => (
               <motion.button
@@ -162,17 +164,17 @@ export function TopUpPage({ onBack }: TopUpPageProps) {
             transition={{ duration: 1.5, repeat: Infinity }}
             style={{ transform: 'skewX(-20deg)' }}
           />
-          <span className="relative z-10 text-base">Submit Request</span>
+          <span className="relative z-10 text-base">{t('topUp:submitRequest')}</span>
         </motion.button>
         {/* Pending list */}
         {pendingDeposits.length > 0 && (
           <div className="mt-6">
-            <h3 className="text-sm text-gray-700 mb-2">Pending requests</h3>
+            <h3 className="text-sm text-gray-700 mb-2">{t('topUp:pending.title')}</h3>
             <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-2">
               {pendingDeposits.map((r: any) => (
                 <div key={r._id} className="flex items-center justify-between text-sm">
                   <span className="text-gray-700">${r.amount.toFixed(2)}</span>
-                  <span className="text-orange-600">Pending</span>
+                  <span className="text-orange-600">{t('topUp:pending.status')}</span>
                 </div>
               ))}
             </div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, DollarSign, AlertCircle } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import api from "../services/api";
 
 interface WithdrawalPageProps {
@@ -10,6 +11,7 @@ interface WithdrawalPageProps {
 }
 
 export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPageProps) {
+  const { t } = useTranslation(['common', 'withdrawal']);
   const [amount, setAmount] = useState("");
   const [password, setPassword] = useState("");
   const [availableBalance, setAvailableBalance] = useState(0);
@@ -85,12 +87,12 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
   const handleWithdrawal = async () => {
     // Guard: daily tasks must be completed
     if (completedToday < dailyTasks) {
-      toast.error(`Please complete today's tasks (${completedToday}/${dailyTasks} orders) before withdrawing.`);
+      toast.error(t('withdrawal:warnings.completeTasks', { completed: completedToday, total: dailyTasks }));
       return;
     }
     // Guard: only one withdrawal per day
     if (hasWithdrawToday) {
-      toast.warning('You have already withdrawn today. Only 1 withdrawal per day is allowed.', {
+      toast.warning(t('withdrawal:warnings.alreadyWithdrawn'), {
         duration: 5000,
       });
       return;
@@ -98,29 +100,29 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
     const withdrawAmount = parseFloat(amount);
 
     if (!amount || withdrawAmount <= 0) {
-      toast.error("Please enter a valid amount");
+      toast.error(t('withdrawal:toasts.enterAmount'));
       return;
     }
 
     if (withdrawAmount > availableBalance) {
-      toast.error("Insufficient balance");
+      toast.error(t('withdrawal:toasts.insufficientBalance'));
       return;
     }
 
     if (!password) {
-      toast.error("Please enter your payment password");
+      toast.error(t('withdrawal:toasts.enterPassword'));
       return;
     }
 
     // Validate based on withdrawal type
     if (withdrawalType === 'crypto') {
       if (!selectedWalletId) {
-        toast.error("Please select a USDT wallet");
+        toast.error(t('withdrawal:toasts.selectWallet'));
         return;
       }
     } else {
       if (!selectedCardId) {
-        toast.error("Please select a bank card");
+        toast.error(t('withdrawal:toasts.selectCard'));
         return;
       }
     }
@@ -144,9 +146,9 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
 
       const res = await api.withdrawal(payload);
       if (res?.success) {
-        toast.success("Withdrawal request submitted! Please wait for admin approval.", {
+        toast.success(t('withdrawal:toasts.success'), {
           duration: 5000,
-          description: "Note: Only 1 withdrawal per day is allowed.",
+          description: t('withdrawal:toasts.successNote'),
         });
         setAmount("");
         setPassword("");
@@ -159,7 +161,7 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
         } catch { }
       }
     } catch (e: any) {
-      toast.error(e?.message || "Failed to submit withdrawal request");
+      toast.error(e?.message || t('withdrawal:toasts.error'));
     }
   };
 
@@ -179,7 +181,7 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
           >
             <ArrowLeft className="w-5 h-5" />
           </motion.button>
-          <h1>Withdrawal</h1>
+          <h1>{t('withdrawal:title')}</h1>
         </div>
       </div>
 
@@ -190,7 +192,7 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
           animate={{ opacity: 1, y: 0 }}
           className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-3xl p-6 text-white mb-6 shadow-lg"
         >
-          <p className="text-sm opacity-90 mb-2">Available Balance</p>
+          <p className="text-sm opacity-90 mb-2">{t('withdrawal:availableBalance')}</p>
           <p className="text-3xl">${availableBalance.toFixed(2)}</p>
         </motion.div>
 
@@ -201,13 +203,13 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
             <div className="mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
               <AlertCircle className="w-5 h-5 flex-shrink-0" />
               <span>
-                Please complete all tasks for today ({completedToday}/{dailyTasks} orders) before withdrawing.
+                {t('withdrawal:warnings.completeTasks', { completed: completedToday, total: dailyTasks })}
               </span>
             </div>
           )}
           {hasWithdrawToday && (
             <div className="mb-3 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
-              You have already submitted a withdrawal request today. Only 1 withdrawal per day is allowed.
+              {t('withdrawal:warnings.alreadyWithdrawn')}
             </div>
           )}
 
@@ -221,7 +223,7 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
                 : 'text-gray-500 hover:text-gray-700'
                 }`}
             >
-              USDT Wallet
+              {t('withdrawal:withdrawalType.usdtWallet')}
             </button>
             <button
               type="button"
@@ -231,21 +233,21 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
                 : 'text-gray-500 hover:text-gray-700'
                 }`}
             >
-              Bank Card
+              {t('withdrawal:withdrawalType.bankCard')}
             </button>
           </div>
 
           {/* Bank Card Selection (shown when type is bank) */}
           {withdrawalType === 'bank' && (
             <>
-              <label className="block text-sm text-gray-600 mb-2">Select Bank Card</label>
+              <label className="block text-sm text-gray-600 mb-2">{t('withdrawal:selectBankCard')}</label>
               {bankCards.length > 0 ? (
                 <select
                   value={selectedCardId}
                   onChange={(e) => setSelectedCardId(e.target.value)}
                   className="w-full mb-4 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="" disabled>Choose a card</option>
+                  <option value="" disabled>{t('withdrawal:placeholders.chooseCard')}</option>
                   {bankCards.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.bankName} - {c.cardNumber} ({c.accountName})
@@ -254,12 +256,12 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
                 </select>
               ) : (
                 <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-                  <p className="text-sm text-yellow-800 mb-2">No bank card found. Please add one first.</p>
+                  <p className="text-sm text-yellow-800 mb-2">{t('withdrawal:warnings.noBankCard')}</p>
                   <button
                     onClick={() => onNavigateToBankCards?.()}
                     className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                   >
-                    → Go to Withdrawal Methods
+                    {t('withdrawal:actions.goToWithdrawalMethods')}
                   </button>
                 </div>
               )}
@@ -269,7 +271,7 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
           {/* Crypto Wallet Inputs (shown when type is crypto) */}
           {withdrawalType === 'crypto' && (
             <>
-              <label className="block text-sm text-gray-600 mb-2">USDT Wallet</label>
+              <label className="block text-sm text-gray-600 mb-2">{t('withdrawal:selectUsdtWallet')}</label>
               {usdtWallets.length > 0 ? (
                 <select
                   value={selectedWalletId}
@@ -288,19 +290,19 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
                 </select>
               ) : (
                 <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-                  <p className="text-sm text-yellow-800 mb-2">No USDT wallet found. Please add one first.</p>
+                  <p className="text-sm text-yellow-800 mb-2">{t('withdrawal:warnings.noUsdtWallet')}</p>
                   <button
                     onClick={() => onNavigateToBankCards?.()}
                     className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                   >
-                    → Go to Withdrawal Methods
+                    {t('withdrawal:actions.goToWithdrawalMethods')}
                   </button>
                 </div>
               )}
             </>
           )}
 
-          <label className="block text-sm text-gray-600 mb-2">Withdrawal Amount</label>
+          <label className="block text-sm text-gray-600 mb-2">{t('withdrawal:withdrawalAmount')}</label>
           <div className="relative mb-3">
             <DollarSign className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${amount && parseFloat(amount) > availableBalance ? 'text-red-400' : 'text-gray-400'
               }`} />
@@ -308,7 +310,7 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
+              placeholder={t('withdrawal:placeholders.amount')}
               className={`w-full pl-12 pr-24 py-4 bg-gray-50 border rounded-xl text-xl focus:outline-none focus:ring-2 ${amount && parseFloat(amount) > availableBalance
                 ? 'border-red-400 focus:ring-red-500 text-red-600'
                 : 'border-gray-200 focus:ring-blue-500'
@@ -318,7 +320,7 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
               onClick={handleWithdrawAll}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-blue-600 hover:text-blue-700 px-3 py-1 bg-blue-50 rounded-lg"
             >
-              All
+              {t('withdrawal:actions.withdrawAll')}
             </button>
           </div>
 
@@ -327,19 +329,19 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
             <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2">
               <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
               <span className="text-sm text-red-600">
-                Insufficient balance! You need ${(parseFloat(amount) - availableBalance).toFixed(2)} more.
+                {t('withdrawal:warnings.insufficientBalance', { amount: (parseFloat(amount) - availableBalance).toFixed(2) })}
               </span>
             </div>
           )}
 
 
 
-          <label className="block text-sm text-gray-600 mb-3">Payment Password</label>
+          <label className="block text-sm text-gray-600 mb-3">{t('withdrawal:paymentPassword')}</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter payment password"
+            placeholder={t('withdrawal:placeholders.password')}
             className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -385,18 +387,18 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
             (withdrawalType === 'bank' && !selectedCardId)
           }
         >
-          Submit Withdrawal
+          {t('withdrawal:actions.submitWithdrawal')}
         </motion.button>
       </div>
       {/* Pending list */}
       {pendingWithdrawals.length > 0 && (
         <div className="px-6">
-          <h3 className="text-sm text-gray-700 mb-2">Pending withdrawal requests</h3>
+          <h3 className="text-sm text-gray-700 mb-2">{t('withdrawal:pending.title')}</h3>
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-2">
             {pendingWithdrawals.map((w: any) => (
               <div key={w._id} className="flex items-center justify-between text-sm">
                 <span className="text-gray-700">${w.amount.toFixed(2)}</span>
-                <span className="text-orange-600">Pending</span>
+                <span className="text-orange-600">{t('topUp:pending.status')}</span>
               </div>
             ))}
           </div>

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { Send, Smile, Paperclip, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { useTranslation } from "react-i18next";
 import EmojiPicker, { EmojiClickData, Theme, EmojiStyle } from 'emoji-picker-react';
 import api from "../services/api";
 const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:5000';
@@ -15,6 +16,7 @@ interface Message {
 }
 
 export function HelpPage() {
+  const { t } = useTranslation(['common', 'help']);
   const location = useLocation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -94,9 +96,9 @@ export function HelpPage() {
   };
 
   const quickReplies = [
-    "📦 Track my order",
-    "💳 Payment issue",
-    "🔄 Return request",
+    `📦 ${t('help:quickActions.trackOrder')}`,
+    `💳 ${t('help:quickActions.paymentIssue')}`,
+    `🔄 ${t('help:quickActions.returnRequest')}`,
     "📞 Talk to agent"
   ];
 
@@ -107,7 +109,7 @@ export function HelpPage() {
   // 🎯 GREETING MESSAGE - Always show at the top (frontend only, not saved to DB)
   const GREETING_MESSAGE: Message = {
     id: 'greeting-permanent',
-    text: 'Hello! 👋 Welcome to Ashford Support. How can we help you today?',
+    text: `${t('help:welcome')} ${t('help:welcomeQuestion')}`,
     isUser: false,
     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   };
@@ -531,10 +533,10 @@ export function HelpPage() {
           </div>
 
           <div className="flex-1">
-            <h2 className="text-gray-900">Ashford Support</h2>
+            <h2 className="text-gray-900">{t('help:title')}</h2>
             <div className="flex items-center gap-1.5 text-xs text-gray-500">
               <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-              <span>Online • Reply in ~1 min</span>
+              <span>{t('help:status')}</span>
             </div>
           </div>
         </div>
@@ -715,7 +717,7 @@ export function HelpPage() {
               value={inputMessage}
               onChange={(e) => handleInputChange(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              placeholder="Type your message..."
+              placeholder={t('help:inputPlaceholder')}
               className="w-full bg-gray-100 rounded-full px-5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:bg-white transition-all"
             />
           </div>

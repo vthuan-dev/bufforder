@@ -1,0 +1,35 @@
+{
+  "welcome": "Chào mừng",
+  "membershipLevel": "CẤP THÀNH VIÊN",
+  "amountRequired": "Số tiền yêu cầu",
+  "commissionPerOrder": "Hoa hồng mỗi đơn",
+  "numberOfOrders": "Số lượng đơn hàng",
+  "vip": {
+    "currentLevel": "Cấp VIP hiện tại",
+    "upgrade": "Nâng cấp VIP",
+    "benefits": "Quyền lợi VIP",
+    "progress": "Tiến độ lên cấp tiếp theo"
+  },
+  "balance": {
+    "total": "Tổng số dư",
+    "available": "Khả dụng",
+    "frozen": "Đóng băng"
+  },
+  "tasks": {
+    "daily": "Nhiệm vụ hàng ngày",
+    "completed": "Đã hoàn thành",
+    "remaining": "Còn lại",
+    "todayTasks": "Nhiệm vụ hôm nay",
+    "completedToday": "Đã hoàn thành hôm nay"
+  },
+  "quickActions": {
+    "deposit": "Nạp tiền",
+    "withdraw": "Rút tiền",
+    "orders": "Đơn hàng"
+  },
+  "products": {
+    "title": "Sản phẩm",
+    "noProducts": "Không có sản phẩm",
+    "loading": "Đang tải sản phẩm..."
+  }
+}

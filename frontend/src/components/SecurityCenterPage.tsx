@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { ArrowLeft, Lock, Eye, EyeOff, Check, Shield, AlertCircle, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { useTranslation } from "react-i18next";
 import api from "../services/api";
 
 interface SecurityCenterPageProps {
@@ -8,6 +9,7 @@ interface SecurityCenterPageProps {
 }
 
 export function SecurityCenterPage({ onBack }: SecurityCenterPageProps) {
+  const { t } = useTranslation(['common', 'security']);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -17,30 +19,30 @@ export function SecurityCenterPage({ onBack }: SecurityCenterPageProps) {
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      alert("Please fill in all fields");
+      alert(t('security:alerts.fillAllFields'));
       return;
     }
 
     if (newPassword.length < 6) {
-      alert("New password must be at least 6 characters");
+      alert(t('security:alerts.passwordTooShort'));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      alert("New passwords do not match");
+      alert(t('security:alerts.passwordsNotMatch'));
       return;
     }
 
     try {
       const res = await api.changePassword({ currentPassword, newPassword });
       if (res?.success) {
-        alert("Password changed successfully!");
+        alert(t('security:alerts.success'));
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
       }
     } catch (e: any) {
-      alert(e?.message || 'Failed to change password');
+      alert(e?.message || t('security:alerts.error'));
     }
   };
 
@@ -65,10 +67,10 @@ export function SecurityCenterPage({ onBack }: SecurityCenterPageProps) {
 
   const strengthText = () => {
     const strength = passwordStrength();
-    if (strength <= 1) return "Weak";
-    if (strength === 2) return "Fair";
-    if (strength === 3) return "Good";
-    return "Strong";
+    if (strength <= 1) return t('security:changePassword.strength.weak');
+    if (strength === 2) return t('security:changePassword.strength.fair');
+    if (strength === 3) return t('security:changePassword.strength.good');
+    return t('security:changePassword.strength.strong');
   };
 
   const strengthTextColor = () => {
@@ -95,7 +97,7 @@ export function SecurityCenterPage({ onBack }: SecurityCenterPageProps) {
           </motion.button>
           <div className="flex items-center gap-2">
             <Shield className="w-6 h-6" />
-            <h1 className="text-xl">Security Center</h1>
+            <h1 className="text-xl">{t('security:title')}</h1>
           </div>
         </div>
       </div>
@@ -112,19 +114,19 @@ export function SecurityCenterPage({ onBack }: SecurityCenterPageProps) {
               <Lock className="w-6 h-6 text-white" />
             </div>
             <div className="flex-1">
-              <h3 className="text-gray-800 mb-2">Keep your account secure</h3>
+              <h3 className="text-gray-800 mb-2">{t('security:securityTips.title')}</h3>
               <div className="space-y-2 text-xs text-gray-600">
                 <div className="flex items-start gap-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 mt-0.5 flex-shrink-0" />
-                  <span>Use a strong password with letters, numbers and symbols</span>
+                  <span>{t('security:securityTips.tip1')}</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 mt-0.5 flex-shrink-0" />
-                  <span>Don't share your password with anyone</span>
+                  <span>{t('security:securityTips.tip2')}</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 mt-0.5 flex-shrink-0" />
-                  <span>Change your password regularly</span>
+                  <span>{t('security:securityTips.tip3')}</span>
                 </div>
               </div>
             </div>
@@ -142,13 +144,13 @@ export function SecurityCenterPage({ onBack }: SecurityCenterPageProps) {
             <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
               <Lock className="w-4 h-4 text-white" />
             </div>
-            Change Password
+            {t('security:changePassword.title')}
           </h2>
 
           <div className="space-y-5">
             {/* Current Password */}
             <div>
-              <label className="block text-xs text-gray-600 mb-2">Current Password</label>
+              <label className="block text-xs text-gray-600 mb-2">{t('security:changePassword.currentPassword')}</label>
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                   <Lock className="w-4 h-4" />
@@ -157,7 +159,7 @@ export function SecurityCenterPage({ onBack }: SecurityCenterPageProps) {
                   type={showCurrentPassword ? "text" : "password"}
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Enter current password"
+                  placeholder={t('security:changePassword.placeholders.currentPassword')}
                   className="w-full pl-11 pr-11 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
                 />
                 <button
@@ -172,7 +174,7 @@ export function SecurityCenterPage({ onBack }: SecurityCenterPageProps) {
 
             {/* New Password */}
             <div>
-              <label className="block text-xs text-gray-600 mb-2">New Password</label>
+              <label className="block text-xs text-gray-600 mb-2">{t('security:changePassword.newPassword')}</label>
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                   <Lock className="w-4 h-4" />
@@ -181,7 +183,7 @@ export function SecurityCenterPage({ onBack }: SecurityCenterPageProps) {
                   type={showNewPassword ? "text" : "password"}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new password"
+                  placeholder={t('security:changePassword.placeholders.newPassword')}
                   className="w-full pl-11 pr-11 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
                 />
                 <button
@@ -219,7 +221,7 @@ export function SecurityCenterPage({ onBack }: SecurityCenterPageProps) {
                     </div>
                     <div className="flex items-center gap-2">
                       <p className="text-xs text-gray-600">
-                        Password strength: <span className={`${strengthTextColor()}`}>{strengthText()}</span>
+                        {t('security:changePassword.strength.label')} <span className={`${strengthTextColor()}`}>{strengthText()}</span>
                       </p>
                       {passwordStrength() >= 3 && (
                         <motion.div
@@ -238,7 +240,7 @@ export function SecurityCenterPage({ onBack }: SecurityCenterPageProps) {
 
             {/* Confirm Password */}
             <div>
-              <label className="block text-xs text-gray-600 mb-2">Confirm New Password</label>
+              <label className="block text-xs text-gray-600 mb-2">{t('security:changePassword.confirmPassword')}</label>
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                   <Lock className="w-4 h-4" />
@@ -247,7 +249,7 @@ export function SecurityCenterPage({ onBack }: SecurityCenterPageProps) {
                   type={showConfirmPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Re-enter new password"
+                  placeholder={t('security:changePassword.placeholders.confirmPassword')}
                   className={`w-full pl-11 pr-11 py-3.5 bg-gray-50 border-2 rounded-2xl text-sm focus:outline-none focus:bg-white transition-all ${
                     confirmPassword && (passwordsMatch ? 'border-green-500' : 'border-red-500')
                   } ${!confirmPassword && 'border-gray-200 focus:border-blue-500'}`}
@@ -288,7 +290,7 @@ export function SecurityCenterPage({ onBack }: SecurityCenterPageProps) {
                     exit={{ opacity: 0, y: -5 }}
                     className={`text-xs mt-2 ${passwordsMatch ? 'text-green-600' : 'text-red-600'}`}
                   >
-                    {passwordsMatch ? '✓ Passwords match' : '✗ Passwords do not match'}
+                    {passwordsMatch ? t('security:changePassword.match.yes') : t('security:changePassword.match.no')}
                   </motion.p>
                 )}
               </AnimatePresence>
@@ -303,7 +305,7 @@ export function SecurityCenterPage({ onBack }: SecurityCenterPageProps) {
             className="w-full mt-6 bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 hover:from-blue-600 hover:via-blue-700 hover:to-purple-700 text-white py-4 rounded-2xl shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2"
           >
             <Lock className="w-5 h-5" />
-            <span>Change Password</span>
+            <span>{t('security:changePassword.submit')}</span>
           </motion.button>
         </motion.div>
       </div>

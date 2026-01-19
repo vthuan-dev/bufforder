@@ -1,0 +1,56 @@
+{
+  "title": "Hồ sơ của tôi",
+  "manageAccount": "Quản lý tài khoản của bạn",
+  "vip": {
+    "level": "Cấp VIP",
+    "id": "ID",
+    "subtitles": {
+      "royal": "Thành viên hoàng gia",
+      "ssvip": "Thành viên siêu cấp",
+      "svip": "Thành viên đặc biệt",
+      "vip7": "Thành viên sapphire",
+      "vip6": "Thành viên emerald",
+      "vip5": "Thành viên ruby",
+      "vip4": "Thành viên bạch kim",
+      "vip3": "Thành viên kim cương",
+      "vip2": "Thành viên vàng",
+      "vip1": "Thành viên bạc",
+      "vip0": "Thành viên mới"
+    }
+  },
+  "balance": {
+    "available": "Số dư khả dụng",
+    "freeze": "Số dư đóng băng"
+  },
+  "menu": {
+    "shippingAddress": "Địa chỉ giao hàng",
+    "topUp": "Nạp tiền",
+    "withdrawal": "Rút tiền",
+    "history": "Lịch sử nạp và rút",
+    "withdrawalMethods": "Phương thức rút tiền",
+    "securityCenter": "Trung tâm bảo mật"
+  },
+  "notifications": {
+    "title": "Thông báo",
+    "noNotifications": "Chưa có thông báo",
+    "noNotificationsDesc": "Khi có cập nhật về yêu cầu của bạn, chúng sẽ xuất hiện ở đây.",
+    "markAsRead": "Đánh dấu đã đọc",
+    "clearAll": "Xóa tất cả",
+    "close": "Đóng",
+    "types": {
+      "balanceAdjusted": "Số dư đã điều chỉnh",
+      "depositApproved": "Nạp tiền đã được duyệt",
+      "withdrawalApproved": "Rút tiền đã được duyệt",
+      "withdrawalRejected": "Rút tiền bị từ chối",
+      "orderCompleted": "Đơn hàng hoàn thành",
+      "commissionEarned": "Hoa hồng đã nhận"
+    },
+    "messages": {
+      "adminDeducted": "Quản trị viên đã trừ {{amount}} từ tài khoản của bạn.",
+      "adminAdded": "Quản trị viên đã thêm {{amount}} vào tài khoản của bạn.",
+      "depositApproved": "Khoản nạp tiền {{amount}} của bạn đã được duyệt.",
+      "withdrawalApproved": "Khoản rút tiền {{amount}} của bạn đã được duyệt.",
+      "withdrawalRejected": "Khoản rút tiền {{amount}} của bạn đã bị từ chối."
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "title": "Shipping Address",
+  "addNew": "Add New Address",
+  "empty": {
+    "title": "No address yet",
+    "description": "Add your shipping address"
+  },
+  "form": {
+    "fullName": "Full Name",
+    "phone": "Phone Number",
+    "address": "Address",
+    "city": "City",
+    "state": "State/Province",
+    "zipCode": "Zip Code",
+    "country": "Country",
+    "setDefault": "Set as default",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "actions": {
+    "edit": "Edit",
+    "delete": "Delete",
+    "setDefault": "Set as default"
+  },
+  "default": "Default",
+  "confirmDelete": "Are you sure you want to delete this address?"
+}
