@@ -872,7 +872,7 @@ export function OrdersPage() {
   );
 
   return (
-    <div id="orders-root" className="pb-20 bg-gray-50 min-h-screen">
+    <div id="orders-root" className="pb-32 bg-gray-50 min-h-screen">
       <style>{`
         #orders-root > div:nth-child(1) > div:nth-child(2) { 
           transform: scale(0.2) !important;

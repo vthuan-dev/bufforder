@@ -166,7 +166,7 @@ export function BankCardPage({ onBack }: BankCardPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50 pb-56">
       {/* Toast Notification */}
       <AnimatePresence>
         {toast && (

@@ -86,16 +86,17 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   const tabs = getEnabledTabs(TABS_CONFIG);
 
   return (
-    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 z-50">
+    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 z-10">
       {/* Shadow overlay for depth */}
       <div className="absolute inset-x-0 -top-2 h-2 bg-gradient-to-b from-transparent to-black/5 pointer-events-none" />
 
-      {/* Partner Brands Marquee */}
-      <div className="px-3 pt-1.5 pb-1 border-b border-gray-100">
-        <p className="text-center text-[10px] text-gray-500 mb-1 font-medium">
-          {t('common:sponsors', 'Nhà tài trợ')}
+      {/* Partner Brands Marquee - Hidden on help and orders tabs */}
+      {activeTab !== 'help' && activeTab !== 'orders' && (
+        <div className="px-3 pt-1 pb-0.5 border-b border-gray-100">
+        <p className="text-center text-[9px] text-gray-500 mb-0.5 font-medium">
+          {t('common:sponsors')}
         </p>
-        <div className="relative overflow-hidden bg-gradient-to-r from-purple-50 via-pink-50 to-blue-50 py-0.5 rounded-md">
+        <div className="relative overflow-hidden bg-gradient-to-r from-purple-50 via-pink-50 to-blue-50 py-0.5 rounded-md" style={{ maxHeight: '24px' }}>
           <div className="partner-marquee">
             <div className="partner-marquee-content">
               {partnerBrands.map((brand, index) => (
@@ -122,6 +123,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
           </div>
         </div>
       </div>
+      )}
 
       <div className="relative">
         <div className="flex items-center justify-around px-4 py-2">

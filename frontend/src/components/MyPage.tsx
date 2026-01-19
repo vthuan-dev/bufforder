@@ -168,7 +168,7 @@ export function MyPage() {
   }
 
   return (
-    <div className="pb-16 bg-white min-h-screen relative">
+    <div className="pb-44 bg-white min-h-screen relative">
       {/* Header with Premium Gradient */}
       <div className="relative overflow-hidden z-0">
         {/* Animated Background Pattern */}
@@ -192,7 +192,7 @@ export function MyPage() {
               </div>
             </motion.div>
 
-            {/* Bell Icon for Notifications + Language Switcher */}
+            {/* Bell Icon for Notifications + Language Switcher + Logout */}
             <div className="flex items-center gap-2">
               <LanguageSwitcher />
               
@@ -224,6 +224,20 @@ export function MyPage() {
                   )}
                 </button>
               </motion.div>
+
+              {/* Logout Button */}
+              <motion.button
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.25 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleLogout}
+                className="p-2.5 bg-red-50 hover:bg-red-100 rounded-xl text-red-600 transition-all active:scale-95"
+                title={t('common:buttons.logout')}
+              >
+                <LogOut className="w-5 h-5" />
+              </motion.button>
             </div>
           </div>
 
@@ -408,27 +422,6 @@ export function MyPage() {
             );
           })}
         </motion.div>
-
-        {/* Premium Logout Button */}
-        <motion.button
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          whileHover={{ scale: 1.02, y: -2 }}
-          whileTap={{ scale: 0.98 }}
-          className="w-full mt-6 mb-4 bg-gradient-to-r from-red-500 to-red-600 rounded-[1.5rem] shadow-xl px-6 py-4 flex items-center justify-center gap-3 text-white hover:shadow-2xl transition-all relative overflow-hidden group"
-          onClick={handleLogout}
-        >
-          {/* Shine effect on hover */}
-          <motion.div
-            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100"
-            animate={{ x: ['-100%', '200%'] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-            style={{ transform: 'skewX(-20deg)' }}
-          />
-          <LogOut className="w-5 h-5 relative z-10" />
-          <span className="relative z-10">{t('common:buttons.logout')}</span>
-        </motion.button>
       </div>
 
       <BottomNav activeTab="my" onTabChange={() => { }} />

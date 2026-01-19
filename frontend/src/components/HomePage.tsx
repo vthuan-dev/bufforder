@@ -80,7 +80,7 @@ export function HomePage({ }: HomePageProps) {
   }, []);
 
   return (
-    <div className="pb-20">
+    <div className="pb-56">
       {/* Logo */}
       <div className="bg-gray-100 py-4 px-6 text-center">
         <img src={logoImage} alt="Ashford" className="inline-block h-10 object-contain" />
@@ -128,7 +128,7 @@ export function HomePage({ }: HomePageProps) {
           {t('home:membershipLevel')}
         </h2>
 
-        <div className="space-y-3">
+        <div className="space-y-3 mb-24">
           {vipLevels.map((level, index) => {
             const theme = level.theme;
             const hasBadge = Boolean(theme.badgeImage);
