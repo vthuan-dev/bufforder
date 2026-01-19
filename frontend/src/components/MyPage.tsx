@@ -27,10 +27,10 @@ const ShippingAddressPage = lazy(() => import('./ShippingAddressPage').then(m =>
 const TopUpPage = lazy(() => import('./TopUpPage').then(m => ({ default: m.TopUpPage })));
 const WithdrawalPage = lazy(() => import('./WithdrawalPage').then(m => ({ default: m.WithdrawalPage })));
 const TransactionHistoryPage = lazy(() => import('./TransactionHistoryPage').then(m => ({ default: m.TransactionHistoryPage })));
-const BankCardPage = lazy(() => import('./BankCardPage').then(m => ({ default: m.BankCardPage })));
 const SecurityCenterPage = lazy(() => import('./SecurityCenterPage').then(m => ({ default: m.SecurityCenterPage })));
+const WithdrawalMethodsPage = lazy(() => import('./WithdrawalMethodsPage').then(m => ({ default: m.WithdrawalMethodsPage })));
 
-type PageView = 'main' | 'address' | 'topup' | 'withdrawal' | 'history' | 'card' | 'security';
+type PageView = 'main' | 'address' | 'topup' | 'withdrawal' | 'history' | 'withdrawal-methods' | 'security';
 
 // ⚡ Loading fallback component
 const PageLoader = () => (
@@ -120,7 +120,7 @@ export function MyPage() {
     { id: 'topup' as PageView, label: 'Top up', icon: Wallet, color: 'text-green-600', bgColor: 'bg-gradient-to-br from-green-50 to-green-100' },
     { id: 'withdrawal' as PageView, label: 'Withdrawal', icon: DollarSign, color: 'text-purple-600', bgColor: 'bg-gradient-to-br from-purple-50 to-purple-100' },
     { id: 'history' as PageView, label: 'Deposit and Withdrawal Records', icon: FileText, color: 'text-orange-600', bgColor: 'bg-gradient-to-br from-orange-50 to-orange-100' },
-    { id: 'card' as PageView, label: 'Withdrawal bank card', icon: CreditCard, color: 'text-indigo-600', bgColor: 'bg-gradient-to-br from-indigo-50 to-indigo-100' },
+    { id: 'withdrawal-methods' as PageView, label: 'Withdrawal Methods', icon: CreditCard, color: 'text-indigo-600', bgColor: 'bg-gradient-to-br from-indigo-50 to-indigo-100' },
     { id: 'security' as PageView, label: 'Security Center', icon: Shield, color: 'text-teal-600', bgColor: 'bg-gradient-to-br from-teal-50 to-teal-100' },
   ];
 
@@ -151,13 +151,13 @@ export function MyPage() {
     return <Suspense fallback={<PageLoader />}><TopUpPage onBack={() => setCurrentView('main')} /></Suspense>;
   }
   if (currentView === 'withdrawal') {
-    return <Suspense fallback={<PageLoader />}><WithdrawalPage onBack={() => setCurrentView('main')} onNavigateToBankCards={() => setCurrentView('card')} /></Suspense>;
+    return <Suspense fallback={<PageLoader />}><WithdrawalPage onBack={() => setCurrentView('main')} onNavigateToBankCards={() => setCurrentView('withdrawal-methods')} /></Suspense>;
   }
   if (currentView === 'history') {
     return <Suspense fallback={<PageLoader />}><TransactionHistoryPage onBack={() => setCurrentView('main')} /></Suspense>;
   }
-  if (currentView === 'card') {
-    return <Suspense fallback={<PageLoader />}><BankCardPage onBack={() => setCurrentView('main')} /></Suspense>;
+  if (currentView === 'withdrawal-methods') {
+    return <Suspense fallback={<PageLoader />}><WithdrawalMethodsPage onBack={() => setCurrentView('main')} /></Suspense>;
   }
   if (currentView === 'security') {
     return <Suspense fallback={<PageLoader />}><SecurityCenterPage onBack={() => setCurrentView('main')} /></Suspense>;

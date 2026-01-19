@@ -14,6 +14,7 @@ const orderRoutes = require('./routes/orders');
 const adminRoutes = require('./routes/admin');
 const chatRoutes = require('./routes/chat');
 const productRoutes = require('./routes/products');
+const usdtWalletRoutes = require('./routes/usdt-wallets');
 
 const app = express();
 const server = http.createServer(app);
@@ -115,6 +116,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/usdt-wallets', usdtWalletRoutes);
 
 // Image proxy
 app.get('/api/image-proxy', async (req, res) => {

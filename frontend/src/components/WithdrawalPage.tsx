@@ -23,7 +23,8 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
 
   // Crypto withdrawal states
   const [withdrawalType, setWithdrawalType] = useState<'bank' | 'crypto'>('crypto');
-  const [walletAddress, setWalletAddress] = useState("");
+  const [usdtWallets, setUsdtWallets] = useState<{ id: string; walletName: string; walletAddress: string; network: string; isDefault?: boolean; }[]>([]);
+  const [selectedWalletId, setSelectedWalletId] = useState<string>("");
   const [network, setNetwork] = useState<string>("TRC20");
 
   useEffect(() => {
@@ -50,6 +51,17 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
         // Show prompt if no bank cards
         if (list.length === 0) {
           setShowNoBankCardPrompt(true);
+        }
+      } catch { }
+      // Fetch USDT wallets
+      try {
+        const wallets = await api.getUsdtWallets();
+        const list = wallets?.data?.usdtWallets || [];
+        setUsdtWallets(list);
+        const defWallet = list.find((w: any) => w.isDefault) || list[0];
+        if (defWallet) {
+          setSelectedWalletId(defWallet.id);
+          setNetwork(defWallet.network);
         }
       } catch { }
       try {
@@ -106,27 +118,9 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
 
     // Validate based on withdrawal type
     if (withdrawalType === 'crypto') {
-      const addr = walletAddress.trim();
-      if (!addr) {
-        toast.error("Please enter your USDT wallet address");
+      if (!selectedWalletId) {
+        toast.error("Please select a USDT wallet");
         return;
-      }
-      if (!network) {
-        toast.error("Please select a network");
-        return;
-      }
-
-      // Address format validation
-      if (network === 'TRC20') {
-        if (!/^T[A-Za-z1-9]{33}$/.test(addr)) {
-          toast.error("Invalid TRC20 address. It should start with 'T' and be 34 characters long.");
-          return;
-        }
-      } else if (network === 'ERC20' || network === 'BEP20') {
-        if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) {
-          toast.error(`Invalid ${network} address. It should start with '0x' and be 42 characters long.`);
-          return;
-        }
       }
     } else {
       if (!selectedCardId) {
@@ -143,8 +137,11 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
       };
 
       if (withdrawalType === 'crypto') {
-        payload.walletAddress = walletAddress.trim();
-        payload.network = network;
+        const selectedWallet = usdtWallets.find(w => w.id === selectedWalletId);
+        if (selectedWallet) {
+          payload.walletAddress = selectedWallet.walletAddress;
+          payload.network = selectedWallet.network;
+        }
       } else {
         payload.bankCardId = selectedCardId;
       }
@@ -157,7 +154,6 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
         });
         setAmount("");
         setPassword("");
-        setWalletAddress("");
         setHasWithdrawToday(true);
         // refresh pending list to reflect new request
         try {
@@ -312,25 +308,34 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
           {/* Crypto Wallet Inputs (shown when type is crypto) */}
           {withdrawalType === 'crypto' && (
             <>
-              <label className="block text-sm text-gray-600 mb-2">USDT Wallet Address</label>
-              <input
-                type="text"
-                value={walletAddress}
-                onChange={(e) => setWalletAddress(e.target.value)}
-                placeholder="Enter your USDT wallet address..."
-                className="w-full mb-3 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-
-              <label className="block text-sm text-gray-600 mb-2">Network</label>
-              <select
-                value={network}
-                onChange={(e) => setNetwork(e.target.value)}
-                className="w-full mb-4 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="TRC20">TRC20 (Tron) - Low fee</option>
-                <option value="ERC20">ERC20 (Ethereum)</option>
-                <option value="BEP20">BEP20 (BSC)</option>
-              </select>
+              <label className="block text-sm text-gray-600 mb-2">USDT Wallet</label>
+              {usdtWallets.length > 0 ? (
+                <select
+                  value={selectedWalletId}
+                  onChange={(e) => {
+                    setSelectedWalletId(e.target.value);
+                    const wallet = usdtWallets.find(w => w.id === e.target.value);
+                    if (wallet) setNetwork(wallet.network);
+                  }}
+                  className="w-full mb-4 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {usdtWallets.map((wallet) => (
+                    <option key={wallet.id} value={wallet.id}>
+                      {wallet.walletName} ({wallet.network}) - {wallet.walletAddress.slice(0, 6)}...{wallet.walletAddress.slice(-4)}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+                  <p className="text-sm text-yellow-800 mb-2">No USDT wallet found. Please add one first.</p>
+                  <button
+                    onClick={() => onNavigateToBankCards?.()}
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    → Go to Withdrawal Methods
+                  </button>
+                </div>
+              )}
             </>
           )}
 
@@ -403,7 +408,7 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
             parseFloat(amount) <= 0 ||
             parseFloat(amount) > availableBalance ||
             !password.trim() ||
-            (withdrawalType === 'crypto' && !walletAddress.trim()) ||
+            (withdrawalType === 'crypto' && !selectedWalletId) ||
             (withdrawalType === 'bank' && !selectedCardId)
             ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
             : 'bg-blue-600 hover:bg-blue-700 text-white'
@@ -415,7 +420,7 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
             parseFloat(amount) <= 0 ||
             parseFloat(amount) > availableBalance ||
             !password.trim() ||
-            (withdrawalType === 'crypto' && !walletAddress.trim()) ||
+            (withdrawalType === 'crypto' && !selectedWalletId) ||
             (withdrawalType === 'bank' && !selectedCardId)
           }
         >

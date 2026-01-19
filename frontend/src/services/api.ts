@@ -733,6 +733,35 @@ export default {
     const headers: Record<string, string> = { 'Content-Type': 'application/json', ...adminTokenHeader() } as Record<string, string>;
     return request('/admin/settings/system', { method: 'PATCH', headers, body: JSON.stringify(settings) });
   },
+
+  // USDT Wallets
+  getUsdtWallets(token?: string) {
+    const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
+    const headers: Record<string, string> = {};
+    if (t) headers.Authorization = `Bearer ${t}`;
+    return request('/usdt-wallets', { headers });
+  },
+  addUsdtWallet({ walletAddress, walletName, network, isDefault }: { walletAddress: string; walletName: string; network: string; isDefault?: boolean; }, token?: string) {
+    this.clearCache();
+    const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (t) headers.Authorization = `Bearer ${t}`;
+    return request('/usdt-wallets', { method: 'POST', headers, body: JSON.stringify({ walletAddress, walletName, network, isDefault }), useCache: false });
+  },
+  setDefaultUsdtWallet(id: string, token?: string) {
+    this.clearCache();
+    const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
+    const headers: Record<string, string> = {};
+    if (t) headers.Authorization = `Bearer ${t}`;
+    return request(`/usdt-wallets/${id}/default`, { method: 'PUT', headers, useCache: false });
+  },
+  deleteUsdtWallet(id: string, token?: string) {
+    this.clearCache();
+    const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
+    const headers: Record<string, string> = {};
+    if (t) headers.Authorization = `Bearer ${t}`;
+    return request(`/usdt-wallets/${id}`, { method: 'DELETE', headers, useCache: false });
+  },
 };
 
 
