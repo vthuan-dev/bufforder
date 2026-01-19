@@ -95,7 +95,7 @@ router.get('/ip-location/:ip', verifyAdminToken, async (req, res) => {
     }
 
     // Fetch from ip-api.com
-    const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,regionName,city`);
+    const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,regionName,city,lat,lon`);
     const data = await response.json();
 
     // Cache the result
@@ -105,6 +105,46 @@ router.get('/ip-location/:ip', verifyAdminToken, async (req, res) => {
   } catch (error) {
     console.error('IP location error:', error);
     res.json({ success: true, data: { status: 'fail' } });
+  }
+});
+
+// Public endpoint for client to get their own IP location
+router.get('/my-location', async (req, res) => {
+  try {
+    const rawIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString();
+    const ip = rawIp.split(',')[0].trim();
+    
+    if (!ip || ip === '::1' || ip === '127.0.0.1' || ip === '::ffff:127.0.0.1') {
+      return res.json({ 
+        success: true, 
+        data: { 
+          status: 'success', 
+          city: 'Local', 
+          regionName: 'Local', 
+          country: 'Local',
+          lat: 0,
+          lon: 0
+        } 
+      });
+    }
+
+    // Check cache first
+    const cached = ipLocationCache.get(ip);
+    if (cached && Date.now() - cached.timestamp < 3600000) {
+      return res.json({ success: true, data: cached.data });
+    }
+
+    // Fetch from ip-api.com
+    const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,regionName,city,lat,lon`);
+    const data = await response.json();
+
+    // Cache the result
+    ipLocationCache.set(ip, { data, timestamp: Date.now() });
+
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('My location error:', error);
+    res.json({ success: false, data: { status: 'fail' } });
   }
 });
 

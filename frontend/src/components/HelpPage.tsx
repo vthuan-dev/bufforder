@@ -39,11 +39,12 @@ export function HelpPage() {
     try {
       console.log('[Location] Getting IP-based location via backend...');
       
-      // Use backend proxy to get IP location (avoids CORS)
-      const response = await api.getIpLocation('auto');
-      const data = response?.data;
+      // Call backend to get client's own IP location
+      const response = await fetch(`${API_BASE}/api/admin/my-location`);
+      const result = await response.json();
+      const data = result?.data;
       
-      if (data && data.status === 'success') {
+      if (data && data.status === 'success' && data.city) {
         const address = [data.city, data.regionName, data.country]
           .filter(Boolean)
           .join(', ');
