@@ -368,6 +368,7 @@ router.post('/take', authenticateToken, async (req, res) => {
           }
           delete currentConfig.freezeTargetProductId;
           delete currentConfig.freezeTargetPrice;
+          delete currentConfig.autoFreezeThreshold; // Also clear threshold
           
           updatedUser = await tx.user.update({
             where: { id: userId },
@@ -378,11 +379,11 @@ router.post('/take', authenticateToken, async (req, res) => {
               frozenAt: new Date(),
               frozenReason: `Account frozen due to insufficient balance for order. Product price (${randomProduct.price}) exceeds available balance (${user.balance}). Order is suspended. Please contact admin or top up to unlock.`,
               dailyEarnings: JSON.stringify(currentDailyEarnings),
-              commissionConfig: JSON.stringify(currentConfig) // Clear target product
+              commissionConfig: JSON.stringify(currentConfig) // Clear everything
             }
           });
           
-          console.log('[Orders/take] ✅ Account frozen with suspended order (target product cleared):', {
+          console.log('[Orders/take] ✅ Account frozen with suspended order (freeze config cleared):', {
             userId,
             orderId: newOrder.id,
             orderNumber: newOrder.orderNumber,

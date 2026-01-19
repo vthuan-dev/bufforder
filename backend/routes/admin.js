@@ -346,7 +346,10 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
     const user = depositRequest.user;
     const amount = depositRequest.amount;
     const newTotalDeposited = user.totalDeposited + amount;
-    const newBalance = user.balance + amount;
+    
+    // If user is frozen, use frozenBalance instead of balance
+    const currentBalance = user.isFrozen ? user.frozenBalance : user.balance;
+    const newBalance = currentBalance + amount;
     const newVipLevel = getVipLevelByAmount(newTotalDeposited);
 
     // ============================================
@@ -396,6 +399,7 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
         }
         delete currentConfig.freezeTargetProductId;
         delete currentConfig.freezeTargetPrice;
+        delete currentConfig.autoFreezeThreshold; // Also clear threshold
         
         updateData.isFrozen = false;
         updateData.balance = finalBalance;
@@ -431,6 +435,7 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
         }
         delete currentConfig.freezeTargetProductId;
         delete currentConfig.freezeTargetPrice;
+        delete currentConfig.autoFreezeThreshold; // Also clear threshold
         
         updateData.isFrozen = false;
         updateData.balance = totalBalance;
@@ -1097,7 +1102,7 @@ router.post('/users/:id/unlock', verifyAdminToken, async (req, res) => {
     }
 
     // Unlock account and restore balance
-    // Also clear target product from commission config
+    // Also clear target product AND threshold from commission config
     let currentConfig = {};
     try {
       currentConfig = user.commissionConfig ? JSON.parse(user.commissionConfig) : {};
@@ -1107,12 +1112,13 @@ router.post('/users/:id/unlock', verifyAdminToken, async (req, res) => {
     }
     delete currentConfig.freezeTargetProductId;
     delete currentConfig.freezeTargetPrice;
+    delete currentConfig.autoFreezeThreshold; // Also clear threshold
     
     const updateData = {
       isFrozen: false,
       unfrozenAt: new Date(),
       unfrozenBy: req.adminId,
-      commissionConfig: JSON.stringify(currentConfig) // Clear target product
+      commissionConfig: JSON.stringify(currentConfig) // Clear everything
     };
 
     if (restoreBalance) {
