@@ -83,6 +83,12 @@ export function AdminChatPage() {
 
   // Fetch location from IP via backend proxy
   const fetchLocationFromIp = async (ip: string) => {
+    // ❌ DISABLED: IP-based location is inaccurate
+    // We now rely on GPS location only
+    // IP geolocation shows ISP gateway location, not user's actual location
+    return;
+    
+    /* OLD CODE - DISABLED
     if (!ip || ip === '::1' || ip === '127.0.0.1') {
       setUserLocation('Local');
       return;
@@ -107,6 +113,7 @@ export function AdminChatPage() {
       console.error('Failed to fetch location:', err);
       setUserLocation('Unknown');
     }
+    */
   };
 
   // Fetch location when selected thread changes
