@@ -48,10 +48,7 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
         setBankCards(list);
         const def = list.find((c: any) => c.isDefault) || list[0];
         setSelectedCardId(def?.id || "");
-        // Show prompt if no bank cards
-        if (list.length === 0) {
-          setShowNoBankCardPrompt(true);
-        }
+        // Don't show prompt on initial load - only show when user tries to submit
       } catch { }
       // Fetch USDT wallets
       try {
