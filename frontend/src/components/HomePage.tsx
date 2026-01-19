@@ -147,7 +147,7 @@ export function HomePage({ bannerImage }: HomePageProps) {
               >
                 {/* VIP Background Image - Watermark */}
                 {hasBadge && (
-                  <div className={`absolute right-0 top-1/2 -translate-y-1/2 ${theme.watermarkOpacity || 'opacity-60'} pointer-events-none`}>
+                  <div className={`absolute right-4 top-1/2 -translate-y-1/2 ${theme.watermarkOpacity || 'opacity-60'} pointer-events-none`}>
                     <img
                       src={theme.badgeImage!}
                       alt={`${level.name} Background`}
