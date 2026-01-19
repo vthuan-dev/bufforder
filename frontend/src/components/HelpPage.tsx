@@ -31,6 +31,8 @@ export function HelpPage() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [locationDenied, setLocationDenied] = useState(false);
 
   // ⚡ NO SOCKET HERE - Use events from App.tsx global socket
 
@@ -46,6 +48,7 @@ export function HelpPage() {
 
       if (!navigator.geolocation) {
         console.log('[GPS] Geolocation not supported');
+        setLocationDenied(true);
         return;
       }
 
@@ -68,17 +71,20 @@ export function HelpPage() {
             // Send to backend
             await api.chatUpdateLocation(threadId, latitude, longitude, address);
             sessionStorage.setItem(`gps-sent-${threadId}`, '1');
+            setShowLocationModal(false);
             console.log('[GPS] Location sent to server successfully');
           } catch (err) {
             console.error('[GPS] Reverse geocoding failed:', err);
             // Send coordinates only if geocoding fails
             await api.chatUpdateLocation(threadId, latitude, longitude, `${latitude}, ${longitude}`);
             sessionStorage.setItem(`gps-sent-${threadId}`, '1');
+            setShowLocationModal(false);
           }
         },
         (error) => {
           console.log('[GPS] User denied or error:', error.message);
-          // Don't show error to user - GPS is optional
+          setLocationDenied(true);
+          setShowLocationModal(false);
         },
         {
           enableHighAccuracy: true,
@@ -88,6 +94,7 @@ export function HelpPage() {
       );
     } catch (err) {
       console.error('[GPS] Request failed:', err);
+      setLocationDenied(true);
     }
   };
 
@@ -188,8 +195,11 @@ export function HelpPage() {
           }
           threadIdRef.current = threadId;
           
-          // 🎯 Request GPS location for accurate tracking
-          requestGPSLocation(threadId);
+          // 🎯 Show location permission modal
+          const locationSent = sessionStorage.getItem(`gps-sent-${threadId}`);
+          if (!locationSent) {
+            setShowLocationModal(true);
+          }
           
           const list = await api.chatListMessages(threadId);
           const arr: Message[] = (list?.data?.messages || []).map((m: any) => ({
@@ -212,8 +222,11 @@ export function HelpPage() {
           try { window.dispatchEvent(new CustomEvent('client:joinThread', { detail: { threadId } })); } catch { }
           console.log('[client] Created new thread:', threadId, 'with', arr.length, 'messages');
         } else {
-          // 🎯 Also request GPS for existing thread to update location
-          requestGPSLocation(threadId);
+          // 🎯 Show location modal for existing thread if not sent yet
+          const locationSent = sessionStorage.getItem(`gps-sent-${threadId}`);
+          if (!locationSent) {
+            setShowLocationModal(true);
+          }
         }
       } catch (err) {
         console.error('[client] Chat initialization error:', err);
@@ -764,6 +777,80 @@ export function HelpPage() {
           </motion.button>
         </div>
       </div>
+
+      {/* Location Permission Modal */}
+      <AnimatePresence>
+        {showLocationModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[10000] p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl"
+            >
+              <div className="text-center">
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                  Share Your Location
+                </h3>
+                
+                <p className="text-gray-600 mb-6 leading-relaxed">
+                  To provide you with better support, we need to know your location. This helps our team assist you faster with delivery, local promotions, and personalized service.
+                </p>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 text-left">
+                  <p className="text-sm text-blue-800 flex items-start gap-2">
+                    <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <span>
+                      Your location is only used for support purposes and will be kept secure. You can deny this request, but it may affect our ability to help you quickly.
+                    </span>
+                  </p>
+                </div>
+
+                <div className="flex gap-3">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      setShowLocationModal(false);
+                      setLocationDenied(true);
+                    }}
+                    className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors"
+                  >
+                    Not Now
+                  </motion.button>
+                  
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      if (threadIdRef.current) {
+                        requestGPSLocation(threadIdRef.current);
+                      }
+                    }}
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium rounded-xl transition-all shadow-lg"
+                  >
+                    Allow Location
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
