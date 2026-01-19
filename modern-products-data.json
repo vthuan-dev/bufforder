@@ -1,0 +1,22 @@
+[
+  {"name":"iPhone 15 Pro Max","brand":"Apple","category":"smartphones","price":1199,"image":"https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400","productUrl":"https://www.apple.com/iphone-15-pro/"},
+  {"name":"iPhone 15 Pro","brand":"Apple","category":"smartphones","price":999,"image":"https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400","productUrl":"https://www.apple.com/iphone-15-pro/"},
+  {"name":"iPhone 15","brand":"Apple","category":"smartphones","price":799,"image":"https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400","productUrl":"https://www.apple.com/iphone-15/"},
+  {"name":"Samsung Galaxy S24 Ultra","brand":"Samsung","category":"smartphones","price":1299,"image":"https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400","productUrl":"https://www.samsung.com/galaxy-s24-ultra/"},
+  {"name":"Samsung Galaxy S24+","brand":"Samsung","category":"smartphones","price":999,"image":"https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400","productUrl":"https://www.samsung.com/galaxy-s24/"},
+  {"name":"Samsung Galaxy Z Fold 5","brand":"Samsung","category":"smartphones","price":1799,"image":"https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400","productUrl":"https://www.samsung.com/galaxy-z-fold5/"},
+  {"name":"Samsung Galaxy Z Flip 5","brand":"Samsung","category":"smartphones","price":999,"image":"https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400","productUrl":"https://www.samsung.com/galaxy-z-flip5/"},
+  {"name":"Google Pixel 8 Pro","brand":"Google","category":"smartphones","price":999,"image":"https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=400","productUrl":"https://store.google.com/pixel-8-pro"},
+  {"name":"Google Pixel 8","brand":"Google","category":"smartphones","price":699,"image":"https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=400","productUrl":"https://store.google.com/pixel-8"},
+  {"name":"OnePlus 12","brand":"OnePlus","category":"smartphones","price":799,"image":"https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400","productUrl":"https://www.oneplus.com/12"},
+  {"name":"MacBook Pro 16 M3 Max","brand":"Apple","category":"laptops","price":3499,"image":"https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400","productUrl":"https://www.apple.com/macbook-pro-16/"},
+  {"name":"MacBook Pro 14 M3 Pro","brand":"Apple","category":"laptops","price":1999,"image":"https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400","productUrl":"https://www.apple.com/macbook-pro-14/"},
+  {"name":"MacBook Air 15 M3","brand":"Apple","category":"laptops","price":1299,"image":"https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400","productUrl":"https://www.apple.com/macbook-air-15/"},
+  {"name":"MacBook Air 13 M3","brand":"Apple","category":"laptops","price":1099,"image":"https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400","productUrl":"https://www.apple.com/macbook-air/"},
+  {"name":"Dell XPS 15","brand":"Dell","category":"laptops","price":1899,"image":"https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=400","productUrl":"https://www.dell.com/xps-15"},
+  {"name":"Dell XPS 13 Plus","brand":"Dell","category":"laptops","price":1299,"image":"https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=400","productUrl":"https://www.dell.com/xps-13-plus"},
+  {"name":"HP Spectre x360 14","brand":"HP","category":"laptops","price":1499,"image":"https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400","productUrl":"https://www.hp.com/spectre-x360"},
+  {"name":"Lenovo ThinkPad X1 Carbon Gen 11","brand":"Lenovo","category":"laptops","price":1799,"image":"https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=400","productUrl":"https://www.lenovo.com/thinkpad-x1-carbon"},
+  {"name":"ASUS ROG Zephyrus G14","brand":"ASUS","category":"laptops","price":1649,"image":"https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=400","productUrl":"https://www.asus.com/rog-zephyrus-g14"},
+  {"name":"Razer Blade 15","brand":"Razer","category":"laptops","price":2499,"image":"https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=400","productUrl":"https://www.razer.com/blade-15"}
+]
