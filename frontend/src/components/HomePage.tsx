@@ -6,7 +6,6 @@ const logoImage = new URL('../assets/image.png', import.meta.url).toString();
 const videoAds = new URL('../assets/video/ads.mp4', import.meta.url).toString();
 import { vipThemes, VipTheme, VipThemeKey, normalizeVipId } from '../constants/vipThemes';
 import api from '../services/api';
-import { PartnerBrands } from './PartnerBrands';
 
 const bannerImages = [
   'https://i.ibb.co/84zLyNTL/istockphoto-1135934992-612x612.jpg',
@@ -218,9 +217,6 @@ export function HomePage({ }: HomePageProps) {
           })}
         </div>
       </div>
-
-      {/* Partner Brands Marquee */}
-      <PartnerBrands />
     </div>
   );
 }

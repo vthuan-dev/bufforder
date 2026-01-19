@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { toast } from "sonner";
 import api from "../services/api";
-import { PartnerBrands } from "./PartnerBrands";
 const imgEarned = new URL("../assets/orders/Earned.png", import.meta.url).toString();
 const imgAvailable = new URL("../assets/orders/Available.png", import.meta.url).toString();
 const imgToday = new URL("../assets/orders/Today.png", import.meta.url).toString();

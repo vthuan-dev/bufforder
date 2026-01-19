@@ -42,36 +42,38 @@ export function PartnerBrands() {
   const { t } = useTranslation(['home']);
 
   return (
-    <div className="px-4 pt-3 pb-1">
-      <h2 className="text-gray-900 mb-2 text-center text-sm font-semibold">
-        {t('home:ourPartners', 'Đối tác liên kết của chúng tôi')}
-      </h2>
-      
-      <div className="relative overflow-hidden bg-gradient-to-r from-purple-50 via-pink-50 to-blue-50 py-0.5 rounded-lg shadow-sm">
-        <div className="partner-marquee">
-          <div className="partner-marquee-content">
-            {/* First set of brands */}
-            {partnerBrands.map((brand, index) => (
-              <div key={`brand-1-${index}`} className="partner-item">
-                <img 
-                  src={brand.logo} 
-                  alt={brand.name}
-                  className="partner-logo"
-                  loading="lazy"
-                />
-              </div>
-            ))}
-            {/* Duplicate set for seamless loop */}
-            {partnerBrands.map((brand, index) => (
-              <div key={`brand-2-${index}`} className="partner-item">
-                <img 
-                  src={brand.logo} 
-                  alt={brand.name}
-                  className="partner-logo"
-                  loading="lazy"
-                />
-              </div>
-            ))}
+    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-full max-w-md bg-gradient-to-r from-blue-500 to-purple-500 border-t-2 border-white z-50 shadow-2xl">
+      <div className="px-4 pt-2 pb-1.5">
+        <h2 className="text-white mb-1.5 text-center text-xs font-bold">
+          {t('home:ourPartners', 'Đối tác liên kết của chúng tôi')}
+        </h2>
+        
+        <div className="relative overflow-hidden bg-gradient-to-r from-purple-50 via-pink-50 to-blue-50 py-0.5 rounded-lg shadow-sm">
+          <div className="partner-marquee">
+            <div className="partner-marquee-content">
+              {/* First set of brands */}
+              {partnerBrands.map((brand, index) => (
+                <div key={`brand-1-${index}`} className="partner-item">
+                  <img 
+                    src={brand.logo} 
+                    alt={brand.name}
+                    className="partner-logo"
+                    loading="lazy"
+                  />
+                </div>
+              ))}
+              {/* Duplicate set for seamless loop */}
+              {partnerBrands.map((brand, index) => (
+                <div key={`brand-2-${index}`} className="partner-item">
+                  <img 
+                    src={brand.logo} 
+                    alt={brand.name}
+                    className="partner-logo"
+                    loading="lazy"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
