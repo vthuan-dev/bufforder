@@ -29,7 +29,10 @@
     "yourBalance": "Số dư của bạn: ${{balance}}",
     "insufficientBalance": "Số dư không đủ! Cần ${{need}} nhưng bạn chỉ có ${{have}}. Vui lòng nạp tiền.",
     "orderSuccess": "Đặt hàng thành công!",
-    "commission": "Hoa hồng: +${{amount}}"
+    "commission": "Hoa hồng: +${{amount}}",
+    "noCommission": "Đơn hàng đã đặt! Không có hoa hồng",
+    "vip0Warning": "Bạn là VIP 0. Nâng cấp lên VIP 1+ để kiếm hoa hồng!",
+    "upgradeVip": "Nâng cấp VIP"
   },
   "tabs": {
     "all": "Tất cả",

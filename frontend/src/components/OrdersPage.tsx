@@ -354,11 +354,11 @@ export function OrdersPage() {
       const commissionEarned = Number(takeRes?.data?.selectedProduct?.commissionAmount || 0);
       
       if (commissionEarned === 0 || commissionRate === 0) {
-        toast.warning('Order placed! No commission earned', {
-          description: 'You are VIP 0. Upgrade to VIP 1+ to earn commission!',
+        toast.warning(t('orders:notifications.noCommission'), {
+          description: t('orders:notifications.vip0Warning'),
           duration: 5000,
           action: {
-            label: 'Upgrade VIP',
+            label: t('orders:notifications.upgradeVip'),
             onClick: () => window.location.hash = '#/'
           }
         });

@@ -29,7 +29,10 @@
     "yourBalance": "Your balance: ${{balance}}",
     "insufficientBalance": "Insufficient balance! Need ${{need}} but you only have ${{have}}. Please top up.",
     "orderSuccess": "Order placed successfully!",
-    "commission": "Commission: +${{amount}}"
+    "commission": "Commission: +${{amount}}",
+    "noCommission": "Order placed! No commission earned",
+    "vip0Warning": "You are VIP 0. Upgrade to VIP 1+ to earn commission!",
+    "upgradeVip": "Upgrade VIP"
   },
   "tabs": {
     "all": "All",
