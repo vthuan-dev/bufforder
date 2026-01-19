@@ -87,6 +87,16 @@ function resolveNumberOfOrders(user, vipLevel) {
     return vipLevel?.numberOfOrders || 100;
 }
 
+/**
+ * Get auto freeze threshold from user override or return null (use default 80-90%)
+ * @returns {number|null} - Specific order count to freeze at, or null for default behavior
+ */
+function resolveAutoFreezeThreshold(user) {
+    const config = parseJsonField(user?.commissionConfig, {});
+    if (config.autoFreezeThreshold != null) return Number(config.autoFreezeThreshold);
+    return null; // Use default 80-90% calculation
+}
+
 module.exports = {
     hashPassword,
     comparePassword,
@@ -95,5 +105,6 @@ module.exports = {
     getDateKey,
     resolveCommissionRate,
     resolveDailyTarget,
-    resolveNumberOfOrders
+    resolveNumberOfOrders,
+    resolveAutoFreezeThreshold
 };

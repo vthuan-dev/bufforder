@@ -8,7 +8,8 @@ const {
   getDateKey,
   resolveCommissionRate,
   resolveDailyTarget,
-  resolveNumberOfOrders
+  resolveNumberOfOrders,
+  resolveAutoFreezeThreshold
 } = require('../lib/utils');
 const { getUserStats, getOrdersPaginated } = require('../lib/optimized-queries'); // ⚡ Optimized queries
 
@@ -166,22 +167,32 @@ router.post('/take', authenticateToken, async (req, res) => {
     }
 
     // ============================================
-    // 🔒 FREEZE MECHANISM - VIP 1 ONLY
+    // 🔒 FREEZE MECHANISM - ALL VIP LEVELS
     // ============================================
-    // Trigger freeze when user reaches 30-40 orders (random)
-    // Only for VIP 1 users
-    if (user.vipLevel === 'vip-1' && !user.isFrozen) {
-      const freezeTriggerMin = 30;
-      const freezeTriggerMax = 40;
-      const freezeTrigger = Math.floor(Math.random() * (freezeTriggerMax - freezeTriggerMin + 1)) + freezeTriggerMin;
+    // Trigger freeze when user reaches custom threshold OR 80-90% of max orders (random)
+    // Applied to all VIP levels (except VIP 0)
+    if (user.vipLevel !== 'vip-0' && !user.isFrozen && effectiveOrdersLimit > 0) {
+      // Check if admin set custom freeze threshold
+      const customThreshold = resolveAutoFreezeThreshold(user);
       
-      console.log(`[Orders/take] VIP 1 freeze check: ${todayOrders.length}/${freezeTrigger} orders`);
+      let freezeTrigger;
+      if (customThreshold != null && customThreshold > 0) {
+        // Use admin's custom threshold
+        freezeTrigger = customThreshold;
+        console.log(`[Orders/take] ${user.vipLevel.toUpperCase()} freeze check: ${todayOrders.length}/${freezeTrigger} orders (CUSTOM threshold)`);
+      } else {
+        // Use default 80-90% calculation
+        const freezePercentMin = 0.80; // 80%
+        const freezePercentMax = 0.90; // 90%
+        const randomPercent = freezePercentMin + (Math.random() * (freezePercentMax - freezePercentMin));
+        freezeTrigger = Math.floor(effectiveOrdersLimit * randomPercent);
+        console.log(`[Orders/take] ${user.vipLevel.toUpperCase()} freeze check: ${todayOrders.length}/${freezeTrigger} orders (${Math.round(randomPercent * 100)}% of ${effectiveOrdersLimit})`);
+      }
       
       if (todayOrders.length >= freezeTrigger) {
-        // Force select expensive product > balance to trigger freeze
+        // Freeze account immediately
         console.log('[Orders/take] 🔒 Triggering freeze mechanism...');
         
-        // Freeze account immediately
         await prisma.user.update({
           where: { id: userId },
           data: {
@@ -195,8 +206,12 @@ router.post('/take', authenticateToken, async (req, res) => {
         
         console.log('[Orders/take] ✅ Account frozen:', {
           userId,
+          vipLevel: user.vipLevel,
           frozenBalance: user.balance,
-          ordersCompleted: todayOrders.length
+          ordersCompleted: todayOrders.length,
+          maxOrders: effectiveOrdersLimit,
+          freezeTrigger: freezeTrigger,
+          customThreshold: customThreshold != null
         });
         
         return res.status(400).json({

@@ -802,6 +802,31 @@ export default {
       useCache: false 
     });
   },
+
+  // Admin - Set auto freeze threshold for user
+  adminSetFreezeThreshold(userId: string, threshold: number | null) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json', ...adminTokenHeader() } as Record<string, string>;
+    return request(`/admin/users/${userId}/commission-config`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ 
+        commissionConfig: { 
+          autoFreezeThreshold: threshold 
+        } 
+      }),
+      useCache: false
+    });
+  },
+
+  // Admin - Get user order statistics
+  adminGetUserOrderStats(userId: string) {
+    const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
+    return request(`/admin/users/${userId}/order-stats`, {
+      method: 'GET',
+      headers,
+      useCache: false
+    });
+  },
 };
 
 

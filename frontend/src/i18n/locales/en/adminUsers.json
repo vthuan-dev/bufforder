@@ -21,7 +21,8 @@
     "edit": "Edit",
     "delete": "Delete",
     "unlock": "Unlock Account",
-    "freeze": "Freeze Balance"
+    "freeze": "Freeze Balance",
+    "setFreezeThreshold": "Set Freeze Threshold"
   },
   "pagination": {
     "showing": "Showing",
@@ -113,5 +114,28 @@
     "freezeReasonPrompt": "Enter reason for freezing (optional):",
     "userFrozen": "Account frozen successfully! Balance has been moved to frozen balance.",
     "freezeFailed": "Failed to freeze account"
+  },
+  "freezeThresholdDialog": {
+    "title": "Set Auto Freeze Threshold",
+    "user": "User",
+    "vipLevel": "VIP Level",
+    "maxOrdersPerDay": "Max Orders/Day",
+    "todaysProgress": "Today's Progress",
+    "loading": "Loading...",
+    "phone": "Phone",
+    "defaultFreezeRange": "Default Freeze Range",
+    "ordersRange": "{{min}} - {{max}} orders (80-90%)",
+    "customThreshold": "Custom Freeze Threshold (orders)",
+    "placeholder": "Leave empty to use default (80-90%)",
+    "hint": "Leave empty to use default random threshold (80-90% of max orders)",
+    "cancel": "Cancel",
+    "useDefault": "Use Default",
+    "setThreshold": "Set Threshold",
+    "successDefault": "Using default freeze threshold (80-90%)",
+    "successCustom": "Freeze threshold set to {{threshold}} orders",
+    "errorInvalid": "Please enter a valid number",
+    "errorTooLow": "Threshold must be greater than current orders ({{current}})",
+    "errorTooHigh": "Threshold must be less than max orders ({{max}})",
+    "errorFailed": "Failed to set threshold"
   }
 }

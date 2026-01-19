@@ -44,7 +44,23 @@ interface UserRow {
   isFrozen?: boolean;
   frozenBalance?: number;
   frozenReason?: string;
+  completedToday?: number;
+  totalDailyTasks?: number;
 }
+
+// VIP Level max orders mapping
+const VIP_MAX_ORDERS: Record<string, number> = {
+  'vip-0': 0,
+  'vip-1': 60,
+  'vip-2': 100,
+  'vip-3': 120,
+  'vip-4': 150,
+  'vip-5': 180,
+  'vip-6': 220,
+  'vip-7': 250,
+  'svip': 280,
+  'royal-vip': 330,
+};
 
 export function AdminUsersPage() {
   const { t } = useTranslation('adminUsers');
@@ -65,6 +81,13 @@ export function AdminUsersPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createFullName, setCreateFullName] = useState("");
   const [createEmail, setCreateEmail] = useState("");
+  
+  // Freeze Threshold Dialog
+  const [freezeThresholdDialogOpen, setFreezeThresholdDialogOpen] = useState(false);
+  const [freezeThresholdUser, setFreezeThresholdUser] = useState<UserRow | null>(null);
+  const [freezeThresholdValue, setFreezeThresholdValue] = useState("");
+  const [freezeThresholdCurrentOrders, setFreezeThresholdCurrentOrders] = useState(0);
+  const [freezeThresholdLoading, setFreezeThresholdLoading] = useState(false);
   const [createPhone, setCreatePhone] = useState("");
   const [createPassword, setCreatePassword] = useState("");
   const [creating, setCreating] = useState(false);
@@ -304,6 +327,70 @@ export function AdminUsersPage() {
     }
   };
 
+  const handleSetFreezeThreshold = async (user: UserRow) => {
+    setFreezeThresholdUser(user);
+    setFreezeThresholdValue("");
+    setFreezeThresholdCurrentOrders(0);
+    setFreezeThresholdLoading(true);
+    setFreezeThresholdDialogOpen(true);
+    
+    try {
+      // Fetch today's order count for this user
+      const statsRes = await api.adminGetUserOrderStats(user.id);
+      
+      if (statsRes?.success && statsRes?.data) {
+        const todayOrders = Number(statsRes.data.todayOrders || 0);
+        console.log('[FreezeThreshold] Today orders:', todayOrders);
+        setFreezeThresholdCurrentOrders(todayOrders);
+      } else {
+        console.log('[FreezeThreshold] No stats data, using 0');
+        setFreezeThresholdCurrentOrders(0);
+      }
+    } catch (e: any) {
+      console.error('[FreezeThreshold] Failed to load stats:', e);
+      setFreezeThresholdCurrentOrders(0);
+    } finally {
+      setFreezeThresholdLoading(false);
+    }
+  };
+
+  const handleConfirmFreezeThreshold = async () => {
+    if (!freezeThresholdUser) return;
+    
+    try {
+      const threshold = freezeThresholdValue === '' ? null : parseInt(freezeThresholdValue);
+      const maxOrders = VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] || 0;
+      
+      if (freezeThresholdValue !== '') {
+        if (isNaN(threshold!) || threshold! < 1) {
+          toast.error(t('freezeThresholdDialog.errorInvalid'));
+          return;
+        }
+        
+        // Validate: threshold must be > current orders and < max orders
+        if (threshold! <= freezeThresholdCurrentOrders) {
+          toast.error(t('freezeThresholdDialog.errorTooLow', { current: freezeThresholdCurrentOrders }));
+          return;
+        }
+        
+        if (threshold! >= maxOrders) {
+          toast.error(t('freezeThresholdDialog.errorTooHigh', { max: maxOrders }));
+          return;
+        }
+      }
+      
+      await api.adminSetFreezeThreshold(freezeThresholdUser.id, threshold);
+      toast.success(threshold === null 
+        ? t('freezeThresholdDialog.successDefault')
+        : t('freezeThresholdDialog.successCustom', { threshold })
+      );
+      setFreezeThresholdDialogOpen(false);
+      setTimeout(() => window.location.reload(), 500);
+    } catch (e: any) {
+      toast.error(e?.message || t('freezeThresholdDialog.errorFailed'));
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -430,6 +517,10 @@ export function AdminUsersPage() {
                             {t('actions.freeze')}
                           </DropdownMenuItem>
                         )}
+                        <DropdownMenuItem onClick={() => handleSetFreezeThreshold(user)} className="text-purple-600">
+                          <Target className="w-4 h-4 mr-2" />
+                          {t('actions.setFreezeThreshold')}
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleEdit(user)}>
                           <Edit className="w-4 h-4 mr-2" />
                           {t('actions.edit')}
@@ -963,6 +1054,107 @@ export function AdminUsersPage() {
               )}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Freeze Threshold Dialog */}
+      <Dialog open={freezeThresholdDialogOpen} onOpenChange={setFreezeThresholdDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogTitle className="text-lg font-semibold text-gray-900 mb-4">
+            {t('freezeThresholdDialog.title')}
+          </DialogTitle>
+          
+          {freezeThresholdUser && (
+            <div className="space-y-4">
+              {/* User Info Card */}
+              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 border border-blue-200">
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-gray-600 text-xs mb-1">{t('freezeThresholdDialog.user')}</p>
+                    <p className="font-semibold text-gray-900">{freezeThresholdUser.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600 text-xs mb-1">{t('freezeThresholdDialog.vipLevel')}</p>
+                    <p className="font-semibold text-purple-600">{freezeThresholdUser.vipLevel.toUpperCase()}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600 text-xs mb-1">{t('freezeThresholdDialog.maxOrdersPerDay')}</p>
+                    <p className="font-semibold text-gray-900">{VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600 text-xs mb-1">{t('freezeThresholdDialog.todaysProgress')}</p>
+                    {freezeThresholdLoading ? (
+                      <p className="text-gray-400 text-xs">{t('freezeThresholdDialog.loading')}</p>
+                    ) : (
+                      <p className="font-semibold text-blue-600">
+                        {freezeThresholdCurrentOrders}/{VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] || 0}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-blue-200">
+                  <p className="text-xs text-gray-600">
+                    📱 {t('freezeThresholdDialog.phone')}: <span className="font-medium">{freezeThresholdUser.phone}</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Default Range Info */}
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-xs text-yellow-800 font-medium mb-1">
+                  <Target className="w-3 h-3 inline mr-1" />
+                  {t('freezeThresholdDialog.defaultFreezeRange')}
+                </p>
+                <p className="text-sm text-yellow-900 font-semibold">
+                  {t('freezeThresholdDialog.ordersRange', {
+                    min: Math.floor((VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] || 0) * 0.8),
+                    max: Math.floor((VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] || 0) * 0.9)
+                  })}
+                </p>
+              </div>
+
+              {/* Input */}
+              <div>
+                <Label className="text-sm text-gray-700 mb-2 block">
+                  {t('freezeThresholdDialog.customThreshold')}
+                </Label>
+                <Input
+                  type="number"
+                  value={freezeThresholdValue}
+                  onChange={(e) => setFreezeThresholdValue(e.target.value)}
+                  placeholder={t('freezeThresholdDialog.placeholder')}
+                  className="h-11"
+                  min={freezeThresholdCurrentOrders + 1}
+                  max={VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] - 1}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {t('freezeThresholdDialog.hint')}
+                </p>
+                {freezeThresholdValue && (
+                  <p className="text-xs text-blue-600 mt-1 font-medium">
+                    ✓ Phạm vi hợp lệ: {freezeThresholdCurrentOrders + 1} - {VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] - 1} đơn
+                  </p>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={() => setFreezeThresholdDialogOpen(false)}
+                  className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors font-medium"
+                >
+                  {t('freezeThresholdDialog.cancel')}
+                </button>
+                <button
+                  onClick={handleConfirmFreezeThreshold}
+                  disabled={freezeThresholdLoading}
+                  className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors disabled:opacity-50 font-medium"
+                >
+                  {freezeThresholdValue === '' ? t('freezeThresholdDialog.useDefault') : t('freezeThresholdDialog.setThreshold')}
+                </button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

@@ -21,7 +21,8 @@
     "edit": "Chỉnh sửa",
     "delete": "Xóa",
     "unlock": "Mở khóa tài khoản",
-    "freeze": "Đóng băng số dư"
+    "freeze": "Đóng băng số dư",
+    "setFreezeThreshold": "Đặt ngưỡng đóng băng"
   },
   "pagination": {
     "showing": "Hiển thị",
@@ -113,5 +114,28 @@
     "freezeReasonPrompt": "Nhập lý do đóng băng (tùy chọn):",
     "userFrozen": "Đóng băng tài khoản thành công! Số dư đã được chuyển sang số dư đóng băng.",
     "freezeFailed": "Đóng băng tài khoản thất bại"
+  },
+  "freezeThresholdDialog": {
+    "title": "Đặt ngưỡng tự động đóng băng",
+    "user": "Người dùng",
+    "vipLevel": "Cấp VIP",
+    "maxOrdersPerDay": "Số đơn tối đa/Ngày",
+    "todaysProgress": "Tiến độ hôm nay",
+    "loading": "Đang tải...",
+    "phone": "Điện thoại",
+    "defaultFreezeRange": "Ngưỡng đóng băng mặc định",
+    "ordersRange": "{{min}} - {{max}} đơn (80-90%)",
+    "customThreshold": "Ngưỡng đóng băng tùy chỉnh (số đơn)",
+    "placeholder": "Để trống để dùng mặc định (80-90%)",
+    "hint": "Để trống để sử dụng ngưỡng ngẫu nhiên mặc định (80-90% số đơn tối đa)",
+    "cancel": "Hủy",
+    "useDefault": "Dùng mặc định",
+    "setThreshold": "Đặt ngưỡng",
+    "successDefault": "Đang sử dụng ngưỡng đóng băng mặc định (80-90%)",
+    "successCustom": "Đã đặt ngưỡng đóng băng thành {{threshold}} đơn",
+    "errorInvalid": "Vui lòng nhập số hợp lệ",
+    "errorTooLow": "Ngưỡng phải lớn hơn số đơn hiện tại ({{current}})",
+    "errorTooHigh": "Ngưỡng phải nhỏ hơn số đơn tối đa ({{max}})",
+    "errorFailed": "Đặt ngưỡng thất bại"
   }
 }

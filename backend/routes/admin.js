@@ -687,6 +687,39 @@ router.get('/users/:id', verifyAdminToken, async (req, res) => {
   }
 });
 
+// GET /api/admin/users/:id/order-stats - Get user's order statistics
+router.get('/users/:id/order-stats', verifyAdminToken, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    
+    // Get today's date key
+    const today = new Date();
+    const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
+    // Count today's completed orders
+    const todayOrders = await prisma.order.count({
+      where: {
+        userId: userId,
+        createdAt: {
+          gte: new Date(today.setHours(0, 0, 0, 0)),
+          lt: new Date(today.setHours(23, 59, 59, 999))
+        }
+      }
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        todayOrders,
+        dateKey: todayKey
+      }
+    });
+  } catch (error) {
+    console.error('Get user order stats error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 router.post('/users', verifyAdminToken, async (req, res) => {
   try {
     const { fullName, email, phoneNumber, password, vipLevel = 'vip-0', balance = 0, isActive = true } = req.body;
