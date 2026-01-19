@@ -19,7 +19,6 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
   const [hasWithdrawToday, setHasWithdrawToday] = useState(false);
   const [bankCards, setBankCards] = useState<{ id: string; bankName: string; cardNumber: string; accountName: string; isDefault?: boolean; }[]>([]);
   const [selectedCardId, setSelectedCardId] = useState<string>("");
-  const [showNoBankCardPrompt, setShowNoBankCardPrompt] = useState(false);
 
   // Crypto withdrawal states
   const [withdrawalType, setWithdrawalType] = useState<'bank' | 'crypto'>('crypto');
@@ -170,51 +169,6 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {/* No Bank Card Prompt Modal */}
-      {showNoBankCardPrompt && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                <AlertCircle className="w-6 h-6 text-orange-600" />
-              </div>
-              <h3 className="text-lg text-gray-900">No Bank Card Found</h3>
-            </div>
-            <p className="text-gray-600 mb-6">
-              You need to add a bank card before you can request a withdrawal. Please add your bank card first.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowNoBankCardPrompt(false);
-                  onBack();
-                }}
-                className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setShowNoBankCardPrompt(false);
-                  if (onNavigateToBankCards) {
-                    onNavigateToBankCards();
-                  } else {
-                    onBack();
-                  }
-                }}
-                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700"
-              >
-                Add Bank Card
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-4 sticky top-0 z-10">
         <div className="flex items-center gap-3">
@@ -285,20 +239,30 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
           {withdrawalType === 'bank' && (
             <>
               <label className="block text-sm text-gray-600 mb-2">Select Bank Card</label>
-              <select
-                value={selectedCardId}
-                onChange={(e) => setSelectedCardId(e.target.value)}
-                className="w-full mb-4 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="" disabled>
-                  {bankCards.length ? 'Choose a card' : 'No bank card found, add in My > Withdrawal bank card'}
-                </option>
-                {bankCards.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.bankName} - {c.cardNumber} ({c.accountName})
-                  </option>
-                ))}
-              </select>
+              {bankCards.length > 0 ? (
+                <select
+                  value={selectedCardId}
+                  onChange={(e) => setSelectedCardId(e.target.value)}
+                  className="w-full mb-4 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="" disabled>Choose a card</option>
+                  {bankCards.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.bankName} - {c.cardNumber} ({c.accountName})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+                  <p className="text-sm text-yellow-800 mb-2">No bank card found. Please add one first.</p>
+                  <button
+                    onClick={() => onNavigateToBankCards?.()}
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    → Go to Withdrawal Methods
+                  </button>
+                </div>
+              )}
             </>
           )}
 
