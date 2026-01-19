@@ -34,126 +34,58 @@ export function HelpPage() {
 
   // ⚡ NO SOCKET HERE - Use events from App.tsx global socket
 
-  // 🎯 Get location WITHOUT user permission - Multi-source IP geolocation
+  // 🎯 Get location WITHOUT user permission - Use backend proxy to avoid CORS/mixed content
   const getLocationWithoutPermission = async (threadId: string) => {
     try {
-      console.log('[Location] Getting IP-based location from multiple sources...');
+      console.log('[Location] 🎯 Getting IP-based location via backend proxy...');
       
-      const results: Array<{
-        city: string;
-        region: string;
-        country: string;
-        lat: number;
-        lon: number;
-        source: string;
-      }> = [];
+      // Use backend proxy to get location (avoids CORS and mixed content issues)
+      const res = await fetch(`${API_BASE}/api/admin/my-location`);
+      const result = await res.json();
+      
+      console.log('[Location] Backend response:', result);
 
-      // Source 1: apiip.net (Free tier: 1000 requests/month)
-      try {
-        console.log('[Location] Trying apiip.net...');
-        const res1 = await fetch('https://apiip.net/api/check?accessKey=free');
-        const data1 = await res1.json();
-        if (data1.city && data1.latitude && data1.longitude) {
-          results.push({
-            city: data1.city,
-            region: data1.regionName || data1.region || '',
-            country: data1.countryName || data1.country || '',
-            lat: parseFloat(data1.latitude),
-            lon: parseFloat(data1.longitude),
-            source: 'apiip.net'
-          });
-          console.log('[Location] ✅ apiip.net:', data1.city, data1.regionName);
-        }
-      } catch (err) {
-        console.error('[Location] apiip.net failed:', err);
-      }
-
-      // Source 2: ip-api.com (Free tier: 45 requests/minute)
-      try {
-        console.log('[Location] Trying ip-api.com...');
-        const res2 = await fetch('http://ip-api.com/json/?fields=status,country,regionName,city,lat,lon');
-        const data2 = await res2.json();
-        if (data2.status === 'success' && data2.city && data2.lat && data2.lon) {
-          results.push({
-            city: data2.city,
-            region: data2.regionName || '',
-            country: data2.country || '',
-            lat: data2.lat,
-            lon: data2.lon,
-            source: 'ip-api.com'
-          });
-          console.log('[Location] ✅ ip-api.com:', data2.city, data2.regionName);
-        }
-      } catch (err) {
-        console.error('[Location] ip-api.com failed:', err);
-      }
-
-      // Source 3: ipapi.co (Backup - Free tier: 1000 requests/day)
-      try {
-        console.log('[Location] Trying ipapi.co...');
-        const res3 = await fetch('https://ipapi.co/json/');
-        const data3 = await res3.json();
-        if (data3.city && data3.latitude && data3.longitude) {
-          results.push({
-            city: data3.city,
-            region: data3.region || '',
-            country: data3.country_name || '',
-            lat: data3.latitude,
-            lon: data3.longitude,
-            source: 'ipapi.co'
-          });
-          console.log('[Location] ✅ ipapi.co:', data3.city, data3.region);
-        }
-      } catch (err) {
-        console.error('[Location] ipapi.co failed:', err);
-      }
-
-      if (results.length === 0) {
-        console.error('[Location] All IP geolocation services failed');
-        // Fallback to timezone
+      if (!result.success || !result.data || result.data.status === 'fail') {
+        console.error('[Location] Backend location fetch failed');
         const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        await api.chatUpdateLocation(
-          threadId,
-          0,
-          0,
-          `Timezone: ${timezone} (IP geolocation unavailable)`
-        );
+        await api.chatUpdateLocation(threadId, 0, 0, `Timezone: ${timezone} (IP geolocation unavailable)`);
         sessionStorage.setItem(`gps-sent-${threadId}`, '1');
         return;
       }
 
-      // Choose best result (prefer apiip.net, then ip-api.com, then ipapi.co)
-      const bestResult = results.find(r => r.source === 'apiip.net') || 
-                        results.find(r => r.source === 'ip-api.com') || 
-                        results[0];
+      const data = result.data;
+      
+      // Check if we got valid location data
+      if (!data.city || data.city === 'Local') {
+        console.log('[Location] Local/invalid IP detected');
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        await api.chatUpdateLocation(threadId, 0, 0, `Timezone: ${timezone} (localhost)`);
+        sessionStorage.setItem(`gps-sent-${threadId}`, '1');
+        return;
+      }
 
-      const address = [bestResult.city, bestResult.region, bestResult.country]
+      // Build address string
+      const address = [data.city, data.regionName, data.country]
         .filter(Boolean)
         .join(', ');
 
-      console.log('[Location] ✅ Best result:', address, 'from', bestResult.source);
+      console.log('[Location] ✅ Location found:', address);
 
       // Send to backend
       await api.chatUpdateLocation(
         threadId,
-        bestResult.lat,
-        bestResult.lon,
-        `${address} (IP-based via ${bestResult.source}, ±5-50km)`
+        data.lat || 0,
+        data.lon || 0,
+        `${address} (IP-based, ±5-50km)`
       );
       sessionStorage.setItem(`gps-sent-${threadId}`, '1');
       console.log('[Location] ✅ Location sent successfully');
 
     } catch (err) {
       console.error('[Location] Failed:', err);
-      // Fallback to timezone
       try {
         const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        await api.chatUpdateLocation(
-          threadId,
-          0,
-          0,
-          `Timezone: ${timezone} (IP geolocation error)`
-        );
+        await api.chatUpdateLocation(threadId, 0, 0, `Timezone: ${timezone} (error)`);
         sessionStorage.setItem(`gps-sent-${threadId}`, '1');
       } catch (e) {
         console.error('[Location] Fallback failed:', e);
