@@ -386,12 +386,24 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
         // Calculate final balance after deducting product price
         const finalBalance = totalBalance - suspendedOrder.productPrice + suspendedOrder.commissionAmount;
         
+        // Clear target product from commission config when auto-unlocking
+        let currentConfig = {};
+        try {
+          currentConfig = user.commissionConfig ? JSON.parse(user.commissionConfig) : {};
+        } catch (e) {
+          console.error('[Admin] Failed to parse commissionConfig:', e);
+          currentConfig = {};
+        }
+        delete currentConfig.freezeTargetProductId;
+        delete currentConfig.freezeTargetPrice;
+        
         updateData.isFrozen = false;
         updateData.balance = finalBalance;
         updateData.frozenBalance = 0;
         updateData.commission = { increment: suspendedOrder.commissionAmount };
         updateData.unfrozenAt = new Date();
         updateData.unfrozenBy = req.adminId;
+        updateData.commissionConfig = JSON.stringify(currentConfig); // Clear target product
         
         suspendedOrderProcessed = {
           orderId: suspendedOrder.id,
@@ -401,7 +413,7 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
           newStatus: 'pending'
         };
         
-        console.log('[Admin] ✅ Suspended order processed and account unlocked');
+        console.log('[Admin] ✅ Suspended order processed and account unlocked (target product cleared)');
       } else if (suspendedOrder) {
         console.log('[Admin] ⚠️ Insufficient balance to process suspended order');
         console.log(`[Admin] Need: ${suspendedOrder.productPrice}, Have: ${totalBalance}`);
@@ -409,11 +421,23 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
         updateData.frozenBalance = totalBalance;
       } else {
         // No suspended order, just unlock
+        // Clear target product from commission config
+        let currentConfig = {};
+        try {
+          currentConfig = user.commissionConfig ? JSON.parse(user.commissionConfig) : {};
+        } catch (e) {
+          console.error('[Admin] Failed to parse commissionConfig:', e);
+          currentConfig = {};
+        }
+        delete currentConfig.freezeTargetProductId;
+        delete currentConfig.freezeTargetPrice;
+        
         updateData.isFrozen = false;
         updateData.balance = totalBalance;
         updateData.frozenBalance = 0;
         updateData.unfrozenAt = new Date();
         updateData.unfrozenBy = req.adminId;
+        updateData.commissionConfig = JSON.stringify(currentConfig); // Clear target product
       }
     }
 
@@ -762,11 +786,46 @@ router.get('/users/:id/order-stats', verifyAdminToken, async (req, res) => {
       }
     });
     
+    // Get user's commission config to check for saved target product
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { commissionConfig: true }
+    });
+    
+    // Parse commissionConfig (it's stored as JSON string)
+    let commissionConfig = {};
+    try {
+      commissionConfig = user?.commissionConfig ? JSON.parse(user.commissionConfig) : {};
+    } catch (e) {
+      console.error('Failed to parse commissionConfig:', e);
+      commissionConfig = {};
+    }
+    
+    const freezeTargetProductId = commissionConfig.freezeTargetProductId;
+    
+    // If there's a saved target product, fetch its details
+    let targetProduct = null;
+    if (freezeTargetProductId) {
+      targetProduct = await prisma.product.findUnique({
+        where: { id: parseInt(freezeTargetProductId) },
+        select: {
+          id: true,
+          name: true,
+          brand: true,
+          price: true,
+          image: true
+        }
+      });
+    }
+    
     res.json({
       success: true,
       data: {
         todayOrders,
-        dateKey: todayKey
+        dateKey: todayKey,
+        autoFreezeThreshold: commissionConfig.autoFreezeThreshold || null,
+        freezeTargetProductId,
+        targetProduct
       }
     });
   } catch (error) {
@@ -1038,10 +1097,22 @@ router.post('/users/:id/unlock', verifyAdminToken, async (req, res) => {
     }
 
     // Unlock account and restore balance
+    // Also clear target product from commission config
+    let currentConfig = {};
+    try {
+      currentConfig = user.commissionConfig ? JSON.parse(user.commissionConfig) : {};
+    } catch (e) {
+      console.error('[Admin] Failed to parse commissionConfig:', e);
+      currentConfig = {};
+    }
+    delete currentConfig.freezeTargetProductId;
+    delete currentConfig.freezeTargetPrice;
+    
     const updateData = {
       isFrozen: false,
       unfrozenAt: new Date(),
-      unfrozenBy: req.adminId
+      unfrozenBy: req.adminId,
+      commissionConfig: JSON.stringify(currentConfig) // Clear target product
     };
 
     if (restoreBalance) {
@@ -1233,9 +1304,18 @@ router.patch('/users/:id/commission-config', verifyAdminToken, async (req, res) 
     const user = await prisma.user.findUnique({ where: { id: req.params.id } });
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-    const existingConfig = parseJsonField(user.commissionConfig, {});
+    // Parse existing config (it's stored as JSON string)
+    let existingConfig = {};
+    try {
+      existingConfig = user.commissionConfig ? JSON.parse(user.commissionConfig) : {};
+    } catch (e) {
+      console.error('Failed to parse existing commissionConfig:', e);
+      existingConfig = {};
+    }
+    
     const newConfig = { ...existingConfig, ...commissionConfig };
 
+    // Stringify once for String field
     await prisma.user.update({
       where: { id: req.params.id },
       data: { commissionConfig: JSON.stringify(newConfig) }
@@ -1589,30 +1669,29 @@ router.get('/products/find-by-price/:targetPrice', verifyAdminToken, async (req,
       orderBy: {
         price: 'asc'
       },
-      take: 10
+      take: 10 // Return top 10 products
     });
 
     if (products.length === 0) {
       return res.json({ 
         success: true, 
-        data: null,
+        data: [],
         message: 'No products found in price range'
       });
     }
 
-    // Find closest product to target price
-    const closestProduct = products.reduce((prev, curr) => {
-      const prevDiff = Math.abs(prev.price - targetPrice);
-      const currDiff = Math.abs(curr.price - targetPrice);
-      return currDiff < prevDiff ? curr : prev;
-    });
+    // Sort by closest to target price
+    const sortedProducts = products
+      .map(p => ({
+        ...p,
+        priceDiff: Math.abs(p.price - targetPrice)
+      }))
+      .sort((a, b) => a.priceDiff - b.priceDiff)
+      .map(({ priceDiff, ...product }) => product);
 
     res.json({ 
       success: true, 
-      data: {
-        product: closestProduct,
-        alternatives: products.filter(p => p.id !== closestProduct.id).slice(0, 3)
-      }
+      data: sortedProducts
     });
   } catch (error) {
     console.error('Find product by price error:', error);

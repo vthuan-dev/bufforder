@@ -94,6 +94,8 @@ export function AdminUsersPage() {
   const [targetProduct, setTargetProduct] = useState<any>(null);
   const [searchingProduct, setSearchingProduct] = useState(false);
   const [productSearchError, setProductSearchError] = useState("");
+  const [productList, setProductList] = useState<any[]>([]); // List of products from search
+  const [showProductDropdown, setShowProductDropdown] = useState(false); // Show/hide dropdown
   
   const [createPhone, setCreatePhone] = useState("");
   const [createPassword, setCreatePassword] = useState("");
@@ -338,17 +340,32 @@ export function AdminUsersPage() {
     setFreezeThresholdUser(user);
     setFreezeThresholdValue("");
     setFreezeThresholdCurrentOrders(0);
+    setTargetProduct(null); // Reset
+    setTargetProductPrice(""); // Reset
     setFreezeThresholdLoading(true);
     setFreezeThresholdDialogOpen(true);
     
     try {
-      // Fetch today's order count for this user
+      // Fetch today's order count and saved target product for this user
       const statsRes = await api.adminGetUserOrderStats(user.id);
       
       if (statsRes?.success && statsRes?.data) {
         const todayOrders = Number(statsRes.data.todayOrders || 0);
         console.log('[FreezeThreshold] Today orders:', todayOrders);
         setFreezeThresholdCurrentOrders(todayOrders);
+        
+        // Load saved freeze threshold if exists
+        if (statsRes.data.autoFreezeThreshold) {
+          console.log('[FreezeThreshold] Loaded saved threshold:', statsRes.data.autoFreezeThreshold);
+          setFreezeThresholdValue(String(statsRes.data.autoFreezeThreshold));
+        }
+        
+        // Load saved target product if exists
+        if (statsRes.data.targetProduct) {
+          console.log('[FreezeThreshold] Loaded saved target product:', statsRes.data.targetProduct);
+          setTargetProduct(statsRes.data.targetProduct);
+          setTargetProductPrice(statsRes.data.targetProduct.price.toString());
+        }
       } else {
         console.log('[FreezeThreshold] No stats data, using 0');
         setFreezeThresholdCurrentOrders(0);
@@ -360,6 +377,47 @@ export function AdminUsersPage() {
       setFreezeThresholdLoading(false);
     }
   };
+
+  // Auto-search products when price changes (with debounce)
+  useEffect(() => {
+    // Don't search if a product is already selected
+    if (targetProduct) {
+      return;
+    }
+    
+    const price = parseFloat(targetProductPrice);
+    
+    if (isNaN(price) || price <= 0) {
+      setProductList([]);
+      setShowProductDropdown(false);
+      return;
+    }
+    
+    const timer = setTimeout(async () => {
+      try {
+        setSearchingProduct(true);
+        setProductSearchError('');
+        
+        const response = await api.adminFindProductByPrice(price);
+        
+        if (response.success && response.data && Array.isArray(response.data)) {
+          setProductList(response.data);
+          setShowProductDropdown(response.data.length > 0);
+        } else {
+          setProductList([]);
+          setShowProductDropdown(false);
+        }
+      } catch (error: any) {
+        setProductSearchError(error?.message || 'Lỗi khi tìm sản phẩm');
+        setProductList([]);
+        setShowProductDropdown(false);
+      } finally {
+        setSearchingProduct(false);
+      }
+    }, 500); // Debounce 500ms
+    
+    return () => clearTimeout(timer);
+  }, [targetProductPrice, targetProduct]);
 
   // Search for target product by price
   const handleSearchProductByPrice = async () => {
@@ -377,19 +435,29 @@ export function AdminUsersPage() {
       
       const response = await api.adminFindProductByPrice(price);
       
-      if (response.success && response.data?.product) {
-        setTargetProduct(response.data.product);
-        setProductSearchError('');
+      if (response.success && response.data && Array.isArray(response.data)) {
+        setProductList(response.data);
+        setShowProductDropdown(response.data.length > 0);
       } else {
         setProductSearchError('Không tìm thấy sản phẩm phù hợp trong khoảng giá này');
-        setTargetProduct(null);
+        setProductList([]);
+        setShowProductDropdown(false);
       }
     } catch (error: any) {
       setProductSearchError(error?.message || 'Lỗi khi tìm sản phẩm');
-      setTargetProduct(null);
+      setProductList([]);
+      setShowProductDropdown(false);
     } finally {
       setSearchingProduct(false);
     }
+  };
+  
+  // Select product from dropdown
+  const handleSelectProduct = (product: any) => {
+    setTargetProduct(product);
+    setShowProductDropdown(false);
+    // Don't update price to avoid triggering search again
+    // setTargetProductPrice(product.price.toString());
   };
 
   const handleConfirmFreezeThreshold = async () => {
@@ -415,6 +483,15 @@ export function AdminUsersPage() {
           toast.error(t('freezeThresholdDialog.errorTooHigh', { max: maxOrders }));
           return;
         }
+      }
+      
+      // Validate: target product price must be > user balance
+      if (targetProduct && targetProduct.price <= freezeThresholdUser.balance) {
+        toast.error(t('freezeThresholdDialog.errorProductPriceTooLow', { 
+          price: targetProduct.price.toFixed(2), 
+          balance: freezeThresholdUser.balance.toFixed(2) 
+        }));
+        return;
       }
       
       // Build commission config with freeze settings
@@ -1191,42 +1268,62 @@ export function AdminUsersPage() {
               </div>
 
               {/* Target Product Selection */}
-              <div className="border-t border-gray-200 pt-4 mt-4">
+              <div className="border-t border-gray-200 pt-4 mt-4 relative">
                 <Label className="text-sm font-medium text-gray-700 mb-2 block">
                   💰 Số tiền sản phẩm treo (tùy chọn)
                 </Label>
-                <div className="product-search-wrapper">
+                <div className="relative">
                   <Input
                     type="number"
                     value={targetProductPrice}
                     onChange={(e) => {
                       setTargetProductPrice(e.target.value);
                       setProductSearchError('');
+                      setTargetProduct(null); // Clear selected product when typing
                     }}
-                    placeholder="Ví dụ: 2000"
-                    className="flex-1"
+                    onFocus={() => {
+                      if (productList.length > 0) {
+                        setShowProductDropdown(true);
+                      }
+                    }}
+                    placeholder="Nhập giá sản phẩm (VD: 2000)"
+                    className="w-full"
                     min={0}
                   />
-                  <button
-                    onClick={handleSearchProductByPrice}
-                    disabled={searchingProduct || !targetProductPrice}
-                    className="product-search-btn"
-                  >
-                    {searchingProduct ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Đang tìm...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Search className="w-4 h-4" />
-                        <span>Tìm kiếm</span>
-                      </>
-                    )}
-                  </button>
+                  {searchingProduct && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                    </div>
+                  )}
+                  
+                  {/* Dropdown Product List */}
+                  {showProductDropdown && productList.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                      {productList.map((product) => (
+                        <button
+                          key={product.id}
+                          onClick={() => handleSelectProduct(product)}
+                          className="w-full px-3 py-2 hover:bg-gray-50 flex items-center gap-3 border-b border-gray-100 last:border-0 transition-colors text-left"
+                        >
+                          <img 
+                            src={product.image} 
+                            alt={product.name}
+                            className="w-10 h-10 object-cover rounded border border-gray-200"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
+                            <p className="text-xs text-gray-500">{product.brand}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-bold text-green-600">${product.price}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  Nhập giá sản phẩm mong muốn, hệ thống sẽ tìm sản phẩm gần nhất
+                  Nhập giá sản phẩm, danh sách sẽ tự động hiện ra để chọn
                 </p>
 
                 {/* Product Search Error */}

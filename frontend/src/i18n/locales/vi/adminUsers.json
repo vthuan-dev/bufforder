@@ -136,6 +136,7 @@
     "errorInvalid": "Vui lòng nhập số hợp lệ",
     "errorTooLow": "Ngưỡng phải lớn hơn số đơn hiện tại ({{current}})",
     "errorTooHigh": "Ngưỡng phải nhỏ hơn số đơn tối đa ({{max}})",
+    "errorProductPriceTooLow": "Giá sản phẩm treo (${{price}}) phải lớn hơn số dư hiện tại của user (${{balance}})",
     "errorFailed": "Đặt ngưỡng thất bại"
   }
 }

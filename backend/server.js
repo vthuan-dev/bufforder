@@ -126,12 +126,21 @@ app.get('/api/image-proxy', async (req, res) => {
       return res.status(400).json({ error: 'Missing url parameter' });
     }
 
+    // Blacklist dead domains to avoid spam errors
+    const deadDomains = ['placeimg.com', 'lorempixel.com'];
+    const urlObj = new URL(imageUrl);
+    if (deadDomains.some(domain => urlObj.hostname.includes(domain))) {
+      // Return placeholder instead of error
+      return res.redirect('https://via.placeholder.com/400x400/cccccc/666666?text=Image+Not+Available');
+    }
+
     const response = await fetch(imageUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept': 'image/*,*/*;q=0.8',
-        'Referer': new URL(imageUrl).origin
-      }
+        'Referer': urlObj.origin
+      },
+      timeout: 5000 // 5s timeout
     });
 
     if (!response.ok) {
@@ -146,8 +155,12 @@ app.get('/api/image-proxy', async (req, res) => {
     const buffer = await response.arrayBuffer();
     res.send(Buffer.from(buffer));
   } catch (error) {
-    console.error('Image proxy error:', error);
-    res.status(500).json({ error: 'Failed to proxy image' });
+    // Only log non-blacklisted errors to reduce spam
+    if (!error.message?.includes('placeimg.com') && !error.message?.includes('lorempixel.com')) {
+      console.error('Image proxy error:', error.message);
+    }
+    // Return placeholder on error
+    res.redirect('https://via.placeholder.com/400x400/cccccc/666666?text=Image+Error');
   }
 });
 

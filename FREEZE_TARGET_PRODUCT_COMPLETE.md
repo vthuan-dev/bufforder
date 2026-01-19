@@ -9,9 +9,11 @@ Admin can now specify a target product that will be shown to users when they rea
 1. Open "Đặt ngưỡng tự động đóng băng" modal for a user
 2. Enter freeze threshold (e.g., order #7)
 3. Enter target product price (e.g., $2000)
-4. Click search → System finds closest product within ±20% range
-5. Product card displays with image, name, brand, and exact price
-6. Confirm → System saves both threshold and target product ID
+4. Autocomplete dropdown shows 10 closest products (no search button needed)
+5. Select product from dropdown
+6. System validates: product price MUST be > user's current balance
+7. If valid → Confirm saves both threshold and target product ID
+8. If invalid → Error message shown, cannot save
 
 ### User Experience:
 1. User takes orders normally (orders #1-6)
@@ -28,21 +30,24 @@ Admin can now specify a target product that will be shown to users when they rea
 #### 1. New API Endpoint
 **`GET /api/admin/products/find-by-price/:targetPrice`**
 - Finds products within ±20% of target price
-- Returns closest match by price difference
-- Used by admin to search for target product
+- Returns array of 10 closest products sorted by price difference
+- Used by admin autocomplete dropdown
 
 ```javascript
 // Example response
 {
   "success": true,
-  "data": {
-    "id": 123,
-    "name": "Luxury Watch",
-    "brand": "Rolex",
-    "price": 1950.00,
-    "image": "https://...",
-    "difference": 50.00
-  }
+  "data": [
+    {
+      "id": 123,
+      "name": "Luxury Watch",
+      "brand": "Rolex",
+      "price": 1950.00,
+      "image": "https://...",
+      "difference": 50.00
+    },
+    // ... 9 more products
+  ]
 }
 ```
 
@@ -65,22 +70,30 @@ Admin can now specify a target product that will be shown to users when they rea
 #### 1. Admin Users Page (`AdminUsersPage.tsx`)
 **New UI Elements:**
 - "Số tiền sản phẩm treo" input field
-- Search button with loading spinner
-- Product display card showing:
-  - Product image
+- Auto-search with 500ms debounce (no search button needed)
+- Product dropdown showing 10 closest products with:
+  - Compact 40x40px product image
   - Product name
   - Brand
   - Exact price
+- Click to select product from dropdown
 
 **New Functions:**
-- `handleSearchProductByPrice()` - Searches for product by price
-- Modified `handleConfirmFreezeThreshold()` - Saves target product ID
+- `handleSelectProduct()` - Selects product from dropdown
+- Modified `handleConfirmFreezeThreshold()` - Validates and saves target product ID
+
+**Validation Rules:**
+- ✅ Target product price MUST be greater than user's current balance
+- ✅ Shows error if product price ≤ user balance
+- ✅ Prevents saving invalid configuration
 
 **State Management:**
 ```typescript
 const [targetProductPrice, setTargetProductPrice] = useState<string>('');
 const [searchingProduct, setSearchingProduct] = useState(false);
 const [targetProduct, setTargetProduct] = useState<any>(null);
+const [productList, setProductList] = useState<any[]>([]);
+const [showProductDropdown, setShowProductDropdown] = useState(false);
 ```
 
 #### 2. Orders Page (`OrdersPage.tsx`)
@@ -180,7 +193,9 @@ node test-freeze-target-product.js
 2. **Predictable Behavior**: No more random expensive products
 3. **Better UX**: Users see consistent product at freeze threshold
 4. **Flexible**: Falls back to random if no target product specified
-5. **Easy to Use**: Simple search by price, visual product preview
+5. **Easy to Use**: Autocomplete search by price, visual product preview
+6. **Safe**: Validates product price > user balance to ensure freeze mechanism works
+7. **Fast**: Auto-search with debounce, no button clicks needed
 
 ## 🔄 Backward Compatibility
 
@@ -191,9 +206,13 @@ node test-freeze-target-product.js
 ## 📝 Notes
 
 - Product search uses ±20% range to find suitable matches
+- Returns 10 closest products for admin to choose from
+- Autocomplete dropdown with 500ms debounce for smooth UX
+- **VALIDATION**: Target product price MUST be > user's current balance
 - If target product not found in database, falls back to random selection
 - Target product price is saved for reference but not enforced
 - Admin can change target product anytime by searching again
+- Custom CSS classes used to avoid conflicts: `.product-search-wrapper`, `.freeze-modal-actions`, `.freeze-cancel-btn`, `.freeze-confirm-btn`
 
 ## ✅ Status: PRODUCTION READY
 

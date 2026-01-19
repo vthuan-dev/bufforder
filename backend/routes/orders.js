@@ -358,6 +358,17 @@ router.post('/take', authenticateToken, async (req, res) => {
           });
         } else {
           // Freeze account - move balance to frozen balance
+          // Also clear target product from commission config
+          let currentConfig = {};
+          try {
+            currentConfig = user.commissionConfig ? JSON.parse(user.commissionConfig) : {};
+          } catch (e) {
+            console.error('[Orders] Failed to parse commissionConfig:', e);
+            currentConfig = {};
+          }
+          delete currentConfig.freezeTargetProductId;
+          delete currentConfig.freezeTargetPrice;
+          
           updatedUser = await tx.user.update({
             where: { id: userId },
             data: {
@@ -366,11 +377,12 @@ router.post('/take', authenticateToken, async (req, res) => {
               balance: 0,
               frozenAt: new Date(),
               frozenReason: `Account frozen due to insufficient balance for order. Product price (${randomProduct.price}) exceeds available balance (${user.balance}). Order is suspended. Please contact admin or top up to unlock.`,
-              dailyEarnings: JSON.stringify(currentDailyEarnings)
+              dailyEarnings: JSON.stringify(currentDailyEarnings),
+              commissionConfig: JSON.stringify(currentConfig) // Clear target product
             }
           });
           
-          console.log('[Orders/take] ✅ Account frozen with suspended order:', {
+          console.log('[Orders/take] ✅ Account frozen with suspended order (target product cleared):', {
             userId,
             orderId: newOrder.id,
             orderNumber: newOrder.orderNumber,

@@ -136,6 +136,7 @@
     "errorInvalid": "Please enter a valid number",
     "errorTooLow": "Threshold must be greater than current orders ({{current}})",
     "errorTooHigh": "Threshold must be less than max orders ({{max}})",
+    "errorProductPriceTooLow": "Target product price (${{price}}) must be greater than user's current balance (${{balance}})",
     "errorFailed": "Failed to set threshold"
   }
 }
