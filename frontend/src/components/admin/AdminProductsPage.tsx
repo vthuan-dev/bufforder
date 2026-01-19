@@ -31,6 +31,7 @@ interface Product {
     category: string;
     price: number;
     image?: string;
+    productUrl?: string;
     isActive: boolean;
     createdAt?: string;
 }
@@ -60,6 +61,7 @@ export function AdminProductsPage() {
     const [formCategory, setFormCategory] = useState("");
     const [formPrice, setFormPrice] = useState("");
     const [formImage, setFormImage] = useState("");
+    const [formProductUrl, setFormProductUrl] = useState("");
     const [formIsActive, setFormIsActive] = useState(true);
 
     // Image upload state
@@ -162,6 +164,7 @@ export function AdminProductsPage() {
         setFormCategory(product.category);
         setFormPrice(String(product.price));
         setFormImage(product.image || "");
+        setFormProductUrl(product.productUrl || "");
         setPreviewUrl("");
         setFormIsActive(product.isActive);
         setEditDialogOpen(true);
@@ -173,6 +176,7 @@ export function AdminProductsPage() {
         setFormCategory("");
         setFormPrice("");
         setFormImage("");
+        setFormProductUrl("");
         setPreviewUrl("");
         setFormIsActive(true);
         setCreateDialogOpen(true);
@@ -189,6 +193,7 @@ export function AdminProductsPage() {
                 category: formCategory,
                 price: Number(formPrice),
                 image: formImage || undefined,
+                productUrl: formProductUrl || undefined,
                 isActive: formIsActive
             });
 
@@ -218,6 +223,7 @@ export function AdminProductsPage() {
                 category: formCategory,
                 price: Number(formPrice),
                 image: formImage || undefined,
+                productUrl: formProductUrl || undefined,
                 isActive: formIsActive
             });
 
@@ -550,6 +556,10 @@ export function AdminProductsPage() {
                             </div>
                         </div>
                         <div>
+                            <Label>{t('editDialog.productUrl')}</Label>
+                            <Input value={formProductUrl} onChange={(e) => setFormProductUrl(e.target.value)} placeholder={t('editDialog.productUrlPlaceholder')} className="mt-1" />
+                        </div>
+                        <div>
                             <Label>{t('editDialog.productImage')}</Label>
                             <div className="mt-1 space-y-2">
                                 {(previewUrl || formImage) ? (
@@ -637,6 +647,10 @@ export function AdminProductsPage() {
                                     </SelectContent>
                                 </Select>
                             </div>
+                        </div>
+                        <div>
+                            <Label>{t('createDialog.productUrl')}</Label>
+                            <Input value={formProductUrl} onChange={(e) => setFormProductUrl(e.target.value)} placeholder={t('createDialog.productUrlPlaceholder')} className="mt-1" />
                         </div>
                         <div>
                             <Label>{t('createDialog.productImage')}</Label>

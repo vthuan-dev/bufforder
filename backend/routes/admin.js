@@ -1298,14 +1298,14 @@ router.get('/products/:id', verifyAdminToken, async (req, res) => {
 
 router.post('/products', verifyAdminToken, async (req, res) => {
   try {
-    const { name, brand, category, price, image, isActive = true } = req.body;
+    const { name, brand, category, price, image, productUrl, isActive = true } = req.body;
 
     if (!name || !brand || !category || price === undefined) {
       return res.status(400).json({ success: false, message: 'name, brand, category, price are required' });
     }
 
     const product = await prisma.product.create({
-      data: { name, brand, category, price: parseFloat(price), image, isActive }
+      data: { name, brand, category, price: parseFloat(price), image, productUrl, isActive }
     });
 
     res.status(201).json({ success: true, data: product });
@@ -1317,7 +1317,7 @@ router.post('/products', verifyAdminToken, async (req, res) => {
 
 router.put('/products/:id', verifyAdminToken, async (req, res) => {
   try {
-    const { name, brand, category, price, image, isActive } = req.body;
+    const { name, brand, category, price, image, productUrl, isActive } = req.body;
     const data = {};
 
     if (name !== undefined) data.name = name;
@@ -1325,6 +1325,7 @@ router.put('/products/:id', verifyAdminToken, async (req, res) => {
     if (category !== undefined) data.category = category;
     if (price !== undefined) data.price = parseFloat(price);
     if (image !== undefined) data.image = image;
+    if (productUrl !== undefined) data.productUrl = productUrl;
     if (isActive !== undefined) data.isActive = isActive;
 
     const product = await prisma.product.update({
