@@ -68,7 +68,7 @@ export function MyPage() {
       const user = profileRes?.data?.user;
       if (user) {
         setAvailableBalance(Number(user.balance || 0));
-        setFreezeBalance(Number(user.freezeBalance || 0));
+        setFreezeBalance(Number(user.frozenBalance || 0)); // Fix: use frozenBalance not freezeBalance
         setUserId(String(user._id || user.id || '').toUpperCase());
         setIsFrozen(Boolean(user.isFrozen));
         setFrozenReason(user.frozenReason || '');
@@ -175,9 +175,9 @@ export function MyPage() {
         <div className="absolute inset-0 bg-white">
         </div>
 
-        <div className="relative px-6 pt-8 pb-20">
+        <div className="relative px-6 pt-4 pb-6">
           {/* Top Bar */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-3">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -232,7 +232,7 @@ export function MyPage() {
             initial={{ y: 10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className={`relative overflow-hidden rounded-2xl p-6 shadow-2xl border border-white/20 z-0 ${vipTheme.gradient}`}
+            className={`relative overflow-hidden rounded-2xl p-3 shadow-2xl border border-white/20 z-0 ${vipTheme.gradient}`}
             style={{
               backgroundColor: vipTheme.bgColor || undefined,
               backgroundImage: vipTheme.backgroundPattern || undefined,
@@ -241,11 +241,11 @@ export function MyPage() {
           >
             {/* VIP Background Image - Watermark */}
             {vipTheme.badgeImage && (
-              <div className={`absolute right-0 top-1/2 -translate-y-1/2 ${vipTheme.watermarkOpacity || 'opacity-60'} pointer-events-none`}>
+              <div className={`absolute right-0 top-1/2 -translate-y-1/2 ${vipTheme.watermarkOpacity || 'opacity-40'} pointer-events-none`}>
                 <img
                   src={vipTheme.badgeImage}
                   alt={`${vipTheme.label} Background`}
-                  className="w-36 h-36 object-contain brightness-125 contrast-110 rounded-2xl"
+                  className="w-20 h-20 object-contain brightness-110 contrast-100 rounded-2xl"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                   }}
@@ -262,13 +262,13 @@ export function MyPage() {
               )}
             </div>
             <div className="relative z-10">
-              <div className="flex items-center gap-4 mb-6">
+              <div className="flex items-center gap-2.5 mb-3">
                 <div className="relative">
                   <motion.div
                     initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ duration: 0.15, ease: "easeOut" }}
-                    className="w-20 h-20 bg-gradient-to-br from-blue-400 via-blue-500 to-indigo-500 rounded-[1.5rem] flex items-center justify-center shadow-xl relative overflow-hidden"
+                    className="w-14 h-14 bg-gradient-to-br from-blue-400 via-blue-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-xl relative overflow-hidden"
                   >
                     {/* Animated shine effect */}
                     <motion.div
@@ -283,26 +283,26 @@ export function MyPage() {
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: 0.6, type: "spring", stiffness: 300 }}
-                    className="absolute -bottom-1 -right-1 w-6 h-6 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full border-4 border-white shadow-lg"
+                    className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full border-3 border-white shadow-lg"
                   />
                 </div>
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2 flex-wrap">
+                  <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                     <motion.h2
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.1 }}
-                      className="text-xl font-semibold drop-shadow-lg tracking-wide"
+                      className="text-base font-bold drop-shadow-lg tracking-wide"
                       style={{ color: vipTheme.titleColor || '#fcd34d' }}
                     >
                       {vipDisplayLabel}
                     </motion.h2>
                     {vipTheme.badgeImage && (
-                      <div className={`${vipTheme.badgeSize || 'w-10 h-12'} flex items-center justify-center`}>
+                      <div className={`${vipTheme.badgeSize || 'w-6 h-7'} flex items-center justify-center`}>
                         <img
                           src={vipTheme.badgeImage}
                           alt={`${vipTheme.label} Badge`}
-                          className="w-full h-full object-contain drop-shadow-lg rounded-xl"
+                          className="w-full h-full object-contain drop-shadow-md rounded"
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';
                           }}
@@ -314,7 +314,7 @@ export function MyPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.1 }}
-                    className="text-sm"
+                    className="text-xs leading-tight font-medium"
                     style={{ color: vipTheme.subtitleColor || '#fef3c7' }}
                   >
                     {vipSubtitle}
@@ -323,7 +323,7 @@ export function MyPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.1 }}
-                    className="text-xs font-medium"
+                    className="text-[10px] font-bold"
                     style={{ color: vipTheme.idColor || '#fde68a' }}
                   >
                     {t('my:vip.id')}: {userId}
@@ -331,17 +331,17 @@ export function MyPage() {
                 </div>
               </div>
               {/* Enhanced Balance Display */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-2">
                 <motion.div
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.15 }}
                   whileHover={{ scale: 1.03, y: -2 }}
-                  className="p-5 relative"
+                  className="p-2 relative"
                 >
                   <div className="relative">
-                    <p className="text-xs mb-2 font-medium" style={{ color: vipTheme.detailLabelColor || '#fde68a' }}>{t('my:balance.available')}</p>
-                    <p className="text-2xl drop-shadow-md font-medium" style={{ color: vipTheme.detailValueColor || '#fcd34d' }}>${availableBalance.toFixed(2)}</p>
+                    <p className="text-[9px] mb-0.5 font-bold" style={{ color: vipTheme.detailLabelColor || '#fde68a' }}>{t('my:balance.available')}</p>
+                    <p className="text-lg drop-shadow-md font-bold" style={{ color: vipTheme.detailValueColor || '#fcd34d' }}>${availableBalance.toFixed(2)}</p>
                   </div>
                 </motion.div>
 
@@ -350,11 +350,11 @@ export function MyPage() {
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.2 }}
                   whileHover={{ scale: 1.03, y: -2 }}
-                  className="p-5 relative"
+                  className="p-2 relative"
                 >
                   <div className="relative">
-                    <p className="text-xs mb-2 font-medium" style={{ color: vipTheme.detailLabelColor || '#fde68a' }}>{t('my:balance.freeze')}</p>
-                    <p className="text-2xl drop-shadow-md font-medium" style={{ color: vipTheme.detailValueColor || '#fcd34d' }}>${freezeBalance.toFixed(2)}</p>
+                    <p className="text-[9px] mb-0.5 font-bold" style={{ color: vipTheme.detailLabelColor || '#fde68a' }}>{t('my:balance.freeze')}</p>
+                    <p className="text-lg drop-shadow-md font-bold" style={{ color: vipTheme.detailValueColor || '#fcd34d' }}>${freezeBalance.toFixed(2)}</p>
                   </div>
                 </motion.div>
               </div>
@@ -365,15 +365,15 @@ export function MyPage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
-                  className="mt-4 p-3 bg-red-500/20 rounded-xl border border-red-300/30"
+                  className="mt-2 p-2 bg-red-500/20 rounded-xl border border-red-300/30"
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <Lock className="w-4 h-4 text-red-200" />
-                    <p className="text-xs font-bold text-red-100">{t('orders:frozen.title')}</p>
+                    <Lock className="w-4 h-4 text-white" />
+                    <p className="text-xs font-bold text-white">{t('orders:frozen.title')}</p>
                   </div>
-                  <p className="text-xs text-red-100/90">{t('orders:frozen.message')}</p>
+                  <p className="text-xs text-white">{t('orders:frozen.message')}</p>
                   {frozenReason && (
-                    <p className="text-xs text-red-100/80 mt-1">{t('orders:frozen.reason')}: {frozenReason}</p>
+                    <p className="text-xs text-white mt-1">{t('orders:frozen.reason')}: {frozenReason}</p>
                   )}
                 </motion.div>
               )}
@@ -383,7 +383,7 @@ export function MyPage() {
       </div>
 
       {/* Menu Items with Modern Design */}
-      <div className="px-6 -mt-12 relative z-0">
+      <div className="px-6 -mt-6 relative z-0">
         <motion.div
           initial={{ y: 10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
