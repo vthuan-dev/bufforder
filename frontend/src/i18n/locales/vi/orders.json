@@ -68,5 +68,7 @@
     "completed": "Hoàn thành",
     "pending": "Chờ xử lý",
     "earnings": "Tổng thu nhập"
-  }
+  },
+  "loadMore": "Xem thêm",
+  "showLess": "Thu gọn"
 }

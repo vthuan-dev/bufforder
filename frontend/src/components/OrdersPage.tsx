@@ -44,6 +44,7 @@ export function OrdersPage() {
   // Products from API
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [displayedProductsCount, setDisplayedProductsCount] = useState(8); // Initial: show 8 products
 
   // Daily stats with auto-reset at new day
   const [dailyCommission, setDailyCommission] = useState<number>(0);
@@ -598,7 +599,7 @@ export function OrdersPage() {
       <div className="px-4 pb-4">
         <p className="text-sm font-medium text-gray-700 mb-3">{t('orders:availableProducts')}</p>
         <div className="grid grid-cols-2 gap-2">
-          {products.map((product) => (
+          {products.slice(0, displayedProductsCount).map((product) => (
             <div
               key={product.id}
               className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100"
@@ -621,6 +622,26 @@ export function OrdersPage() {
             </div>
           ))}
         </div>
+
+        {/* Load More / Show Less Button */}
+        {products.length > 8 && (
+          <div className="mt-4 flex justify-center">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                if (displayedProductsCount >= products.length) {
+                  setDisplayedProductsCount(8); // Reset to initial count
+                } else {
+                  setDisplayedProductsCount(prev => Math.min(prev + 8, products.length)); // Load 8 more
+                }
+              }}
+              className="px-6 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
+            >
+              {displayedProductsCount >= products.length ? t('orders:showLess') : t('orders:loadMore')}
+            </motion.button>
+          </div>
+        )}
       </div>
 
       {/* Instructions - Compact */}

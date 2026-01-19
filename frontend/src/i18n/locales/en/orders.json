@@ -68,5 +68,7 @@
     "completed": "Completed",
     "pending": "Pending",
     "earnings": "Total Earnings"
-  }
+  },
+  "loadMore": "Load More",
+  "showLess": "Show Less"
 }
