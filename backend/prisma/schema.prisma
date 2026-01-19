@@ -219,15 +219,16 @@ model WithdrawalRequest {
 }
 
 model Product {
-  id        Int      @id @default(autoincrement())
-  name      String
-  brand     String
-  category  String
-  price     Float
-  image     String?  @db.Text
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         Int      @id @default(autoincrement())
+  name       String
+  brand      String
+  category   String
+  price      Float
+  image      String?  @db.Text
+  productUrl String?  @db.Text
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([category], map: "Product_category_idx")
   @@index([isActive], map: "Product_isActive_idx")
