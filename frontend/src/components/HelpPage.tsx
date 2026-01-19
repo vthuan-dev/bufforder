@@ -34,83 +34,32 @@ export function HelpPage() {
 
   // ⚡ NO SOCKET HERE - Use events from App.tsx global socket
 
-  // 🎯 Get location WITHOUT user permission - IP-based only
+  // 🎯 Get location WITHOUT user permission - IP-based via backend
   const getLocationWithoutPermission = async (threadId: string) => {
     try {
-      console.log('[Location] Getting IP-based location (no permission needed)...');
+      console.log('[Location] Getting IP-based location via backend...');
       
-      const results: Array<{
-        lat: number;
-        lon: number;
-        city: string;
-        region: string;
-        country: string;
-        accuracy: string;
-        source: string;
-      }> = [];
-
-      // Method 1: ipapi.co (Free, good accuracy)
-      try {
-        const res1 = await fetch('https://ipapi.co/json/');
-        const data1 = await res1.json();
-        if (data1.latitude && data1.longitude) {
-          results.push({
-            lat: data1.latitude,
-            lon: data1.longitude,
-            city: data1.city || '',
-            region: data1.region || '',
-            country: data1.country_name || '',
-            accuracy: 'Medium',
-            source: 'ipapi.co'
-          });
-          console.log('[Location] ✅ ipapi.co:', data1.city, data1.region);
-        }
-      } catch (err) {
-        console.error('[Location] ipapi.co failed:', err);
-      }
-
-      // Method 2: ip-api.com (Free, different database)
-      try {
-        const res2 = await fetch('http://ip-api.com/json/?fields=status,country,regionName,city,lat,lon');
-        const data2 = await res2.json();
-        if (data2.status === 'success' && data2.lat && data2.lon) {
-          results.push({
-            lat: data2.lat,
-            lon: data2.lon,
-            city: data2.city || '',
-            region: data2.regionName || '',
-            country: data2.country || '',
-            accuracy: 'Medium',
-            source: 'ip-api.com'
-          });
-          console.log('[Location] ✅ ip-api.com:', data2.city, data2.regionName);
-        }
-      } catch (err) {
-        console.error('[Location] ip-api.com failed:', err);
-      }
-
-      // Method 3: ipgeolocation.io (Backup)
-      try {
-        const res3 = await fetch('https://api.ipgeolocation.io/ipgeo?apiKey=free');
-        const data3 = await res3.json();
-        if (data3.latitude && data3.longitude) {
-          results.push({
-            lat: parseFloat(data3.latitude),
-            lon: parseFloat(data3.longitude),
-            city: data3.city || '',
-            region: data3.state_prov || '',
-            country: data3.country_name || '',
-            accuracy: 'Low',
-            source: 'ipgeolocation.io'
-          });
-          console.log('[Location] ✅ ipgeolocation.io:', data3.city, data3.state_prov);
-        }
-      } catch (err) {
-        console.error('[Location] ipgeolocation.io failed:', err);
-      }
-
-      if (results.length === 0) {
-        console.error('[Location] All IP geolocation services failed');
+      // Use backend proxy to get IP location (avoids CORS)
+      const response = await api.getIpLocation('auto');
+      const data = response?.data;
+      
+      if (data && data.status === 'success') {
+        const address = [data.city, data.regionName, data.country]
+          .filter(Boolean)
+          .join(', ');
+        
+        console.log('[Location] ✅ Got location:', address);
+        
+        // Send to backend
+        await api.chatUpdateLocation(
+          threadId,
+          data.lat || 0,
+          data.lon || 0,
+          `${address} (IP-based, ±5-50km accuracy)`
+        );
+        sessionStorage.setItem(`gps-sent-${threadId}`, '1');
+        console.log('[Location] ✅ Location sent successfully');
+      } else {
         // Fallback to timezone
         const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         await api.chatUpdateLocation(
@@ -120,32 +69,20 @@ export function HelpPage() {
           `Timezone: ${timezone} (IP geolocation unavailable)`
         );
         sessionStorage.setItem(`gps-sent-${threadId}`, '1');
-        return;
       }
-
-      // Choose best result (prefer ipapi.co, then ip-api.com)
-      const bestResult = results.find(r => r.source === 'ipapi.co') || 
-                        results.find(r => r.source === 'ip-api.com') || 
-                        results[0];
-
-      const address = [bestResult.city, bestResult.region, bestResult.country]
-        .filter(Boolean)
-        .join(', ');
-
-      console.log('[Location] ✅ Best result:', address, 'from', bestResult.source);
-
-      // Send to backend
-      await api.chatUpdateLocation(
-        threadId,
-        bestResult.lat,
-        bestResult.lon,
-        `${address} (IP-based, ±5-50km accuracy)`
-      );
-      sessionStorage.setItem(`gps-sent-${threadId}`, '1');
-      console.log('[Location] ✅ Location sent successfully (no permission needed)');
-
     } catch (err) {
-      console.error('[Location] Failed to get IP-based location:', err);
+      console.error('[Location] Failed:', err);
+      // Fallback to timezone
+      try {
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        await api.chatUpdateLocation(
+          threadId,
+          0,
+          0,
+          `Timezone: ${timezone} (IP geolocation error)`
+        );
+        sessionStorage.setItem(`gps-sent-${threadId}`, '1');
+      } catch { }
     }
   };
 
