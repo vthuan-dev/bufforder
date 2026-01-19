@@ -359,8 +359,15 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
     let suspendedOrderProcessed = null;
 
     if (user.isFrozen) {
-      console.log('[Admin] Auto-unlocking frozen account:', user.id);
+      console.log('[Admin] 🔓 Auto-unlocking frozen account:', user.id);
+      console.log('[Admin] 📊 Current state:', {
+        balance: user.balance,
+        frozenBalance: user.frozenBalance,
+        depositAmount: amount
+      });
+      
       const totalBalance = user.frozenBalance + amount; // Frozen + new deposit
+      console.log('[Admin] 💰 Total balance after deposit:', totalBalance);
       
       // Find suspended order
       const suspendedOrder = await prisma.order.findFirst({
@@ -372,17 +379,25 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
       });
 
       if (suspendedOrder && totalBalance >= suspendedOrder.productPrice) {
-        console.log('[Admin] Processing suspended order:', suspendedOrder.id);
-        console.log(`[Admin] Total balance: ${totalBalance}, Product price: ${suspendedOrder.productPrice}`);
+        console.log('[Admin] ✅ Processing suspended order:', suspendedOrder.id);
+        console.log('[Admin] 📦 Product price:', suspendedOrder.productPrice);
+        console.log('[Admin] 💵 Commission:', suspendedOrder.commissionAmount);
+        console.log('[Admin] 🧮 DETAILED CALCULATION (NO DEDUCTION):');
+        console.log(`[Admin]    Initial frozen balance: ${user.frozenBalance}`);
+        console.log(`[Admin]    + Deposit amount: ${amount}`);
+        console.log(`[Admin]    + Commission earned: ${suspendedOrder.commissionAmount}`);
+        console.log(`[Admin]    = Final balance: ${totalBalance + suspendedOrder.commissionAmount}`);
+        console.log('[Admin] 📝 Note: Product price NOT deducted (orders only add commission, never deduct balance)');
         
-        // Update order to pending and deduct product price
+        // Update order to pending (NO price deduction)
         await prisma.order.update({
           where: { id: suspendedOrder.id },
           data: { status: 'pending' }
         });
         
-        // Calculate final balance after deducting product price
-        const finalBalance = totalBalance - suspendedOrder.productPrice + suspendedOrder.commissionAmount;
+        // Calculate final balance: frozen + deposit + commission (NO deduction)
+        const finalBalance = totalBalance + suspendedOrder.commissionAmount;
+        console.log('[Admin] 💎 Final balance:', finalBalance);
         
         // Clear target product from commission config when auto-unlocking
         let currentConfig = {};
