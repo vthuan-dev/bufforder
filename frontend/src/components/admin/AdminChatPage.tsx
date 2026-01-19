@@ -639,40 +639,48 @@ export function AdminChatPage() {
                     )}
                   </div>
                   <p className="text-sm text-gray-500">{typingHeader ? 'Typing…' : selectedThread.user.email}</p>
-                  {selectedThread.userIp && (
-                    <div className="flex flex-col gap-1 text-xs text-gray-400">
-                      <div className="flex items-center gap-2">
-                        <span>IP: {selectedThread.userIp}</span>
-                        {userLocation && (
-                          <span
-                            className="flex items-center gap-1 cursor-help"
-                            title="⚠️ Location is approximate based on ISP data. May be inaccurate if user is on mobile data, VPN, or shared network. Data from ip-api.com"
-                          >
-                            <MapPin className="w-3 h-3" />
-                            {userLocation} <span className="text-orange-400">⚠️</span>
-                          </span>
-                        )}
-                      </div>
-                      {selectedThread.userGpsLocation && (
-                        <div className="flex items-center gap-2 text-green-600">
-                          <MapPin className="w-3 h-3 fill-green-600" />
-                          <span className="font-medium">GPS: {selectedThread.userGpsLocation}</span>
-                          {selectedThread.userGpsUpdatedAt && (
-                            <span className="text-gray-400">
-                              ({new Date(selectedThread.userGpsUpdatedAt).toLocaleString()})
+                  {(selectedThread.userGpsLocation || selectedThread.userIp) && (
+                    <div className="flex flex-col gap-1 text-xs">
+                      {/* GPS Location - Priority display */}
+                      {selectedThread.userGpsLocation ? (
+                        <>
+                          <div className="flex items-center gap-2 text-green-600">
+                            <MapPin className="w-3 h-3 fill-green-600" />
+                            <span className="font-medium">{selectedThread.userGpsLocation}</span>
+                            {selectedThread.userGpsUpdatedAt && (
+                              <span className="text-gray-400 text-[10px]">
+                                ({new Date(selectedThread.userGpsUpdatedAt).toLocaleString()})
+                              </span>
+                            )}
+                          </div>
+                          {selectedThread.userLatitude && selectedThread.userLongitude && (
+                            <a
+                              href={`https://www.google.com/maps?q=${selectedThread.userLatitude},${selectedThread.userLongitude}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-500 hover:underline flex items-center gap-1"
+                            >
+                              📍 View on Google Maps
+                            </a>
+                          )}
+                          {selectedThread.userIp && (
+                            <span className="text-gray-400 text-[10px]">IP: {selectedThread.userIp}</span>
+                          )}
+                        </>
+                      ) : (
+                        /* Fallback to IP location if no GPS */
+                        <div className="flex items-center gap-2 text-gray-400">
+                          <span>IP: {selectedThread.userIp}</span>
+                          {userLocation && (
+                            <span
+                              className="flex items-center gap-1 cursor-help"
+                              title="⚠️ Approximate location based on IP. GPS not available."
+                            >
+                              <MapPin className="w-3 h-3" />
+                              {userLocation} <span className="text-orange-400">⚠️</span>
                             </span>
                           )}
                         </div>
-                      )}
-                      {selectedThread.userLatitude && selectedThread.userLongitude && (
-                        <a
-                          href={`https://www.google.com/maps?q=${selectedThread.userLatitude},${selectedThread.userLongitude}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-500 hover:underline text-xs"
-                        >
-                          📍 View on Google Maps
-                        </a>
                       )}
                     </div>
                   )}
