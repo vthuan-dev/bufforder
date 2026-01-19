@@ -840,7 +840,7 @@ export function OrdersPage() {
                     </button>
 
                     {/* Title */}
-                    <h2 className="text-lg text-gray-800 mb-4">Order confirmation</h2>
+                    <h2 className="text-lg text-gray-800 mb-4">{t('orders:confirmation.title')}</h2>
 
                     {/* Product Row */}
                     <div className="flex gap-3 mb-4">
@@ -869,15 +869,15 @@ export function OrdersPage() {
                     {/* Order Details */}
                     <div className="space-y-3 mb-5 text-sm">
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Order Number:</span>
+                        <span className="text-gray-600">{t('orders:confirmation.orderNumber')}</span>
                         <span className="text-gray-800 font-mono">{orderNumber}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Commission Rate:</span>
+                        <span className="text-gray-600">{t('orders:confirmation.commissionRate')}</span>
                         <span className="text-gray-800">{(commissionRate * 100).toFixed(1)}%</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Profit from this order:</span>
+                        <span className="text-gray-600">{t('orders:confirmation.profitFromOrder')}</span>
                         <span className="text-red-600">${selectedProduct.commission.toFixed(2)}</span>
                       </div>
                     </div>
@@ -891,7 +891,7 @@ export function OrdersPage() {
                         disabled={submitting}
                         className={`flex-1 py-3 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm ${submitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
-                        Later
+                        {t('orders:confirmation.later')}
                       </motion.button>
                       <motion.button
                         whileHover={!submitting ? { scale: 1.02 } : {}}
@@ -906,9 +906,9 @@ export function OrdersPage() {
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
-                            Processing...
+                            {t('orders:confirmation.processing')}
                           </>
-                        ) : 'Confirm Order'}
+                        ) : t('orders:confirmation.confirmOrder')}
                       </motion.button>
                     </div>
                   </div>

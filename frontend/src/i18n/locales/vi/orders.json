@@ -15,6 +15,15 @@
     "vipTip": "Mẹo: Nâng cấp cấp VIP của bạn có thể giúp bạn nhận đơn hàng nhanh hơn.",
     "cancelQueue": "Hủy hàng đợi"
   },
+  "confirmation": {
+    "title": "Xác nhận đơn hàng",
+    "orderNumber": "Mã đơn hàng:",
+    "commissionRate": "Tỷ lệ hoa hồng:",
+    "profitFromOrder": "Lợi nhuận từ đơn hàng:",
+    "later": "Để sau",
+    "confirmOrder": "Xác nhận đơn hàng",
+    "processing": "Đang xử lý..."
+  },
   "notifications": {
     "noProducts": "Không có sản phẩm nào trong phạm vi số dư của bạn. Vui lòng nạp tiền.",
     "yourBalance": "Số dư của bạn: ${{balance}}",

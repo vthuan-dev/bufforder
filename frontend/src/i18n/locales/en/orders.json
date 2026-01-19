@@ -15,6 +15,15 @@
     "vipTip": "Tip: Upgrading your VIP level may help you receive orders faster.",
     "cancelQueue": "Cancel queue"
   },
+  "confirmation": {
+    "title": "Order confirmation",
+    "orderNumber": "Order Number:",
+    "commissionRate": "Commission Rate:",
+    "profitFromOrder": "Profit from this order:",
+    "later": "Later",
+    "confirmOrder": "Confirm Order",
+    "processing": "Processing..."
+  },
   "notifications": {
     "noProducts": "No products available within your balance. Please top up.",
     "yourBalance": "Your balance: ${{balance}}",
