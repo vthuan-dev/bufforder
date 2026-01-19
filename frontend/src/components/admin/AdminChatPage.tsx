@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Search, Send, Paperclip, MoreVertical, User, Clock, Trash2, Ban, MessageSquare, X, MapPin, Smile, ArrowLeft } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,8 +40,8 @@ interface Message {
   isRead: boolean;
 }
 
-// Quick reply templates
-const QUICK_REPLIES = [
+// Quick reply templates - will be translated in component
+const QUICK_REPLIES_EN = [
   "Hello! How can I help you today?",
   "Thank you for contacting us. Please wait a moment.",
   "Your order is being processed. We'll update you soon.",
@@ -54,6 +55,7 @@ const QUICK_REPLIES = [
 const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:5000';
 
 export function AdminChatPage() {
+  const { t } = useTranslation('adminChat');
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [selectedThread, setSelectedThread] = useState<ChatThread | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -456,13 +458,13 @@ export function AdminChatPage() {
     if (!selectedThread) return;
     try {
       await api.adminChatDeleteThread(selectedThread.id);
-      toast.success('Thread deleted successfully');
+      toast.success(t('notifications.threadDeleted'));
       setThreads(prev => prev.filter(t => t.id !== selectedThread.id));
       setSelectedThread(null);
       setMessages([]);
       setShowDeleteConfirm(false);
     } catch (err) {
-      toast.error('Failed to delete thread');
+      toast.error(t('notifications.deleteThreadFailed'));
     }
   };
 
@@ -474,9 +476,9 @@ export function AdminChatPage() {
       const blocked = res?.data?.blocked;
       setIsUserBlocked(blocked);
       setSelectedThread(prev => prev ? { ...prev, user: { ...prev.user, isChatBlocked: blocked } } : null);
-      toast.success(blocked ? 'User blocked from chat' : 'User unblocked');
+      toast.success(t('notifications.blockStatusUpdated', { action: blocked ? 'blocked' : 'unblocked' }));
     } catch (err) {
-      toast.error('Failed to update block status');
+      toast.error(t('notifications.blockStatusFailed'));
     }
   };
 
@@ -531,12 +533,12 @@ export function AdminChatPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl text-gray-900 mb-1">Chat Support</h1>
-          <p className="text-gray-600">Manage customer support conversations</p>
+          <h1 className="text-2xl text-gray-900 mb-1">{t('title')}</h1>
+          <p className="text-gray-600">{t('subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           <Badge variant="secondary" className="bg-red-100 text-red-700 px-4 py-2">
-            {totalUnread} Unread
+            {totalUnread} {t('unread')}
           </Badge>
         </div>
       </div>
@@ -551,7 +553,7 @@ export function AdminChatPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search conversations..."
+                placeholder={t('search')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -593,12 +595,12 @@ export function AdminChatPage() {
                         </span>
                       </div>
                       <p className="text-sm text-gray-600 truncate">
-                        {thread.lastMessage === '[image]' ? '📷 Sent an image' : thread.lastMessage}
+                        {thread.lastMessage === '[image]' ? t('sentImage') : thread.lastMessage}
                       </p>
                       {/* Last seen time for offline users */}
                       {thread.status !== "online" && thread.lastSeenAt && (
                         <p className="text-[10px] text-gray-400 mt-0.5">
-                          Last seen: {new Date(thread.lastSeenAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {t('lastSeen')}: {new Date(thread.lastSeenAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>
                       )}
                     </div>
@@ -642,10 +644,10 @@ export function AdminChatPage() {
                   <div className="flex items-center gap-2">
                     <p className="text-gray-900">{selectedThread.user.name}</p>
                     {isUserBlocked && (
-                      <Badge variant="secondary" className="bg-red-100 text-red-600 text-xs">Blocked</Badge>
+                      <Badge variant="secondary" className="bg-red-100 text-red-600 text-xs">{t('blocked')}</Badge>
                     )}
                   </div>
-                  <p className="text-sm text-gray-500">{typingHeader ? 'Typing…' : selectedThread.user.email}</p>
+                  <p className="text-sm text-gray-500">{typingHeader ? t('typing') : selectedThread.user.email}</p>
                   {selectedThread.userGpsLocation && (
                     <div className="flex flex-col gap-1 text-xs">
                       {/* GPS Location Only - Accurate */}
@@ -665,7 +667,7 @@ export function AdminChatPage() {
                           rel="noopener noreferrer"
                           className="text-blue-500 hover:underline flex items-center gap-1"
                         >
-                          📍 View on Google Maps
+                          {t('viewOnMaps')}
                         </a>
                       )}
                     </div>
@@ -683,16 +685,16 @@ export function AdminChatPage() {
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem onClick={() => setShowQuickReplies(true)}>
                     <MessageSquare className="w-4 h-4 mr-2" />
-                    Quick Replies
+                    {t('quickReplies')}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleBlockUser} className={isUserBlocked ? "text-green-600" : "text-orange-600"}>
                     <Ban className="w-4 h-4 mr-2" />
-                    {isUserBlocked ? 'Unblock User' : 'Block User'}
+                    {isUserBlocked ? t('unblockUser') : t('blockUser')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setShowDeleteConfirm(true)} className="text-red-600">
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Delete Thread
+                    {t('deleteThread')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -702,13 +704,13 @@ export function AdminChatPage() {
             {showQuickReplies && (
               <div className="absolute top-16 right-4 z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-72">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Quick Replies</span>
+                  <span className="text-sm font-medium text-gray-700">{t('quickReplies')}</span>
                   <button onClick={() => setShowQuickReplies(false)} className="p-1 hover:bg-gray-100 rounded">
                     <X className="w-4 h-4 text-gray-500" />
                   </button>
                 </div>
                 <div className="space-y-1 max-h-60 overflow-y-auto">
-                  {QUICK_REPLIES.map((reply, idx) => (
+                  {t('quickReplyTemplates', { returnObjects: true }).map((reply: string, idx: number) => (
                     <button
                       key={idx}
                       onClick={() => handleQuickReply(reply)}
@@ -725,22 +727,22 @@ export function AdminChatPage() {
             {showDeleteConfirm && (
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-30">
                 <div className="bg-white rounded-xl p-6 w-80 shadow-xl">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Thread?</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('deleteConfirmTitle')}</h3>
                   <p className="text-sm text-gray-600 mb-4">
-                    This will permanently delete all messages in this conversation. This action cannot be undone.
+                    {t('deleteConfirmMessage')}
                   </p>
                   <div className="flex gap-3">
                     <button
                       onClick={() => setShowDeleteConfirm(false)}
                       className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
                     >
-                      Cancel
+                      {t('cancel')}
                     </button>
                     <button
                       onClick={handleDeleteThread}
                       className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
                     >
-                      Delete
+                      {t('delete')}
                     </button>
                   </div>
                 </div>
@@ -852,7 +854,7 @@ export function AdminChatPage() {
                         handleSendMessage();
                       }
                     }}
-                    placeholder="Type your message..."
+                    placeholder={t('typeMessage')}
                     rows={1}
                     className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                   />
@@ -872,7 +874,7 @@ export function AdminChatPage() {
           <div className="flex-1 flex items-center justify-center text-gray-500">
             <div className="text-center">
               <User className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p>Select a conversation to start chatting</p>
+              <p>{t('selectConversation')}</p>
             </div>
           </div>
         )}

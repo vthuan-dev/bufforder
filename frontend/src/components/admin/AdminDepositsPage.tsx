@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Search, Filter, Check, X, Eye, Clock } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { toast } from "sonner";
@@ -34,6 +35,7 @@ interface DepositRow {
 }
 
 export function AdminDepositsPage() {
+  const { t } = useTranslation('adminDeposits');
   const [deposits, setDeposits] = useState<DepositRow[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -88,21 +90,21 @@ export function AdminDepositsPage() {
 
   const handleSubmitAction = async () => {
     if (actionType === "reject" && !actionNotes.trim()) {
-      toast.error("Please provide a reason for rejection");
+      toast.error(t('notifications.rejectReasonRequired'));
       return;
     }
     try {
       if (!selectedDeposit) return;
       if (actionType === 'approve') {
         await api.adminApproveDeposit(selectedDeposit.id, actionNotes);
-        toast.success('Deposit approved successfully!');
+        toast.success(t('notifications.approveSuccess'));
       } else {
         await api.adminRejectDeposit(selectedDeposit.id, actionNotes, actionNotes);
-        toast.success('Deposit rejected successfully!');
+        toast.success(t('notifications.rejectSuccess'));
       }
       await loadData();
     } catch (e: any) {
-      toast.error(e?.message || 'Action failed');
+      toast.error(e?.message || t('notifications.actionFailed'));
     }
     setActionDialogOpen(false);
   };
@@ -114,9 +116,9 @@ export function AdminDepositsPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl text-gray-900 mb-1">Deposit Requests</h1>
+          <h1 className="text-2xl text-gray-900 mb-1">{t('title')}</h1>
           <p className="text-gray-600">
-            Review and process deposit requests ({pendingCount} pending)
+            {t('subtitle', { count: pendingCount })}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -125,11 +127,11 @@ export function AdminDepositsPage() {
             disabled={loading}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
           >
-            {loading ? 'Loading...' : 'Refresh'}
+            {loading ? t('loading') : t('refresh')}
           </button>
           <Badge variant="secondary" className="bg-orange-100 text-orange-700 px-4 py-2">
             <Clock className="w-4 h-4 mr-2" />
-            {pendingCount} Pending
+            {t('pendingCount', { count: pendingCount })}
           </Badge>
         </div>
       </div>
@@ -141,7 +143,7 @@ export function AdminDepositsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by name, email, or transaction ID..."
+              placeholder={t('search')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -150,13 +152,13 @@ export function AdminDepositsPage() {
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-full sm:w-48">
               <Filter className="w-4 h-4 mr-2" />
-              <SelectValue placeholder="Filter by status" />
+              <SelectValue placeholder={t('filterByStatus')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="Pending">Pending</SelectItem>
-              <SelectItem value="Approved">Approved</SelectItem>
-              <SelectItem value="Rejected">Rejected</SelectItem>
+              <SelectItem value="all">{t('allStatus')}</SelectItem>
+              <SelectItem value="Pending">{t('pending')}</SelectItem>
+              <SelectItem value="Approved">{t('approved')}</SelectItem>
+              <SelectItem value="Rejected">{t('rejected')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -168,11 +170,11 @@ export function AdminDepositsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Request Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t('table.user')}</TableHead>
+                <TableHead>{t('table.amount')}</TableHead>
+                <TableHead>{t('table.status')}</TableHead>
+                <TableHead>{t('table.requestDate')}</TableHead>
+                <TableHead className="text-right">{t('table.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -203,7 +205,7 @@ export function AdminDepositsPage() {
                             : "bg-red-100 text-red-700"
                       }
                     >
-                      {deposit.status}
+                      {deposit.status === "Approved" ? t('approved') : deposit.status === "Pending" ? t('pending') : t('rejected')}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-gray-600">{deposit.requestDate}</TableCell>
@@ -214,14 +216,14 @@ export function AdminDepositsPage() {
                           <button
                             onClick={() => handleAction(deposit, "approve")}
                             className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
-                            title="Approve"
+                            title={t('actions.approve')}
                           >
                             <Check className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleAction(deposit, "reject")}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                            title="Reject"
+                            title={t('actions.reject')}
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -230,7 +232,7 @@ export function AdminDepositsPage() {
                         <button
                           onClick={() => handleViewDetails(deposit)}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                          title="View Details"
+                          title={t('actions.viewDetails')}
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -246,18 +248,18 @@ export function AdminDepositsPage() {
         {/* Pagination */}
         <div className="p-4 border-t border-gray-100 flex items-center justify-between">
           <p className="text-sm text-gray-600">
-            Showing {filteredDeposits.length} of {deposits.length} requests
+            {t('pagination.showing')} {filteredDeposits.length} {t('pagination.of')} {deposits.length} {t('pagination.requests')}
           </p>
           <div className="flex gap-2">
             <button className="px-3 py-1 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">
-              Previous
+              {t('pagination.previous')}
             </button>
             <button className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm">1</button>
             <button className="px-3 py-1 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">
               2
             </button>
             <button className="px-3 py-1 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">
-              Next
+              {t('pagination.next')}
             </button>
           </div>
         </div>
@@ -268,32 +270,32 @@ export function AdminDepositsPage() {
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {actionType === "approve" ? "Approve" : "Reject"} Deposit Request
+              {actionType === "approve" ? t('actionDialog.approveTitle') : t('actionDialog.rejectTitle')}
             </DialogTitle>
           </DialogHeader>
           {selectedDeposit && (
             <div className="space-y-4">
               <div className="bg-gray-50 rounded-lg p-4 space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">User:</span>
+                  <span className="text-sm text-gray-600">{t('actionDialog.user')}:</span>
                   <span className="text-gray-900">{selectedDeposit.user.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Amount:</span>
+                  <span className="text-sm text-gray-600">{t('actionDialog.amount')}:</span>
                   <span className="text-gray-900">${selectedDeposit.amount.toFixed(2)}</span>
                 </div>
                 {/* Transaction ID removed per request */}
               </div>
 
               <div>
-                <Label>Notes {actionType === "reject" && <span className="text-red-600">*</span>}</Label>
+                <Label>{t('actionDialog.notes')} {actionType === "reject" && <span className="text-red-600">{t('actionDialog.notesRequired')}</span>}</Label>
                 <Textarea
                   value={actionNotes}
                   onChange={(e) => setActionNotes(e.target.value)}
                   placeholder={
                     actionType === "approve"
-                      ? "Add optional notes..."
-                      : "Provide reason for rejection..."
+                      ? t('actionDialog.notesPlaceholderApprove')
+                      : t('actionDialog.notesPlaceholderReject')
                   }
                   rows={4}
                 />
@@ -301,14 +303,14 @@ export function AdminDepositsPage() {
 
               <div className="flex gap-2 pt-4">
                 <Button onClick={() => setActionDialogOpen(false)} variant="outline" className="flex-1">
-                  Cancel
+                  {t('actionDialog.cancel')}
                 </Button>
                 <Button
                   onClick={handleSubmitAction}
                   className={`flex-1 ${actionType === "approve" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
                     }`}
                 >
-                  {actionType === "approve" ? "Approve" : "Reject"}
+                  {actionType === "approve" ? t('actionDialog.approve') : t('actionDialog.reject')}
                 </Button>
               </div>
             </div>
@@ -320,25 +322,25 @@ export function AdminDepositsPage() {
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Deposit Details</DialogTitle>
+            <DialogTitle>{t('viewDialog.title')}</DialogTitle>
           </DialogHeader>
           {viewDeposit && (
             <div className="space-y-4">
               <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">User:</span>
+                  <span className="text-sm text-gray-600">{t('viewDialog.user')}:</span>
                   <span className="text-gray-900 font-medium">{viewDeposit.user.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Email:</span>
+                  <span className="text-sm text-gray-600">{t('viewDialog.email')}:</span>
                   <span className="text-gray-900">{viewDeposit.user.email}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Amount:</span>
+                  <span className="text-sm text-gray-600">{t('viewDialog.amount')}:</span>
                   <span className="text-gray-900 font-medium">${viewDeposit.amount.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Status:</span>
+                  <span className="text-sm text-gray-600">{t('viewDialog.status')}:</span>
                   <Badge
                     variant="secondary"
                     className={
@@ -349,17 +351,17 @@ export function AdminDepositsPage() {
                           : "bg-orange-100 text-orange-700"
                     }
                   >
-                    {viewDeposit.status}
+                    {viewDeposit.status === "Approved" ? t('approved') : viewDeposit.status === "Rejected" ? t('rejected') : t('pending')}
                   </Badge>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Request Date:</span>
+                  <span className="text-sm text-gray-600">{t('viewDialog.requestDate')}:</span>
                   <span className="text-gray-900">{viewDeposit.requestDate}</span>
                 </div>
               </div>
               <div className="flex justify-end pt-2">
                 <Button onClick={() => setViewDialogOpen(false)} variant="outline">
-                  Close
+                  {t('viewDialog.close')}
                 </Button>
               </div>
             </div>

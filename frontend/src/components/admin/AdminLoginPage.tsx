@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "motion/react";
 import { Lock, User, Eye, EyeOff } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import api from "../../services/api";
 
 interface AdminLoginPageProps {
@@ -8,6 +9,7 @@ interface AdminLoginPageProps {
 }
 
 export function AdminLoginPage({ onLogin }: AdminLoginPageProps) {
+  const { t } = useTranslation(['adminLogin', 'admin']);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -23,13 +25,13 @@ export function AdminLoginPage({ onLogin }: AdminLoginPageProps) {
       const res = await api.adminLogin(username, password);
       const token = res?.data?.token;
       const admin = res?.data?.admin;
-      if (!token) throw new Error("Login failed: missing token");
+      if (!token) throw new Error(t('adminLogin:errors.missingToken'));
       // Persist session
       localStorage.setItem("adminToken", token);
       localStorage.setItem("adminData", JSON.stringify(admin || {}));
       onLogin();
     } catch (err: any) {
-      setError(err?.message || "Login failed");
+      setError(err?.message || t('adminLogin:errors.loginFailed'));
     } finally {
       setLoading(false);
     }
@@ -47,8 +49,8 @@ export function AdminLoginPage({ onLogin }: AdminLoginPageProps) {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg">
             <Lock className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl text-gray-900 mb-2">Ashford Admin</h1>
-          <p className="text-gray-600">Sign in to manage your platform</p>
+          <h1 className="text-3xl text-gray-900 mb-2">{t('adminLogin:title')}</h1>
+          <p className="text-gray-600">{t('adminLogin:subtitle')}</p>
         </div>
 
         {/* Login Form */}
@@ -61,14 +63,14 @@ export function AdminLoginPage({ onLogin }: AdminLoginPageProps) {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Username Input */}
             <div>
-              <label className="block text-sm text-gray-700 mb-2">Username</label>
+              <label className="block text-sm text-gray-700 mb-2">{t('adminLogin:username')}</label>
               <div className="relative">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter your username"
+                  placeholder={t('adminLogin:usernamePlaceholder')}
                   className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
@@ -77,14 +79,14 @@ export function AdminLoginPage({ onLogin }: AdminLoginPageProps) {
 
             {/* Password Input */}
             <div>
-              <label className="block text-sm text-gray-700 mb-2">Password</label>
+              <label className="block text-sm text-gray-700 mb-2">{t('adminLogin:password')}</label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder={t('adminLogin:passwordPlaceholder')}
                   className="w-full pl-12 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
@@ -107,10 +109,10 @@ export function AdminLoginPage({ onLogin }: AdminLoginPageProps) {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
-                <span className="text-sm text-gray-600">Remember me</span>
+                <span className="text-sm text-gray-600">{t('adminLogin:rememberMe')}</span>
               </label>
               <a href="#" className="text-sm text-blue-600 hover:text-blue-700">
-                Forgot password?
+                {t('adminLogin:forgotPassword')}
               </a>
             </div>
 
@@ -125,10 +127,10 @@ export function AdminLoginPage({ onLogin }: AdminLoginPageProps) {
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Signing in...</span>
+                  <span>{t('adminLogin:signingIn')}</span>
                 </span>
               ) : (
-                <span className="font-medium">Sign In</span>
+                <span className="font-medium">{t('adminLogin:signIn')}</span>
               )}
             </motion.button>
             {error && (
@@ -139,14 +141,14 @@ export function AdminLoginPage({ onLogin }: AdminLoginPageProps) {
           {/* Footer */}
           <div className="mt-6 pt-6 border-t border-gray-100 text-center">
             <p className="text-xs text-gray-500">
-              Protected by 2FA and enterprise-grade security
+              {t('adminLogin:footer')}
             </p>
           </div>
         </motion.div>
 
         {/* Footer Links */}
         <div className="mt-6 text-center text-sm text-gray-600">
-          <p>© 2025 Ashford. All rights reserved.</p>
+          <p>{t('adminLogin:copyright')}</p>
         </div>
       </motion.div>
     </div>

@@ -1,0 +1,88 @@
+{
+  "title": "Yêu cầu rút tiền",
+  "subtitle": "Xem xét và xử lý yêu cầu rút tiền ({{count}} đang chờ)",
+  "refresh": "Làm mới",
+  "loading": "Đang tải...",
+  "pending": "Đang chờ",
+  "pendingCount": "{{count}} Đang chờ",
+  "search": "Tìm kiếm theo tên, email hoặc số tài khoản...",
+  "filterByStatus": "Lọc theo trạng thái",
+  "allStatus": "Tất cả trạng thái",
+  "approved": "Đã duyệt",
+  "rejected": "Đã từ chối",
+  "table": {
+    "user": "Người dùng",
+    "amount": "Số tiền",
+    "type": "Loại",
+    "details": "Chi tiết",
+    "status": "Trạng thái",
+    "requestDate": "Ngày yêu cầu",
+    "actions": "Hành động"
+  },
+  "types": {
+    "bank": "Ngân hàng",
+    "usdt": "USDT"
+  },
+  "actions": {
+    "approve": "Duyệt",
+    "reject": "Từ chối",
+    "viewDetails": "Xem chi tiết",
+    "copyAddress": "Sao chép địa chỉ",
+    "copyAccount": "Sao chép tài khoản"
+  },
+  "pagination": {
+    "showing": "Hiển thị",
+    "of": "trong tổng số",
+    "requests": "yêu cầu",
+    "previous": "Trước",
+    "next": "Tiếp"
+  },
+  "actionDialog": {
+    "approveTitle": "Duyệt yêu cầu rút tiền",
+    "rejectTitle": "Từ chối yêu cầu rút tiền",
+    "user": "Người dùng",
+    "currentBalance": "Số dư hiện tại",
+    "amount": "Số tiền",
+    "fee": "Phí",
+    "totalToTransfer": "Tổng chuyển khoản",
+    "bankDetails": "Chi tiết ngân hàng:",
+    "cryptoDetails": "Chi tiết tiền mã hóa:",
+    "bank": "Ngân hàng",
+    "account": "Tài khoản",
+    "name": "Tên",
+    "network": "Mạng",
+    "walletAddress": "Địa chỉ ví",
+    "notes": "Ghi chú",
+    "notesRequired": "*",
+    "notesPlaceholderApprove": "Thêm ghi chú tùy chọn...",
+    "notesPlaceholderReject": "Cung cấp lý do từ chối...",
+    "cancel": "Hủy",
+    "approveTransfer": "Duyệt & Chuyển khoản",
+    "reject": "Từ chối"
+  },
+  "viewDialog": {
+    "title": "Chi tiết rút tiền",
+    "user": "Người dùng",
+    "email": "Email",
+    "amount": "Số tiền",
+    "fee": "Phí",
+    "total": "Tổng",
+    "status": "Trạng thái",
+    "requestDate": "Ngày yêu cầu",
+    "bankDetails": "Chi tiết ngân hàng:",
+    "cryptoDetails": "Chi tiết tiền mã hóa:",
+    "bank": "Ngân hàng",
+    "account": "Tài khoản",
+    "name": "Tên",
+    "network": "Mạng",
+    "walletAddress": "Địa chỉ ví",
+    "close": "Đóng"
+  },
+  "notifications": {
+    "rejectReasonRequired": "Vui lòng cung cấp lý do từ chối",
+    "approveSuccess": "Duyệt rút tiền thành công!",
+    "rejectSuccess": "Từ chối rút tiền thành công!",
+    "actionFailed": "Hành động thất bại",
+    "copiedToClipboard": "Đã sao chép vào clipboard!"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "title": "Dashboard Overview",
+  "subtitle": "Welcome back, Admin! Here's what's happening today.",
+  "loading": "Loading dashboard...",
+  "downloadReport": "Download Report",
+  "stats": {
+    "totalUsers": "Total Users",
+    "activeUsers": "Active Users",
+    "pendingDeposits": "Pending Deposits",
+    "todayDeposits": "Today Deposits",
+    "todayAmount": "Today Amount",
+    "todayCommission": "Today Commission"
+  },
+  "charts": {
+    "weeklyRevenue": {
+      "title": "Weekly Revenue",
+      "subtitle": "Total revenue this week",
+      "label": "Revenue"
+    },
+    "userGrowth": {
+      "title": "User Growth",
+      "subtitle": "New users per month",
+      "label": "New Users"
+    }
+  },
+  "recentUsers": {
+    "title": "Recent Users",
+    "subtitle": "Latest registered users",
+    "viewAll": "View All",
+    "table": {
+      "user": "User",
+      "vipLevel": "VIP Level",
+      "status": "Status",
+      "joinDate": "Join Date",
+      "actions": "Actions",
+      "view": "View"
+    },
+    "noData": "No recent users found"
+  }
+}

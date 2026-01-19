@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Search, Filter, Check, X, Eye, Clock, Copy } from "lucide-react";
 import { Badge } from "../ui/badge";
 import {
@@ -42,6 +43,7 @@ interface WithdrawalRow {
 }
 
 export function AdminWithdrawalsPage() {
+  const { t } = useTranslation('adminWithdrawals');
   const [withdrawals, setWithdrawals] = useState<WithdrawalRow[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -106,7 +108,7 @@ export function AdminWithdrawalsPage() {
 
   const handleSubmitAction = async () => {
     if (actionType === "reject" && !actionNotes.trim()) {
-      toast.error("Please provide a reason for rejection");
+      toast.error(t('notifications.rejectReasonRequired'));
       return;
     }
     try {
@@ -116,17 +118,17 @@ export function AdminWithdrawalsPage() {
       } else {
         await api.adminRejectWithdrawal(selectedWithdrawal.id, actionNotes);
       }
-      toast.success(`Withdrawal ${actionType === 'approve' ? 'approved' : 'rejected'} successfully!`);
+      toast.success(t(actionType === 'approve' ? 'notifications.approveSuccess' : 'notifications.rejectSuccess'));
       await loadData();
     } catch (e: any) {
-      toast.error(e?.message || 'Action failed');
+      toast.error(e?.message || t('notifications.actionFailed'));
     }
     setActionDialogOpen(false);
   };
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast.success("Copied to clipboard!");
+    toast.success(t('notifications.copiedToClipboard'));
   };
 
   const pendingCount = withdrawals.filter((w) => w.status === "Pending").length;
@@ -136,9 +138,9 @@ export function AdminWithdrawalsPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl text-gray-900 mb-1">Withdrawal Requests</h1>
+          <h1 className="text-2xl text-gray-900 mb-1">{t('title')}</h1>
           <p className="text-gray-600">
-            Review and process withdrawal requests ({pendingCount} pending)
+            {t('subtitle', { count: pendingCount })}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -147,11 +149,11 @@ export function AdminWithdrawalsPage() {
             disabled={loading}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
           >
-            {loading ? 'Loading...' : 'Refresh'}
+            {loading ? t('loading') : t('refresh')}
           </button>
           <Badge variant="secondary" className="bg-orange-100 text-orange-700 px-4 py-2">
             <Clock className="w-4 h-4 mr-2" />
-            {pendingCount} Pending
+            {t('pendingCount', { count: pendingCount })}
           </Badge>
         </div>
       </div>
@@ -163,7 +165,7 @@ export function AdminWithdrawalsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by name, email, or account number..."
+              placeholder={t('search')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -172,13 +174,13 @@ export function AdminWithdrawalsPage() {
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-full sm:w-48">
               <Filter className="w-4 h-4 mr-2" />
-              <SelectValue placeholder="Filter by status" />
+              <SelectValue placeholder={t('filterByStatus')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="Pending">Pending</SelectItem>
-              <SelectItem value="Approved">Approved</SelectItem>
-              <SelectItem value="Rejected">Rejected</SelectItem>
+              <SelectItem value="all">{t('allStatus')}</SelectItem>
+              <SelectItem value="Pending">{t('pending')}</SelectItem>
+              <SelectItem value="Approved">{t('approved')}</SelectItem>
+              <SelectItem value="Rejected">{t('rejected')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -190,13 +192,13 @@ export function AdminWithdrawalsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Details</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Request Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t('table.user')}</TableHead>
+                <TableHead>{t('table.amount')}</TableHead>
+                <TableHead>{t('table.type')}</TableHead>
+                <TableHead>{t('table.details')}</TableHead>
+                <TableHead>{t('table.status')}</TableHead>
+                <TableHead>{t('table.requestDate')}</TableHead>
+                <TableHead className="text-right">{t('table.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -221,7 +223,7 @@ export function AdminWithdrawalsPage() {
                       ? 'bg-orange-100 text-orange-700'
                       : 'bg-blue-100 text-blue-700'
                       }`}>
-                      {withdrawal.withdrawalType === 'crypto' ? 'USDT' : 'Bank'}
+                      {withdrawal.withdrawalType === 'crypto' ? t('types.usdt') : t('types.bank')}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -236,7 +238,7 @@ export function AdminWithdrawalsPage() {
                             <button
                               onClick={() => handleCopy(withdrawal.walletAddress)}
                               className="p-1 hover:bg-gray-100 rounded flex-shrink-0"
-                              title="Copy Address"
+                              title={t('actions.copyAddress')}
                             >
                               <Copy className="w-3 h-3 text-gray-400 hover:text-blue-500" />
                             </button>
@@ -250,7 +252,7 @@ export function AdminWithdrawalsPage() {
                             <button
                               onClick={() => handleCopy(withdrawal.accountNumber)}
                               className="p-1 hover:bg-gray-100 rounded flex-shrink-0"
-                              title="Copy Account"
+                              title={t('actions.copyAccount')}
                             >
                               <Copy className="w-3 h-3 text-gray-400 hover:text-blue-500" />
                             </button>
@@ -270,7 +272,7 @@ export function AdminWithdrawalsPage() {
                             : "bg-red-100 text-red-700"
                       }
                     >
-                      {withdrawal.status}
+                      {withdrawal.status === "Approved" ? t('approved') : withdrawal.status === "Pending" ? t('pending') : t('rejected')}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-gray-600">{withdrawal.requestDate}</TableCell>
@@ -281,14 +283,14 @@ export function AdminWithdrawalsPage() {
                           <button
                             onClick={() => handleAction(withdrawal, "approve")}
                             className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
-                            title="Approve"
+                            title={t('actions.approve')}
                           >
                             <Check className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleAction(withdrawal, "reject")}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                            title="Reject"
+                            title={t('actions.reject')}
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -297,7 +299,7 @@ export function AdminWithdrawalsPage() {
                         <button
                           onClick={() => handleViewDetails(withdrawal)}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                          title="View Details"
+                          title={t('actions.viewDetails')}
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -313,15 +315,15 @@ export function AdminWithdrawalsPage() {
         {/* Pagination */}
         <div className="p-4 border-t border-gray-100 flex items-center justify-between">
           <p className="text-sm text-gray-600">
-            Showing {filteredWithdrawals.length} of {withdrawals.length} requests
+            {t('pagination.showing')} {filteredWithdrawals.length} {t('pagination.of')} {withdrawals.length} {t('pagination.requests')}
           </p>
           <div className="flex gap-2">
             <button className="px-3 py-1 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">
-              Previous
+              {t('pagination.previous')}
             </button>
             <button className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm">1</button>
             <button className="px-3 py-1 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">
-              Next
+              {t('pagination.next')}
             </button>
           </div>
         </div>
@@ -332,31 +334,31 @@ export function AdminWithdrawalsPage() {
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {actionType === "approve" ? "Approve" : "Reject"} Withdrawal Request
+              {actionType === "approve" ? t('actionDialog.approveTitle') : t('actionDialog.rejectTitle')}
             </DialogTitle>
           </DialogHeader>
           {selectedWithdrawal && (
             <div className="space-y-4">
               <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">User:</span>
+                  <span className="text-sm text-gray-600">{t('actionDialog.user')}:</span>
                   <span className="text-gray-900">{selectedWithdrawal.user.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Current Balance:</span>
+                  <span className="text-sm text-gray-600">{t('actionDialog.currentBalance')}:</span>
                   <span className="text-gray-900">${selectedWithdrawal.user.balance.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Amount:</span>
+                  <span className="text-sm text-gray-600">{t('actionDialog.amount')}:</span>
                   <span className="text-gray-900">${selectedWithdrawal.amount.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Fee:</span>
+                  <span className="text-sm text-gray-600">{t('actionDialog.fee')}:</span>
                   <span className="text-red-600">-${selectedWithdrawal.fee.toFixed(2)}</span>
                 </div>
                 {/* total to transfer is amount minus fee (fee not available from backend; show amount) */}
                 <div className="flex justify-between border-t pt-2">
-                  <span className="text-sm text-gray-900">Total to Transfer:</span>
+                  <span className="text-sm text-gray-900">{t('actionDialog.totalToTransfer')}:</span>
                   <span className="text-green-600">${selectedWithdrawal.amount.toFixed(2)}</span>
                 </div>
               </div>
@@ -365,13 +367,13 @@ export function AdminWithdrawalsPage() {
                 {/* Withdrawal Type Badge */}
                 <div className="flex justify-between items-center mb-2">
                   <p className="text-sm text-gray-900 font-medium">
-                    {selectedWithdrawal.withdrawalType === 'crypto' ? 'Crypto Details:' : 'Bank Details:'}
+                    {selectedWithdrawal.withdrawalType === 'crypto' ? t('actionDialog.cryptoDetails') : t('actionDialog.bankDetails')}
                   </p>
                   <span className={`px-2 py-1 text-xs rounded-full ${selectedWithdrawal.withdrawalType === 'crypto'
                     ? 'bg-orange-100 text-orange-700'
                     : 'bg-blue-100 text-blue-700'
                     }`}>
-                    {selectedWithdrawal.withdrawalType === 'crypto' ? 'USDT' : 'Bank'}
+                    {selectedWithdrawal.withdrawalType === 'crypto' ? t('types.usdt') : t('types.bank')}
                   </span>
                 </div>
 
@@ -379,11 +381,11 @@ export function AdminWithdrawalsPage() {
                 {selectedWithdrawal.withdrawalType === 'bank' && (
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Bank:</span>
+                      <span className="text-gray-600">{t('actionDialog.bank')}:</span>
                       <span className="text-gray-900">{selectedWithdrawal.bankName}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Account:</span>
+                      <span className="text-gray-600">{t('actionDialog.account')}:</span>
                       <div className="flex items-center gap-2">
                         <span className="text-gray-900">{selectedWithdrawal.accountNumber}</span>
                         <button
@@ -395,7 +397,7 @@ export function AdminWithdrawalsPage() {
                       </div>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Name:</span>
+                      <span className="text-gray-600">{t('actionDialog.name')}:</span>
                       <span className="text-gray-900">{selectedWithdrawal.accountName}</span>
                     </div>
                   </div>
@@ -405,11 +407,11 @@ export function AdminWithdrawalsPage() {
                 {selectedWithdrawal.withdrawalType === 'crypto' && (
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Network:</span>
+                      <span className="text-gray-600">{t('actionDialog.network')}:</span>
                       <span className="text-orange-600 font-medium">{selectedWithdrawal.network}</span>
                     </div>
                     <div>
-                      <span className="text-gray-600">Wallet Address:</span>
+                      <span className="text-gray-600">{t('actionDialog.walletAddress')}:</span>
                       <div className="flex items-center gap-2 mt-1 bg-white p-2 rounded border">
                         <span className="text-gray-900 text-xs break-all flex-1">{selectedWithdrawal.walletAddress}</span>
                         <button
@@ -427,14 +429,14 @@ export function AdminWithdrawalsPage() {
               </div>
 
               <div>
-                <Label>Notes {actionType === "reject" && <span className="text-red-600">*</span>}</Label>
+                <Label>{t('actionDialog.notes')} {actionType === "reject" && <span className="text-red-600">{t('actionDialog.notesRequired')}</span>}</Label>
                 <Textarea
                   value={actionNotes}
                   onChange={(e) => setActionNotes(e.target.value)}
                   placeholder={
                     actionType === "approve"
-                      ? "Add optional notes..."
-                      : "Provide reason for rejection..."
+                      ? t('actionDialog.notesPlaceholderApprove')
+                      : t('actionDialog.notesPlaceholderReject')
                   }
                   rows={4}
                 />
@@ -442,14 +444,14 @@ export function AdminWithdrawalsPage() {
 
               <div className="flex gap-2 pt-4">
                 <Button onClick={() => setActionDialogOpen(false)} variant="outline" className="flex-1">
-                  Cancel
+                  {t('actionDialog.cancel')}
                 </Button>
                 <Button
                   onClick={handleSubmitAction}
                   className={`flex-1 ${actionType === "approve" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
                     }`}
                 >
-                  {actionType === "approve" ? "Approve & Transfer" : "Reject"}
+                  {actionType === "approve" ? t('actionDialog.approveTransfer') : t('actionDialog.reject')}
                 </Button>
               </div>
             </div>
@@ -461,33 +463,33 @@ export function AdminWithdrawalsPage() {
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Withdrawal Details</DialogTitle>
+            <DialogTitle>{t('viewDialog.title')}</DialogTitle>
           </DialogHeader>
           {viewWithdrawal && (
             <div className="space-y-4">
               <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">User:</span>
+                  <span className="text-sm text-gray-600">{t('viewDialog.user')}:</span>
                   <span className="text-gray-900 font-medium">{viewWithdrawal.user.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Email:</span>
+                  <span className="text-sm text-gray-600">{t('viewDialog.email')}:</span>
                   <span className="text-gray-900">{viewWithdrawal.user.email}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Amount:</span>
+                  <span className="text-sm text-gray-600">{t('viewDialog.amount')}:</span>
                   <span className="text-gray-900 font-medium">${viewWithdrawal.amount.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Fee:</span>
+                  <span className="text-sm text-gray-600">{t('viewDialog.fee')}:</span>
                   <span className="text-red-600">-${viewWithdrawal.fee.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Total:</span>
+                  <span className="text-sm text-gray-600">{t('viewDialog.total')}:</span>
                   <span className="text-green-600 font-medium">${viewWithdrawal.totalAmount.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Status:</span>
+                  <span className="text-sm text-gray-600">{t('viewDialog.status')}:</span>
                   <Badge
                     variant="secondary"
                     className={
@@ -498,11 +500,11 @@ export function AdminWithdrawalsPage() {
                           : "bg-orange-100 text-orange-700"
                     }
                   >
-                    {viewWithdrawal.status}
+                    {viewWithdrawal.status === "Approved" ? t('approved') : viewWithdrawal.status === "Rejected" ? t('rejected') : t('pending')}
                   </Badge>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Request Date:</span>
+                  <span className="text-sm text-gray-600">{t('viewDialog.requestDate')}:</span>
                   <span className="text-gray-900">{viewWithdrawal.requestDate}</span>
                 </div>
               </div>
@@ -510,13 +512,13 @@ export function AdminWithdrawalsPage() {
               <div className="bg-blue-50 rounded-lg p-4 space-y-2">
                 <div className="flex justify-between items-center mb-2">
                   <p className="text-sm text-gray-900 font-medium">
-                    {viewWithdrawal.withdrawalType === 'crypto' ? 'Crypto Details:' : 'Bank Details:'}
+                    {viewWithdrawal.withdrawalType === 'crypto' ? t('viewDialog.cryptoDetails') : t('viewDialog.bankDetails')}
                   </p>
                   <span className={`px-2 py-1 text-xs rounded-full ${viewWithdrawal.withdrawalType === 'crypto'
                     ? 'bg-orange-100 text-orange-700'
                     : 'bg-blue-100 text-blue-700'
                     }`}>
-                    {viewWithdrawal.withdrawalType === 'crypto' ? 'USDT' : 'Bank'}
+                    {viewWithdrawal.withdrawalType === 'crypto' ? t('types.usdt') : t('types.bank')}
                   </span>
                 </div>
 
@@ -524,11 +526,11 @@ export function AdminWithdrawalsPage() {
                 {viewWithdrawal.withdrawalType === 'bank' && (
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Bank:</span>
+                      <span className="text-gray-600">{t('viewDialog.bank')}:</span>
                       <span className="text-gray-900">{viewWithdrawal.bankName}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Account:</span>
+                      <span className="text-gray-600">{t('viewDialog.account')}:</span>
                       <div className="flex items-center gap-2">
                         <span className="text-gray-900">{viewWithdrawal.accountNumber}</span>
                         <button
@@ -540,7 +542,7 @@ export function AdminWithdrawalsPage() {
                       </div>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Name:</span>
+                      <span className="text-gray-600">{t('viewDialog.name')}:</span>
                       <span className="text-gray-900">{viewWithdrawal.accountName}</span>
                     </div>
                   </div>
@@ -550,11 +552,11 @@ export function AdminWithdrawalsPage() {
                 {viewWithdrawal.withdrawalType === 'crypto' && (
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Network:</span>
+                      <span className="text-gray-600">{t('viewDialog.network')}:</span>
                       <span className="text-orange-600 font-medium">{viewWithdrawal.network}</span>
                     </div>
                     <div>
-                      <span className="text-gray-600">Wallet Address:</span>
+                      <span className="text-gray-600">{t('viewDialog.walletAddress')}:</span>
                       <div className="flex items-center gap-2 mt-1 bg-white p-2 rounded border">
                         <span className="text-gray-900 text-xs break-all flex-1">{viewWithdrawal.walletAddress}</span>
                         <button
@@ -573,7 +575,7 @@ export function AdminWithdrawalsPage() {
 
               <div className="flex justify-end pt-2">
                 <Button onClick={() => setViewDialogOpen(false)} variant="outline">
-                  Close
+                  {t('viewDialog.close')}
                 </Button>
               </div>
             </div>

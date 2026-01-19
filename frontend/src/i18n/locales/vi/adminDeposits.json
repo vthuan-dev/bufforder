@@ -1,0 +1,60 @@
+{
+  "title": "Yêu cầu nạp tiền",
+  "subtitle": "Xem xét và xử lý yêu cầu nạp tiền ({{count}} đang chờ)",
+  "refresh": "Làm mới",
+  "loading": "Đang tải...",
+  "pending": "Đang chờ",
+  "pendingCount": "{{count}} Đang chờ",
+  "search": "Tìm kiếm theo tên, email hoặc mã giao dịch...",
+  "filterByStatus": "Lọc theo trạng thái",
+  "allStatus": "Tất cả trạng thái",
+  "approved": "Đã duyệt",
+  "rejected": "Đã từ chối",
+  "table": {
+    "user": "Người dùng",
+    "amount": "Số tiền",
+    "status": "Trạng thái",
+    "requestDate": "Ngày yêu cầu",
+    "actions": "Hành động"
+  },
+  "actions": {
+    "approve": "Duyệt",
+    "reject": "Từ chối",
+    "viewDetails": "Xem chi tiết"
+  },
+  "pagination": {
+    "showing": "Hiển thị",
+    "of": "trong tổng số",
+    "requests": "yêu cầu",
+    "previous": "Trước",
+    "next": "Tiếp"
+  },
+  "actionDialog": {
+    "approveTitle": "Duyệt yêu cầu nạp tiền",
+    "rejectTitle": "Từ chối yêu cầu nạp tiền",
+    "user": "Người dùng",
+    "amount": "Số tiền",
+    "notes": "Ghi chú",
+    "notesRequired": "*",
+    "notesPlaceholderApprove": "Thêm ghi chú tùy chọn...",
+    "notesPlaceholderReject": "Cung cấp lý do từ chối...",
+    "cancel": "Hủy",
+    "approve": "Duyệt",
+    "reject": "Từ chối"
+  },
+  "viewDialog": {
+    "title": "Chi tiết nạp tiền",
+    "user": "Người dùng",
+    "email": "Email",
+    "amount": "Số tiền",
+    "status": "Trạng thái",
+    "requestDate": "Ngày yêu cầu",
+    "close": "Đóng"
+  },
+  "notifications": {
+    "rejectReasonRequired": "Vui lòng cung cấp lý do từ chối",
+    "approveSuccess": "Duyệt nạp tiền thành công!",
+    "rejectSuccess": "Từ chối nạp tiền thành công!",
+    "actionFailed": "Hành động thất bại"
+  }
+}

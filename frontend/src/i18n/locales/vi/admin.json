@@ -1,0 +1,63 @@
+{
+  "common": {
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "delete": "Xóa",
+    "edit": "Chỉnh sửa",
+    "view": "Xem",
+    "approve": "Phê duyệt",
+    "reject": "Từ chối",
+    "search": "Tìm kiếm",
+    "filter": "Lọc",
+    "sort": "Sắp xếp",
+    "export": "Xuất",
+    "refresh": "Làm mới",
+    "loading": "Đang tải...",
+    "noData": "Không có dữ liệu",
+    "actions": "Hành động",
+    "status": "Trạng thái",
+    "date": "Ngày",
+    "amount": "Số tiền",
+    "user": "Người dùng",
+    "details": "Chi tiết",
+    "close": "Đóng",
+    "confirm": "Xác nhận",
+    "back": "Quay lại",
+    "next": "Tiếp theo",
+    "previous": "Trước",
+    "submit": "Gửi",
+    "reset": "Đặt lại",
+    "clear": "Xóa"
+  },
+  "status": {
+    "active": "Đang hoạt động",
+    "inactive": "Không hoạt động",
+    "pending": "Chờ xử lý",
+    "approved": "Đã duyệt",
+    "rejected": "Từ chối",
+    "completed": "Hoàn thành",
+    "cancelled": "Đã hủy",
+    "processing": "Đang xử lý",
+    "failed": "Thất bại",
+    "success": "Thành công"
+  },
+  "messages": {
+    "success": "Thao tác hoàn thành thành công",
+    "error": "Đã xảy ra lỗi. Vui lòng thử lại.",
+    "confirmDelete": "Bạn có chắc chắn muốn xóa mục này?",
+    "confirmAction": "Bạn có chắc chắn muốn tiếp tục?",
+    "noChanges": "Không có thay đổi nào",
+    "saved": "Lưu thay đổi thành công",
+    "deleted": "Xóa mục thành công",
+    "updated": "Cập nhật mục thành công",
+    "created": "Tạo mục thành công"
+  },
+  "validation": {
+    "required": "Trường này là bắt buộc",
+    "invalidEmail": "Địa chỉ email không hợp lệ",
+    "invalidNumber": "Số không hợp lệ",
+    "minLength": "Độ dài tối thiểu là {{min}} ký tự",
+    "maxLength": "Độ dài tối đa là {{max}} ký tự",
+    "passwordMismatch": "Mật khẩu không khớp"
+  }
+}

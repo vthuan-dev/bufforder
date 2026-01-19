@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Save, User, Lock, Bell, Globe, CreditCard, Database, Loader2 } from "lucide-react";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
@@ -12,6 +13,7 @@ import api from "../../services/api";
 const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:5000';
 
 export function AdminSettingsPage() {
+  const { t } = useTranslation('adminSettings');
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profile, setProfile] = useState({ fullName: '', email: '', phoneNumber: '', avatar: '' });
@@ -40,7 +42,7 @@ export function AdminSettingsPage() {
 
     // Validate size (2MB)
     if (file.size > 2 * 1024 * 1024) {
-      toast.error("Image size must be less than 2MB");
+      toast.error(t('errors.imageSizeTooLarge'));
       return;
     }
 
@@ -51,7 +53,7 @@ export function AdminSettingsPage() {
         // Add timestamp to bust cache and prepend API_BASE
         const avatarWithCache = `${res.data.avatarUrl}?t=${Date.now()}`;
         setProfile(prev => ({ ...prev, avatar: avatarWithCache }));
-        toast.success("Avatar updated successfully!");
+        toast.success(t('notifications.avatarUpdated'));
 
         // Update local storage/context if needed
         const adminDataStr = localStorage.getItem('adminData');
@@ -65,7 +67,7 @@ export function AdminSettingsPage() {
         }
       }
     } catch (error: any) {
-      toast.error(error?.message || "Failed to upload avatar");
+      toast.error(error?.message || t('errors.uploadFailed'));
     } finally {
       setProfileSaving(false);
     }
@@ -80,7 +82,7 @@ export function AdminSettingsPage() {
         phoneNumber: profile.phoneNumber,
       });
       if (res.success) {
-        toast.success("Settings saved successfully!");
+        toast.success(t('notifications.settingsSaved'));
 
         // Update local storage/context
         const adminDataStr = localStorage.getItem('adminData');
@@ -96,7 +98,7 @@ export function AdminSettingsPage() {
         }
       }
     } catch (e: any) {
-      toast.error(e?.message || 'Failed to save settings');
+      toast.error(e?.message || t('errors.saveFailed'));
     } finally {
       setProfileSaving(false);
     }
@@ -128,23 +130,23 @@ export function AdminSettingsPage() {
     const errors: { [key: string]: string } = {};
 
     if (!currentPassword) {
-      errors.currentPassword = "Current password is required";
+      errors.currentPassword = t('errors.currentPasswordRequired');
     }
 
     if (!newPassword) {
-      errors.newPassword = "New password is required";
+      errors.newPassword = t('errors.newPasswordRequired');
     } else if (newPassword.length < 6) {
-      errors.newPassword = "Password must be at least 6 characters long";
+      errors.newPassword = t('errors.passwordTooShort');
     }
 
     if (!confirmPassword) {
-      errors.confirmPassword = "Please confirm your new password";
+      errors.confirmPassword = t('errors.confirmPasswordRequired');
     } else if (newPassword !== confirmPassword) {
-      errors.confirmPassword = "Passwords do not match";
+      errors.confirmPassword = t('errors.passwordsDoNotMatch');
     }
 
     if (currentPassword && newPassword && currentPassword === newPassword) {
-      errors.newPassword = "New password must be different from current password";
+      errors.newPassword = t('errors.passwordSame');
     }
 
     setPasswordErrors(errors);
@@ -153,7 +155,7 @@ export function AdminSettingsPage() {
 
   const handleChangePassword = async () => {
     if (!validatePassword()) {
-      toast.error("Please fix the errors below");
+      toast.error(t('errors.fixErrors'));
       return;
     }
 
@@ -162,7 +164,7 @@ export function AdminSettingsPage() {
       const response = await api.adminChangePassword(currentPassword, newPassword);
 
       if (response.success) {
-        toast.success("Password changed successfully!");
+        toast.success(t('notifications.passwordChanged'));
         // Clear form
         setCurrentPassword("");
         setNewPassword("");
@@ -171,7 +173,7 @@ export function AdminSettingsPage() {
       }
     } catch (error: any) {
       console.error('Password change error:', error);
-      toast.error(error.message || "Failed to change password");
+      toast.error(error.message || t('errors.passwordChangeFailed'));
     } finally {
       setIsChangingPassword(false);
     }
@@ -181,8 +183,8 @@ export function AdminSettingsPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl text-gray-900 mb-1">Settings</h1>
-        <p className="text-gray-600">Manage your admin account and preferences</p>
+        <h1 className="text-2xl text-gray-900 mb-1">{t('title')}</h1>
+        <p className="text-gray-600">{t('subtitle')}</p>
       </div>
 
       {/* Settings Tabs */}
@@ -193,14 +195,14 @@ export function AdminSettingsPage() {
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent"
           >
             <User className="w-4 h-4 mr-2" />
-            Profile
+            {t('tabs.profile')}
           </TabsTrigger>
           <TabsTrigger
             value="security"
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent"
           >
             <Lock className="w-4 h-4 mr-2" />
-            Security
+            {t('tabs.security')}
           </TabsTrigger>
 
         </TabsList>
@@ -209,8 +211,8 @@ export function AdminSettingsPage() {
         <TabsContent value="profile" className="mt-6">
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
             <div>
-              <h3 className="text-gray-900 mb-1">Profile Information</h3>
-              <p className="text-sm text-gray-600">Update your admin profile details</p>
+              <h3 className="text-gray-900 mb-1">{t('profile.title')}</h3>
+              <p className="text-sm text-gray-600">{t('profile.subtitle')}</p>
             </div>
 
             <Separator />
@@ -238,9 +240,9 @@ export function AdminSettingsPage() {
                   disabled={profileSaving}
                 >
                   {profileSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                  Change Avatar
+                  {t('profile.changeAvatar')}
                 </Button>
-                <p className="text-xs text-gray-500 mt-2">JPG, GIF or PNG. Max size of 2MB</p>
+                <p className="text-xs text-gray-500 mt-2">{t('profile.avatarHint')}</p>
               </div>
             </div>
 
@@ -249,7 +251,7 @@ export function AdminSettingsPage() {
             {/* Form Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <Label>Full Name</Label>
+                <Label>{t('profile.fullName')}</Label>
                 <Input
                   value={profile.fullName}
                   onChange={(e) => setProfile((p) => ({ ...p, fullName: e.target.value }))}
@@ -257,7 +259,7 @@ export function AdminSettingsPage() {
                 />
               </div>
               <div>
-                <Label>Email Address</Label>
+                <Label>{t('profile.email')}</Label>
                 <Input
                   type="email"
                   value={profile.email}
@@ -266,7 +268,7 @@ export function AdminSettingsPage() {
                 />
               </div>
               <div>
-                <Label>Phone Number</Label>
+                <Label>{t('profile.phoneNumber')}</Label>
                 <Input
                   value={profile.phoneNumber}
                   onChange={(e) => setProfile((p) => ({ ...p, phoneNumber: e.target.value }))}
@@ -274,8 +276,8 @@ export function AdminSettingsPage() {
                 />
               </div>
               <div>
-                <Label>Role</Label>
-                <Input defaultValue="Super Administrator" disabled />
+                <Label>{t('profile.role')}</Label>
+                <Input defaultValue={t('profile.roleValue')} disabled />
               </div>
             </div>
 
@@ -286,12 +288,12 @@ export function AdminSettingsPage() {
                 {profileSaving ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Saving...
+                    {t('profile.saving')}
                   </>
                 ) : (
                   <>
                     <Save className="w-4 h-4 mr-2" />
-                    {profileLoading ? 'Loading...' : 'Save Changes'}
+                    {profileLoading ? t('profile.loading') : t('profile.saveChanges')}
                   </>
                 )}
               </Button>
@@ -303,21 +305,21 @@ export function AdminSettingsPage() {
         <TabsContent value="security" className="mt-6">
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
             <div>
-              <h3 className="text-gray-900 mb-1">Security Settings</h3>
-              <p className="text-sm text-gray-600">Manage your password and security preferences</p>
+              <h3 className="text-gray-900 mb-1">{t('security.title')}</h3>
+              <p className="text-sm text-gray-600">{t('security.subtitle')}</p>
             </div>
 
             <Separator />
 
             {/* Change Password */}
             <div className="space-y-4">
-              <h4 className="text-gray-900">Change Password</h4>
+              <h4 className="text-gray-900">{t('security.changePassword')}</h4>
               <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <Label>Current Password</Label>
+                  <Label>{t('security.currentPassword')}</Label>
                   <Input
                     type="password"
-                    placeholder="Enter current password"
+                    placeholder={t('security.currentPasswordPlaceholder')}
                     value={currentPassword}
                     onChange={(e) => {
                       setCurrentPassword(e.target.value);
@@ -333,10 +335,10 @@ export function AdminSettingsPage() {
                   )}
                 </div>
                 <div>
-                  <Label>New Password</Label>
+                  <Label>{t('security.newPassword')}</Label>
                   <Input
                     type="password"
-                    placeholder="Enter new password"
+                    placeholder={t('security.newPasswordPlaceholder')}
                     value={newPassword}
                     onChange={(e) => {
                       setNewPassword(e.target.value);
@@ -367,19 +369,19 @@ export function AdminSettingsPage() {
                       </div>
                       <p className="text-xs text-gray-500 mt-1">
                         {newPassword.length < 6
-                          ? "Too short"
+                          ? t('security.passwordStrength.tooShort')
                           : newPassword.length < 8
-                            ? "Weak"
-                            : "Strong"}
+                            ? t('security.passwordStrength.weak')
+                            : t('security.passwordStrength.strong')}
                       </p>
                     </div>
                   )}
                 </div>
                 <div>
-                  <Label>Confirm New Password</Label>
+                  <Label>{t('security.confirmPassword')}</Label>
                   <Input
                     type="password"
-                    placeholder="Confirm new password"
+                    placeholder={t('security.confirmPasswordPlaceholder')}
                     value={confirmPassword}
                     onChange={(e) => {
                       setConfirmPassword(e.target.value);
@@ -430,12 +432,12 @@ export function AdminSettingsPage() {
                 {isChangingPassword ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Changing Password...
+                    {t('security.updating')}
                   </>
                 ) : (
                   <>
                     <Save className="w-4 h-4 mr-2" />
-                    Update Security
+                    {t('security.updateSecurity')}
                   </>
                 )}
               </Button>

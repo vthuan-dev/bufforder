@@ -29,6 +29,30 @@ import enTransactionHistory from './locales/en/transactionHistory.json';
 import viTransactionHistory from './locales/vi/transactionHistory.json';
 import enSecurity from './locales/en/security.json';
 import viSecurity from './locales/vi/security.json';
+import enAdmin from './locales/en/admin.json';
+import viAdmin from './locales/vi/admin.json';
+import enAdminLogin from './locales/en/adminLogin.json';
+import viAdminLogin from './locales/vi/adminLogin.json';
+import enAdminDashboard from './locales/en/adminDashboard.json';
+import viAdminDashboard from './locales/vi/adminDashboard.json';
+import enAdminUsers from './locales/en/adminUsers.json';
+import viAdminUsers from './locales/vi/adminUsers.json';
+import enAdminProducts from './locales/en/adminProducts.json';
+import viAdminProducts from './locales/vi/adminProducts.json';
+import enAdminDeposits from './locales/en/adminDeposits.json';
+import viAdminDeposits from './locales/vi/adminDeposits.json';
+import enAdminWithdrawals from './locales/en/adminWithdrawals.json';
+import viAdminWithdrawals from './locales/vi/adminWithdrawals.json';
+import enAdminOrders from './locales/en/adminOrders.json';
+import viAdminOrders from './locales/vi/adminOrders.json';
+import enAdminChat from './locales/en/adminChat.json';
+import viAdminChat from './locales/vi/adminChat.json';
+import enAdminSettings from './locales/en/adminSettings.json';
+import viAdminSettings from './locales/vi/adminSettings.json';
+import enAdminAccountMenu from './locales/en/adminAccountMenu.json';
+import viAdminAccountMenu from './locales/vi/adminAccountMenu.json';
+import enAdminSidebar from './locales/en/adminSidebar.json';
+import viAdminSidebar from './locales/vi/adminSidebar.json';
 
 const resources = {
   en: {
@@ -45,6 +69,18 @@ const resources = {
     topUp: enTopUp,
     transactionHistory: enTransactionHistory,
     security: enSecurity,
+    admin: enAdmin,
+    adminLogin: enAdminLogin,
+    adminDashboard: enAdminDashboard,
+    adminUsers: enAdminUsers,
+    adminProducts: enAdminProducts,
+    adminDeposits: enAdminDeposits,
+    adminWithdrawals: enAdminWithdrawals,
+    adminOrders: enAdminOrders,
+    adminChat: enAdminChat,
+    adminSettings: enAdminSettings,
+    adminAccountMenu: enAdminAccountMenu,
+    adminSidebar: enAdminSidebar,
   },
   vi: {
     common: viCommon,
@@ -60,6 +96,18 @@ const resources = {
     topUp: viTopUp,
     transactionHistory: viTransactionHistory,
     security: viSecurity,
+    admin: viAdmin,
+    adminLogin: viAdminLogin,
+    adminDashboard: viAdminDashboard,
+    adminUsers: viAdminUsers,
+    adminProducts: viAdminProducts,
+    adminDeposits: viAdminDeposits,
+    adminWithdrawals: viAdminWithdrawals,
+    adminOrders: viAdminOrders,
+    adminChat: viAdminChat,
+    adminSettings: viAdminSettings,
+    adminAccountMenu: viAdminAccountMenu,
+    adminSidebar: viAdminSidebar,
   }
 };
 
@@ -70,7 +118,7 @@ i18n
     resources,
     fallbackLng: 'en',
     defaultNS: 'common',
-    ns: ['common', 'home', 'orders', 'my', 'auth', 'withdrawal', 'withdrawalMethods', 'record', 'help', 'shippingAddress', 'topUp', 'transactionHistory', 'security'],
+    ns: ['common', 'home', 'orders', 'my', 'auth', 'withdrawal', 'withdrawalMethods', 'record', 'help', 'shippingAddress', 'topUp', 'transactionHistory', 'security', 'admin', 'adminLogin', 'adminDashboard', 'adminUsers', 'adminProducts', 'adminDeposits', 'adminWithdrawals', 'adminOrders', 'adminChat', 'adminSettings', 'adminAccountMenu', 'adminSidebar'],
     interpolation: {
       escapeValue: false
     },

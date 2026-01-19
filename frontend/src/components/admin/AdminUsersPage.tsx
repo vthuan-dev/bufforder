@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Search, Plus, MoreHorizontal, Edit, Trash2, Filter, User, Phone, Mail, DollarSign, Shield, Target, TrendingUp, Calendar, Lock, CheckCircle2, XCircle } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { toast } from "sonner";
@@ -43,6 +44,7 @@ interface UserRow {
 }
 
 export function AdminUsersPage() {
+  const { t } = useTranslation('adminUsers');
   const [users, setUsers] = useState<UserRow[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -108,7 +110,7 @@ export function AdminUsersPage() {
     } catch (e) {
       const msg = (e as any)?.message || '';
       if (msg.toLowerCase().includes('unauthorized')) {
-        toast.error('Your admin session expired. Please sign in again.');
+        toast.error(t('notifications.sessionExpired'));
         localStorage.removeItem('adminToken');
         localStorage.removeItem('adminData');
         window.location.href = '/admin';
@@ -163,7 +165,7 @@ export function AdminUsersPage() {
 
   const handleAddBalance = () => {
     if (!addBalanceAmount || Number(addBalanceAmount) <= 0) {
-      toast.error('Please enter a valid amount');
+      toast.error(t('notifications.validAmount'));
       return;
     }
     const currentBalance = Number(formBalance) || 0;
@@ -174,15 +176,15 @@ export function AdminUsersPage() {
     switch (balanceOperation) {
       case 'add':
         newBalance = currentBalance + amount;
-        message = `Added $${amount} to balance`;
+        message = t('notifications.addedBalance', { amount });
         break;
       case 'set':
         newBalance = amount;
-        message = `Set balance to $${amount}`;
+        message = t('notifications.setBalance', { amount });
         break;
       case 'subtract':
         newBalance = Math.max(0, currentBalance - amount); // Prevent negative balance
-        message = `Subtracted $${amount} from balance`;
+        message = t('notifications.subtractedBalance', { amount });
         break;
     }
 
@@ -191,7 +193,7 @@ export function AdminUsersPage() {
     setAddBalanceAmount("");
     setBalanceOperation('add'); // Reset to default
     toast.success(message, {
-      description: '⚠️ Remember to click "Save Changes" to apply!',
+      description: t('notifications.rememberToSave'),
       duration: 5000,
     });
   };
@@ -234,7 +236,7 @@ export function AdminUsersPage() {
 
       // refresh list
       await loadUsers();
-      toast.success('User updated successfully!');
+      toast.success(t('notifications.userUpdated'));
 
       // Auto close after success
       setTimeout(() => {
@@ -242,7 +244,7 @@ export function AdminUsersPage() {
       }, 500);
     } catch (e: any) {
       clearInterval(countdownInterval);
-      toast.error(e?.message || 'Failed to update user');
+      toast.error(e?.message || t('notifications.updateFailed'));
     } finally {
       setSaving(false);
     }
@@ -259,13 +261,13 @@ export function AdminUsersPage() {
 
 
   const handleDelete = async (user: UserRow) => {
-    if (!confirm(`Are you sure you want to delete ${user.name}?`)) return;
+    if (!confirm(t('notifications.deleteConfirm', { name: user.name }))) return;
     try {
       await api.adminDeleteUser(user.id);
       setUsers(prev => prev.filter(u => u.id !== user.id));
-      toast.success('User deleted successfully!');
+      toast.success(t('notifications.userDeleted'));
     } catch (e: any) {
-      toast.error(e?.message || 'Failed to delete user');
+      toast.error(e?.message || t('notifications.deleteFailed'));
     }
   };
 
@@ -274,12 +276,12 @@ export function AdminUsersPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl text-gray-900 mb-1">User Management</h1>
-          <p className="text-gray-600">Manage all registered users</p>
+          <h1 className="text-2xl text-gray-900 mb-1">{t('title')}</h1>
+          <p className="text-gray-600">{t('subtitle')}</p>
         </div>
         <button onClick={() => setCreateDialogOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
           <Plus className="w-4 h-4" />
-          Add User
+          {t('addUser')}
         </button>
       </div>
 
@@ -290,7 +292,7 @@ export function AdminUsersPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by name or email..."
+              placeholder={t('search')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -299,13 +301,13 @@ export function AdminUsersPage() {
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-full sm:w-48">
               <Filter className="w-4 h-4 mr-2" />
-              <SelectValue placeholder="Filter by status" />
+              <SelectValue placeholder={t('filterByStatus')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="Active">Active</SelectItem>
-              <SelectItem value="Pending">Pending</SelectItem>
-              <SelectItem value="Suspended">Suspended</SelectItem>
+              <SelectItem value="all">{t('allStatus')}</SelectItem>
+              <SelectItem value="Active">{t('active')}</SelectItem>
+              <SelectItem value="Pending">{t('pending')}</SelectItem>
+              <SelectItem value="Suspended">{t('suspended')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -317,13 +319,13 @@ export function AdminUsersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>VIP Level</TableHead>
-                <TableHead>Balance</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Join Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t('table.user')}</TableHead>
+                <TableHead>{t('table.phone')}</TableHead>
+                <TableHead>{t('table.vipLevel')}</TableHead>
+                <TableHead>{t('table.balance')}</TableHead>
+                <TableHead>{t('table.status')}</TableHead>
+                <TableHead>{t('table.joinDate')}</TableHead>
+                <TableHead className="text-right">{t('table.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -376,11 +378,11 @@ export function AdminUsersPage() {
 
                         <DropdownMenuItem onClick={() => handleEdit(user)}>
                           <Edit className="w-4 h-4 mr-2" />
-                          Edit
+                          {t('actions.edit')}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleDelete(user)} className="text-red-600">
                           <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
+                          {t('actions.delete')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -393,14 +395,14 @@ export function AdminUsersPage() {
 
         {/* Pagination Controls */}
         <div className="p-4 border-t border-gray-100 flex items-center justify-between">
-          <p className="text-sm text-gray-600">Showing {filteredUsers.length} of {totalUsers} users</p>
+          <p className="text-sm text-gray-600">{t('pagination.showing')} {filteredUsers.length} {t('pagination.of')} {totalUsers} {t('pagination.users')}</p>
           <div className="flex gap-2">
             <button
               disabled={page <= 1 || loading}
               onClick={() => loadUsers(page - 1)}
               className="px-3 py-1 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50"
             >
-              Previous
+              {t('pagination.previous')}
             </button>
             <div className="flex items-center gap-1">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -422,7 +424,7 @@ export function AdminUsersPage() {
               onClick={() => loadUsers(page + 1)}
               className="px-3 py-1 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50"
             >
-              Next
+              {t('pagination.next')}
             </button>
           </div>
         </div>
@@ -431,7 +433,7 @@ export function AdminUsersPage() {
       {/* Edit User Dialog - Redesigned */}
       <Dialog open={editDialogOpen} onOpenChange={handleCloseEditDialog}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] p-0 overflow-hidden [&>button]:text-white [&>button]:hover:text-white">
-          <DialogTitle className="sr-only">Edit User</DialogTitle>
+          <DialogTitle className="sr-only">{t('editDialog.title')}</DialogTitle>
           {selectedUser && (
             <>
               {/* Header */}
@@ -464,30 +466,30 @@ export function AdminUsersPage() {
                 <div className="mb-5">
                   <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                     <User className="w-4 h-4 text-blue-500" />
-                    Personal Information
+                    {t('editDialog.personalInfo')}
                   </h3>
                   <div className="space-y-3">
                     <div className="relative">
-                      <Label className="text-xs text-gray-500 mb-1 block">Full Name</Label>
+                      <Label className="text-xs text-gray-500 mb-1 block">{t('editDialog.fullName')}</Label>
                       <div className="relative">
                         <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <Input
                           value={formFullName}
                           onChange={(e) => setFormFullName(e.target.value)}
                           className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
-                          placeholder="Enter full name"
+                          placeholder={t('editDialog.fullNamePlaceholder')}
                         />
                       </div>
                     </div>
                     <div className="relative">
-                      <Label className="text-xs text-gray-500 mb-1 block">Phone Number</Label>
+                      <Label className="text-xs text-gray-500 mb-1 block">{t('editDialog.phoneNumber')}</Label>
                       <div className="relative">
                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <Input
                           value={formPhone}
                           onChange={(e) => setFormPhone(e.target.value)}
                           className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
-                          placeholder="Enter phone number"
+                          placeholder={t('editDialog.phoneNumberPlaceholder')}
                         />
                       </div>
                     </div>
@@ -498,11 +500,11 @@ export function AdminUsersPage() {
                 <div className="mb-5">
                   <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                     <Shield className="w-4 h-4 text-purple-500" />
-                    Account Settings
+                    {t('editDialog.accountSettings')}
                   </h3>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-xs text-gray-500 mb-1 block">Balance ($)</Label>
+                      <Label className="text-xs text-gray-500 mb-1 block">{t('editDialog.balance')}</Label>
                       {!showAddBalanceInput ? (
                         <div className="relative flex gap-2">
                           <div className="relative flex-1">
@@ -518,7 +520,7 @@ export function AdminUsersPage() {
                           <button
                             onClick={() => setShowAddBalanceInput(true)}
                             className="h-11 w-11 flex items-center justify-center bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex-shrink-0"
-                            title="Add balance"
+                            title={t('editDialog.addBalance')}
                           >
                             <Plus className="w-5 h-5" />
                           </button>
@@ -526,7 +528,7 @@ export function AdminUsersPage() {
                       ) : (
                         <div className="space-y-2">
                           <div className="bg-blue-50 rounded-lg p-2 border border-blue-200">
-                            <p className="text-xs text-blue-600 mb-1">Current: ${formBalance}</p>
+                            <p className="text-xs text-blue-600 mb-1">{t('editDialog.current')}: ${formBalance}</p>
                             
                             {/* Operation Selector */}
                             <div className="mb-2">
@@ -535,9 +537,9 @@ export function AdminUsersPage() {
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="add">Add to Balance</SelectItem>
-                                  <SelectItem value="set">Set Balance</SelectItem>
-                                  <SelectItem value="subtract">Subtract from Balance</SelectItem>
+                                  <SelectItem value="add">{t('editDialog.balanceOperations.add')}</SelectItem>
+                                  <SelectItem value="set">{t('editDialog.balanceOperations.set')}</SelectItem>
+                                  <SelectItem value="subtract">{t('editDialog.balanceOperations.subtract')}</SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
@@ -550,9 +552,9 @@ export function AdminUsersPage() {
                                 onChange={(e) => setAddBalanceAmount(e.target.value)}
                                 className="pl-8 h-9 text-sm"
                                 placeholder={
-                                  balanceOperation === 'add' ? 'Amount to add' :
-                                  balanceOperation === 'set' ? 'New balance' :
-                                  'Amount to subtract'
+                                  balanceOperation === 'add' ? t('editDialog.balancePlaceholders.add') :
+                                  balanceOperation === 'set' ? t('editDialog.balancePlaceholders.set') :
+                                  t('editDialog.balancePlaceholders.subtract')
                                 }
                                 autoFocus
                                 onKeyDown={(e) => {
@@ -568,7 +570,7 @@ export function AdminUsersPage() {
                             </div>
                             {addBalanceAmount && Number(addBalanceAmount) > 0 && (
                               <p className="text-xs text-blue-700 mt-1 font-medium">
-                                New: ${
+                                {t('editDialog.new')}: ${
                                   balanceOperation === 'add' ? (Number(formBalance) + Number(addBalanceAmount)).toFixed(2) :
                                   balanceOperation === 'set' ? Number(addBalanceAmount).toFixed(2) :
                                   Math.max(0, Number(formBalance) - Number(addBalanceAmount)).toFixed(2)
@@ -585,20 +587,20 @@ export function AdminUsersPage() {
                               }}
                               className="flex-1 h-8 text-xs border border-gray-200 rounded hover:bg-gray-50"
                             >
-                              Cancel
+                              {t('editDialog.cancel')}
                             </button>
                             <button
                               onClick={handleAddBalance}
                               className="flex-1 h-8 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
                             >
-                              {balanceOperation === 'add' ? 'Add' : balanceOperation === 'set' ? 'Set' : 'Subtract'}
+                              {balanceOperation === 'add' ? t('editDialog.add') : balanceOperation === 'set' ? t('editDialog.set') : t('editDialog.subtract')}
                             </button>
                           </div>
                         </div>
                       )}
                     </div>
                     <div>
-                      <Label className="text-xs text-gray-500 mb-1 block">Status</Label>
+                      <Label className="text-xs text-gray-500 mb-1 block">{t('editDialog.status')}</Label>
                       <Select value={formStatus} onValueChange={(v: any) => setFormStatus(v)}>
                         <SelectTrigger className="h-11 bg-gray-50 border-gray-200">
                           <SelectValue />
@@ -607,13 +609,13 @@ export function AdminUsersPage() {
                           <SelectItem value="Active">
                             <span className="flex items-center gap-2">
                               <CheckCircle2 className="w-4 h-4 text-green-500" />
-                              Active
+                              {t('active')}
                             </span>
                           </SelectItem>
                           <SelectItem value="Suspended">
                             <span className="flex items-center gap-2">
                               <XCircle className="w-4 h-4 text-red-500" />
-                              Suspended
+                              {t('suspended')}
                             </span>
                           </SelectItem>
                         </SelectContent>
@@ -626,12 +628,12 @@ export function AdminUsersPage() {
                 <div className="mb-4">
                   <h3 className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
                     <TrendingUp className="w-4 h-4 text-green-500" />
-                    Commission Settings
+                    {t('editDialog.commissionSettings')}
                   </h3>
-                  <p className="text-xs text-gray-400 mb-3">Leave empty to use VIP level defaults</p>
+                  <p className="text-xs text-gray-400 mb-3">{t('editDialog.commissionHint')}</p>
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <Label className="text-xs text-gray-500 mb-1 block">Number of Orders</Label>
+                      <Label className="text-xs text-gray-500 mb-1 block">{t('editDialog.numberOfOrders')}</Label>
                       <div className="relative">
                         <Target className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <Input
@@ -644,7 +646,7 @@ export function AdminUsersPage() {
                       </div>
                     </div>
                     <div>
-                      <Label className="text-xs text-gray-500 mb-1 block">Daily Target ($)</Label>
+                      <Label className="text-xs text-gray-500 mb-1 block">{t('editDialog.dailyTarget')}</Label>
                       <div className="relative">
                         <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <Input
@@ -657,7 +659,7 @@ export function AdminUsersPage() {
                       </div>
                     </div>
                     <div>
-                      <Label className="text-xs text-gray-500 mb-1 block">Per Order ($)</Label>
+                      <Label className="text-xs text-gray-500 mb-1 block">{t('editDialog.perOrder')}</Label>
                       <div className="relative">
                         <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <Input
@@ -668,7 +670,7 @@ export function AdminUsersPage() {
                           className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
                           disabled
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">Auto</span>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">{t('editDialog.auto')}</span>
                       </div>
                     </div>
                   </div>
@@ -677,15 +679,15 @@ export function AdminUsersPage() {
                   <div className="mt-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
                     <p className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
-                      Today's Performance
+                      {t('editDialog.todayPerformance')}
                     </p>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-xs text-green-600">Earned</p>
+                        <p className="text-xs text-green-600">{t('editDialog.earned')}</p>
                         <p className="text-lg font-bold text-green-700">${dailyEarnedSoFar || '0'}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-green-600">Orders</p>
+                        <p className="text-xs text-green-600">{t('editDialog.orders')}</p>
                         <p className="text-lg font-bold text-green-700">{dailyOrdersCount || '0'}</p>
                       </div>
                     </div>
@@ -701,7 +703,7 @@ export function AdminUsersPage() {
                   className="flex-1 h-11"
                   disabled={saving}
                 >
-                  Cancel
+                  {t('editDialog.cancel')}
                 </Button>
                 <Button
                   onClick={handleSave}
@@ -711,12 +713,12 @@ export function AdminUsersPage() {
                   {saving ? (
                     <span className="flex items-center gap-2">
                       <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Saving... {saveTime !== null && saveTime > 0 ? `${saveTime}s` : ''}
+                      {t('editDialog.saving')} {saveTime !== null && saveTime > 0 ? `${saveTime}s` : ''}
                     </span>
                   ) : (
                     <span className="flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4" />
-                      Save Changes
+                      {t('editDialog.saveChanges')}
                     </span>
                   )}
                 </Button>
@@ -729,7 +731,7 @@ export function AdminUsersPage() {
       {/* Create User Dialog - Redesigned */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] p-0 overflow-hidden [&>button]:text-white [&>button]:hover:text-white">
-          <DialogTitle className="sr-only">Create New User</DialogTitle>
+          <DialogTitle className="sr-only">{t('createDialog.title')}</DialogTitle>
           {/* Header */}
           <div className="bg-blue-600 px-6 py-5">
             <div className="flex items-center gap-4">
@@ -737,8 +739,8 @@ export function AdminUsersPage() {
                 <Plus className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h2 className="text-white text-lg font-semibold">Create New User</h2>
-                <p className="text-white/80 text-sm">Add a new user to the system</p>
+                <h2 className="text-white text-lg font-semibold">{t('createDialog.title')}</h2>
+                <p className="text-white/80 text-sm">{t('createDialog.subtitle')}</p>
               </div>
             </div>
           </div>
@@ -749,12 +751,12 @@ export function AdminUsersPage() {
             <div className="mb-5">
               <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                 <User className="w-4 h-4 text-blue-500" />
-                Personal Information
+                {t('createDialog.personalInfo')}
               </h3>
               <div className="space-y-3">
                 <div>
                   <Label className="text-xs text-gray-500 mb-1 block">
-                    Full Name <span className="text-red-500">*</span>
+                    {t('createDialog.fullName')} <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -762,13 +764,13 @@ export function AdminUsersPage() {
                       value={createFullName}
                       onChange={(e) => setCreateFullName(e.target.value)}
                       className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
-                      placeholder="Enter full name"
+                      placeholder={t('createDialog.fullNamePlaceholder')}
                     />
                   </div>
                 </div>
                 <div>
                   <Label className="text-xs text-gray-500 mb-1 block">
-                    Email <span className="text-red-500">*</span>
+                    {t('createDialog.email')} <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -777,19 +779,19 @@ export function AdminUsersPage() {
                       value={createEmail}
                       onChange={(e) => setCreateEmail(e.target.value)}
                       className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
-                      placeholder="user@example.com"
+                      placeholder={t('createDialog.emailPlaceholder')}
                     />
                   </div>
                 </div>
                 <div>
-                  <Label className="text-xs text-gray-500 mb-1 block">Phone Number</Label>
+                  <Label className="text-xs text-gray-500 mb-1 block">{t('createDialog.phoneNumber')}</Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <Input
                       value={createPhone}
                       onChange={(e) => setCreatePhone(e.target.value)}
                       className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
-                      placeholder="Enter phone number"
+                      placeholder={t('createDialog.phoneNumberPlaceholder')}
                     />
                   </div>
                 </div>
@@ -800,12 +802,12 @@ export function AdminUsersPage() {
             <div className="mb-4">
               <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                 <Lock className="w-4 h-4 text-purple-500" />
-                Security
+                {t('createDialog.security')}
               </h3>
               <div className="space-y-3">
                 <div>
                   <Label className="text-xs text-gray-500 mb-1 block">
-                    Password <span className="text-red-500">*</span>
+                    {t('createDialog.password')} <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -814,13 +816,13 @@ export function AdminUsersPage() {
                       value={createPassword}
                       onChange={(e) => setCreatePassword(e.target.value)}
                       className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
-                      placeholder="Enter password"
+                      placeholder={t('createDialog.passwordPlaceholder')}
                     />
                   </div>
                 </div>
                 <div>
                   <Label className="text-xs text-gray-500 mb-1 block">
-                    Confirm Password <span className="text-red-500">*</span>
+                    {t('createDialog.confirmPassword')} <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -834,7 +836,7 @@ export function AdminUsersPage() {
                           ? 'border-green-300 focus:ring-green-500'
                           : ''
                         }`}
-                      placeholder="Confirm password"
+                      placeholder={t('createDialog.confirmPasswordPlaceholder')}
                     />
                     {createConfirmPassword && (
                       <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -847,7 +849,7 @@ export function AdminUsersPage() {
                     )}
                   </div>
                   {createConfirmPassword && createPassword !== createConfirmPassword && (
-                    <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+                    <p className="text-xs text-red-500 mt-1">{t('createDialog.passwordsDoNotMatch')}</p>
                   )}
                 </div>
               </div>
@@ -862,16 +864,16 @@ export function AdminUsersPage() {
               className="flex-1 h-11"
               disabled={creating}
             >
-              Cancel
+              {t('createDialog.cancel')}
             </Button>
             <Button
               onClick={async () => {
                 if (!createFullName || !createEmail || !createPassword) {
-                  toast.error('Please fill required fields');
+                  toast.error(t('notifications.fillRequired'));
                   return;
                 }
                 if (createPassword !== createConfirmPassword) {
-                  toast.error('Passwords do not match');
+                  toast.error(t('notifications.passwordsNotMatch'));
                   return;
                 }
                 try {
@@ -881,12 +883,12 @@ export function AdminUsersPage() {
                   const createdName = createFullName;
                   setCreateFullName(''); setCreateEmail(''); setCreatePhone(''); setCreatePassword(''); setCreateConfirmPassword('');
                   await loadUsers();
-                  toast.success(`User "${createdName}" created successfully!`, {
-                    description: 'The new user can now login to the system.',
+                  toast.success(t('notifications.userCreated', { name: createdName }), {
+                    description: t('notifications.userCreatedDesc'),
                     duration: 4000,
                   });
                 } catch (e: any) {
-                  toast.error(e?.message || 'Failed to create user');
+                  toast.error(e?.message || t('notifications.createFailed'));
                 } finally {
                   setCreating(false);
                 }
@@ -897,12 +899,12 @@ export function AdminUsersPage() {
               {creating ? (
                 <span className="flex items-center gap-2">
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Creating...
+                  {t('createDialog.creating')}
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
                   <Plus className="w-4 h-4" />
-                  Create User
+                  {t('createDialog.createUser')}
                 </span>
               )}
             </Button>

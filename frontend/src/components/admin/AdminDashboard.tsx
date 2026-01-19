@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { StatCard } from "./StatCard";
 import {
   Users,
@@ -34,6 +35,7 @@ import {
 import api from "../../services/api";
 
 export function AdminDashboard() {
+  const { t } = useTranslation(['adminDashboard', 'admin']);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
   const [revenueData, setRevenueData] = useState<any[]>([]);
@@ -143,7 +145,7 @@ export function AdminDashboard() {
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center gap-2">
           <Loader2 className="w-6 h-6 animate-spin" />
-          <span>Loading dashboard...</span>
+          <span>{t('adminDashboard:loading')}</span>
         </div>
       </div>
     );
@@ -154,52 +156,52 @@ export function AdminDashboard() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl text-gray-900 mb-1">Dashboard Overview</h1>
-          <p className="text-gray-600">Welcome back, Admin! Here's what's happening today.</p>
+          <h1 className="text-2xl text-gray-900 mb-1">{t('adminDashboard:title')}</h1>
+          <p className="text-gray-600">{t('adminDashboard:subtitle')}</p>
         </div>
         {/* <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
-          Download Report
+          {t('adminDashboard:downloadReport')}
         </button> */}
       </div>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <StatCard
-          title="Total Users"
+          title={t('adminDashboard:stats.totalUsers')}
           value={stats ? formatNumber(stats.totalUsers) : "0"}
           icon={Users}
           trend={stats ? { value: stats.totalUsersTrend, isPositive: stats.totalUsersTrend >= 0 } : undefined}
           color="blue"
         />
         <StatCard
-          title="Active Users"
+          title={t('adminDashboard:stats.activeUsers')}
           value={stats ? formatNumber(stats.activeUsers) : "0"}
           icon={UserCheck}
           trend={stats ? { value: stats.activeUsersTrend, isPositive: stats.activeUsersTrend >= 0 } : undefined}
           color="green"
         />
         <StatCard
-          title="Pending Deposits"
+          title={t('adminDashboard:stats.pendingDeposits')}
           value={stats ? formatNumber(stats.pendingDeposits) : "0"}
           icon={Clock}
           color="orange"
         />
         <StatCard
-          title="Today Deposits"
+          title={t('adminDashboard:stats.todayDeposits')}
           value={stats ? formatNumber(stats.todayDeposits) : "0"}
           icon={ArrowUpRight}
           trend={stats ? { value: stats.todayDepositsTrend, isPositive: stats.todayDepositsTrend >= 0 } : undefined}
           color="green"
         />
         <StatCard
-          title="Today Amount"
+          title={t('adminDashboard:stats.todayAmount')}
           value={stats ? formatCurrency(stats.todayAmount) : "$0"}
           icon={DollarSign}
           trend={stats ? { value: stats.todayAmountTrend, isPositive: stats.todayAmountTrend >= 0 } : undefined}
           color="blue"
         />
         <StatCard
-          title="Today Commission"
+          title={t('adminDashboard:stats.todayCommission')}
           value={stats ? formatCurrency(stats.todayCommission) : "$0"}
           icon={Wallet}
           trend={stats ? { value: stats.todayCommissionTrend, isPositive: stats.todayCommissionTrend >= 0 } : undefined}
@@ -213,8 +215,8 @@ export function AdminDashboard() {
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-gray-900 mb-1">Weekly Revenue</h3>
-              <p className="text-sm text-gray-600">Total revenue this week</p>
+              <h3 className="text-gray-900 mb-1">{t('adminDashboard:charts.weeklyRevenue.title')}</h3>
+              <p className="text-sm text-gray-600">{t('adminDashboard:charts.weeklyRevenue.subtitle')}</p>
             </div>
             <button className="p-2 hover:bg-gray-100 rounded-lg">
               <MoreVertical className="w-5 h-5 text-gray-600" />
@@ -231,7 +233,7 @@ export function AdminDashboard() {
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="name" stroke="#9CA3AF" style={{ fontSize: 12 }} />
               <YAxis stroke="#9CA3AF" style={{ fontSize: 12 }} />
-              <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Revenue']} />
+              <Tooltip formatter={(value) => [formatCurrency(Number(value)), t('adminDashboard:charts.weeklyRevenue.label')]} />
               <Area
                 type="monotone"
                 dataKey="value"
@@ -248,8 +250,8 @@ export function AdminDashboard() {
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-gray-900 mb-1">User Growth</h3>
-              <p className="text-sm text-gray-600">New users per month</p>
+              <h3 className="text-gray-900 mb-1">{t('adminDashboard:charts.userGrowth.title')}</h3>
+              <p className="text-sm text-gray-600">{t('adminDashboard:charts.userGrowth.subtitle')}</p>
             </div>
             <button className="p-2 hover:bg-gray-100 rounded-lg">
               <MoreVertical className="w-5 h-5 text-gray-600" />
@@ -260,7 +262,7 @@ export function AdminDashboard() {
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="name" stroke="#9CA3AF" style={{ fontSize: 12 }} />
               <YAxis stroke="#9CA3AF" style={{ fontSize: 12 }} />
-              <Tooltip formatter={(value) => [formatNumber(Number(value)), 'New Users']} />
+              <Tooltip formatter={(value) => [formatNumber(Number(value)), t('adminDashboard:charts.userGrowth.label')]} />
               <Bar dataKey="users" fill="#3B82F6" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -272,21 +274,21 @@ export function AdminDashboard() {
         <div className="p-6 border-b border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-gray-900 mb-1">Recent Users</h3>
-              <p className="text-sm text-gray-600">Latest registered users</p>
+              <h3 className="text-gray-900 mb-1">{t('adminDashboard:recentUsers.title')}</h3>
+              <p className="text-sm text-gray-600">{t('adminDashboard:recentUsers.subtitle')}</p>
             </div>
-            <button className="text-sm text-blue-600 hover:text-blue-700">View All</button>
+            <button className="text-sm text-blue-600 hover:text-blue-700">{t('adminDashboard:recentUsers.viewAll')}</button>
           </div>
         </div>
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>VIP Level</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Join Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t('adminDashboard:recentUsers.table.user')}</TableHead>
+                <TableHead>{t('adminDashboard:recentUsers.table.vipLevel')}</TableHead>
+                <TableHead>{t('adminDashboard:recentUsers.table.status')}</TableHead>
+                <TableHead>{t('adminDashboard:recentUsers.table.joinDate')}</TableHead>
+                <TableHead className="text-right">{t('adminDashboard:recentUsers.table.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -321,14 +323,14 @@ export function AdminDashboard() {
                     </TableCell>
                     <TableCell className="text-gray-600">{user.joinDate}</TableCell>
                     <TableCell className="text-right">
-                      <button className="text-blue-600 hover:text-blue-700 text-sm">View</button>
+                      <button className="text-blue-600 hover:text-blue-700 text-sm">{t('adminDashboard:recentUsers.table.view')}</button>
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8 text-gray-500">
-                    No recent users found
+                    {t('adminDashboard:recentUsers.noData')}
                   </TableCell>
                 </TableRow>
               )}

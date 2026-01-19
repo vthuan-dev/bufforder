@@ -1,0 +1,40 @@
+{
+  "title": "Tổng quan Dashboard",
+  "subtitle": "Chào mừng trở lại, Admin! Đây là những gì đang diễn ra hôm nay.",
+  "loading": "Đang tải dashboard...",
+  "downloadReport": "Tải báo cáo",
+  "stats": {
+    "totalUsers": "Tổng người dùng",
+    "activeUsers": "Người dùng hoạt động",
+    "pendingDeposits": "Nạp tiền chờ duyệt",
+    "todayDeposits": "Nạp tiền hôm nay",
+    "todayAmount": "Số tiền hôm nay",
+    "todayCommission": "Hoa hồng hôm nay"
+  },
+  "charts": {
+    "weeklyRevenue": {
+      "title": "Doanh thu tuần",
+      "subtitle": "Tổng doanh thu tuần này",
+      "label": "Doanh thu"
+    },
+    "userGrowth": {
+      "title": "Tăng trưởng người dùng",
+      "subtitle": "Người dùng mới mỗi tháng",
+      "label": "Người dùng mới"
+    }
+  },
+  "recentUsers": {
+    "title": "Người dùng gần đây",
+    "subtitle": "Người dùng đăng ký mới nhất",
+    "viewAll": "Xem tất cả",
+    "table": {
+      "user": "Người dùng",
+      "vipLevel": "Cấp VIP",
+      "status": "Trạng thái",
+      "joinDate": "Ngày tham gia",
+      "actions": "Hành động",
+      "view": "Xem"
+    },
+    "noData": "Không tìm thấy người dùng gần đây"
+  }
+}

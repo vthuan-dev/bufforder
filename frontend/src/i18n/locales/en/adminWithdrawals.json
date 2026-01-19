@@ -1,0 +1,88 @@
+{
+  "title": "Withdrawal Requests",
+  "subtitle": "Review and process withdrawal requests ({{count}} pending)",
+  "refresh": "Refresh",
+  "loading": "Loading...",
+  "pending": "Pending",
+  "pendingCount": "{{count}} Pending",
+  "search": "Search by name, email, or account number...",
+  "filterByStatus": "Filter by status",
+  "allStatus": "All Status",
+  "approved": "Approved",
+  "rejected": "Rejected",
+  "table": {
+    "user": "User",
+    "amount": "Amount",
+    "type": "Type",
+    "details": "Details",
+    "status": "Status",
+    "requestDate": "Request Date",
+    "actions": "Actions"
+  },
+  "types": {
+    "bank": "Bank",
+    "usdt": "USDT"
+  },
+  "actions": {
+    "approve": "Approve",
+    "reject": "Reject",
+    "viewDetails": "View Details",
+    "copyAddress": "Copy Address",
+    "copyAccount": "Copy Account"
+  },
+  "pagination": {
+    "showing": "Showing",
+    "of": "of",
+    "requests": "requests",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "actionDialog": {
+    "approveTitle": "Approve Withdrawal Request",
+    "rejectTitle": "Reject Withdrawal Request",
+    "user": "User",
+    "currentBalance": "Current Balance",
+    "amount": "Amount",
+    "fee": "Fee",
+    "totalToTransfer": "Total to Transfer",
+    "bankDetails": "Bank Details:",
+    "cryptoDetails": "Crypto Details:",
+    "bank": "Bank",
+    "account": "Account",
+    "name": "Name",
+    "network": "Network",
+    "walletAddress": "Wallet Address",
+    "notes": "Notes",
+    "notesRequired": "*",
+    "notesPlaceholderApprove": "Add optional notes...",
+    "notesPlaceholderReject": "Provide reason for rejection...",
+    "cancel": "Cancel",
+    "approveTransfer": "Approve & Transfer",
+    "reject": "Reject"
+  },
+  "viewDialog": {
+    "title": "Withdrawal Details",
+    "user": "User",
+    "email": "Email",
+    "amount": "Amount",
+    "fee": "Fee",
+    "total": "Total",
+    "status": "Status",
+    "requestDate": "Request Date",
+    "bankDetails": "Bank Details:",
+    "cryptoDetails": "Crypto Details:",
+    "bank": "Bank",
+    "account": "Account",
+    "name": "Name",
+    "network": "Network",
+    "walletAddress": "Wallet Address",
+    "close": "Close"
+  },
+  "notifications": {
+    "rejectReasonRequired": "Please provide a reason for rejection",
+    "approveSuccess": "Withdrawal approved successfully!",
+    "rejectSuccess": "Withdrawal rejected successfully!",
+    "actionFailed": "Action failed",
+    "copiedToClipboard": "Copied to clipboard!"
+  }
+}

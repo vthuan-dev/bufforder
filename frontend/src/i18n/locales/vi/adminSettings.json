@@ -1,0 +1,58 @@
+{
+  "title": "Cài đặt",
+  "subtitle": "Quản lý tài khoản quản trị viên và tùy chọn của bạn",
+  "tabs": {
+    "profile": "Hồ sơ",
+    "security": "Bảo mật"
+  },
+  "profile": {
+    "title": "Thông tin hồ sơ",
+    "subtitle": "Cập nhật chi tiết hồ sơ quản trị viên của bạn",
+    "changeAvatar": "Thay đổi ảnh đại diện",
+    "avatarHint": "JPG, GIF hoặc PNG. Kích thước tối đa 2MB",
+    "fullName": "Họ và tên",
+    "email": "Địa chỉ email",
+    "phoneNumber": "Số điện thoại",
+    "role": "Vai trò",
+    "roleValue": "Quản trị viên cấp cao",
+    "saveChanges": "Lưu thay đổi",
+    "saving": "Đang lưu...",
+    "loading": "Đang tải..."
+  },
+  "security": {
+    "title": "Cài đặt bảo mật",
+    "subtitle": "Quản lý mật khẩu và tùy chọn bảo mật của bạn",
+    "changePassword": "Thay đổi mật khẩu",
+    "currentPassword": "Mật khẩu hiện tại",
+    "currentPasswordPlaceholder": "Nhập mật khẩu hiện tại",
+    "newPassword": "Mật khẩu mới",
+    "newPasswordPlaceholder": "Nhập mật khẩu mới",
+    "confirmPassword": "Xác nhận mật khẩu mới",
+    "confirmPasswordPlaceholder": "Xác nhận mật khẩu mới",
+    "passwordStrength": {
+      "tooShort": "Quá ngắn",
+      "weak": "Yếu",
+      "strong": "Mạnh"
+    },
+    "updateSecurity": "Cập nhật bảo mật",
+    "updating": "Đang thay đổi mật khẩu..."
+  },
+  "errors": {
+    "currentPasswordRequired": "Mật khẩu hiện tại là bắt buộc",
+    "newPasswordRequired": "Mật khẩu mới là bắt buộc",
+    "passwordTooShort": "Mật khẩu phải có ít nhất 6 ký tự",
+    "confirmPasswordRequired": "Vui lòng xác nhận mật khẩu mới của bạn",
+    "passwordsDoNotMatch": "Mật khẩu không khớp",
+    "passwordSame": "Mật khẩu mới phải khác với mật khẩu hiện tại",
+    "fixErrors": "Vui lòng sửa các lỗi dưới đây",
+    "imageSizeTooLarge": "Kích thước hình ảnh phải nhỏ hơn 2MB",
+    "uploadFailed": "Không thể tải lên ảnh đại diện",
+    "saveFailed": "Không thể lưu cài đặt",
+    "passwordChangeFailed": "Không thể thay đổi mật khẩu"
+  },
+  "notifications": {
+    "avatarUpdated": "Ảnh đại diện đã được cập nhật thành công!",
+    "settingsSaved": "Cài đặt đã được lưu thành công!",
+    "passwordChanged": "Mật khẩu đã được thay đổi thành công!"
+  }
+}

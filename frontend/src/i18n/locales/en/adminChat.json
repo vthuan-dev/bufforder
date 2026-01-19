@@ -1,0 +1,38 @@
+{
+  "title": "Chat Support",
+  "subtitle": "Manage customer support conversations",
+  "unread": "Unread",
+  "search": "Search conversations...",
+  "typing": "Typing…",
+  "blocked": "Blocked",
+  "lastSeen": "Last seen",
+  "sentImage": "📷 Sent an image to you",
+  "viewOnMaps": "📍 View on Google Maps",
+  "quickReplies": "Quick Replies",
+  "blockUser": "Block User",
+  "unblockUser": "Unblock User",
+  "deleteThread": "Delete Thread",
+  "deleteConfirmTitle": "Delete Thread?",
+  "deleteConfirmMessage": "This will permanently delete all messages in this conversation. This action cannot be undone.",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "selectConversation": "Select a conversation to start chatting",
+  "typeMessage": "Type your message...",
+  "send": "Send",
+  "quickReplyTemplates": [
+    "Hello! How can I help you today?",
+    "Thank you for contacting us. Please wait a moment.",
+    "Your order is being processed. We'll update you soon.",
+    "Could you please provide more details?",
+    "Is there anything else I can help you with?",
+    "Thank you for your patience!",
+    "Your issue has been resolved. Please check now.",
+    "We apologize for the inconvenience."
+  ],
+  "notifications": {
+    "threadDeleted": "Thread deleted successfully",
+    "deleteThreadFailed": "Failed to delete thread",
+    "blockStatusUpdated": "User {{action}} from chat",
+    "blockStatusFailed": "Failed to update block status"
+  }
+}

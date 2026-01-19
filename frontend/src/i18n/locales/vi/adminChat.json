@@ -1,0 +1,38 @@
+{
+  "title": "Hỗ trợ trò chuyện",
+  "subtitle": "Quản lý các cuộc trò chuyện hỗ trợ khách hàng",
+  "unread": "Chưa đọc",
+  "search": "Tìm kiếm cuộc trò chuyện...",
+  "typing": "Đang soạn…",
+  "blocked": "Đã chặn",
+  "lastSeen": "Lần cuối xem",
+  "sentImage": "📷 Đã gửi một hình ảnh",
+  "viewOnMaps": "📍 Xem trên Google Maps",
+  "quickReplies": "Trả lời nhanh",
+  "blockUser": "Chặn người dùng",
+  "unblockUser": "Bỏ chặn người dùng",
+  "deleteThread": "Xóa cuộc trò chuyện",
+  "deleteConfirmTitle": "Xóa cuộc trò chuyện?",
+  "deleteConfirmMessage": "Điều này sẽ xóa vĩnh viễn tất cả các tin nhắn trong cuộc trò chuyện này. Hành động này không thể được hoàn tác.",
+  "cancel": "Hủy",
+  "delete": "Xóa",
+  "selectConversation": "Chọn một cuộc trò chuyện để bắt đầu trò chuyện",
+  "typeMessage": "Nhập tin nhắn của bạn...",
+  "send": "Gửi",
+  "quickReplyTemplates": [
+    "Xin chào! Tôi có thể giúp bạn điều gì hôm nay?",
+    "Cảm ơn bạn đã liên hệ với chúng tôi. Vui lòng chờ một lát.",
+    "Đơn hàng của bạn đang được xử lý. Chúng tôi sẽ cập nhật cho bạn sớm.",
+    "Bạn có thể cung cấp thêm chi tiết không?",
+    "Có điều gì khác tôi có thể giúp bạn không?",
+    "Cảm ơn bạn đã kiên nhẫn!",
+    "Vấn đề của bạn đã được giải quyết. Vui lòng kiểm tra ngay bây giờ.",
+    "Chúng tôi xin lỗi vì sự bất tiện này."
+  ],
+  "notifications": {
+    "threadDeleted": "Cuộc trò chuyện đã được xóa thành công",
+    "deleteThreadFailed": "Không thể xóa cuộc trò chuyện",
+    "blockStatusUpdated": "Người dùng {{action}} khỏi trò chuyện",
+    "blockStatusFailed": "Không thể cập nhật trạng thái chặn"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "title": "Quản lý đơn hàng",
+  "subtitle": "Theo dõi và quản lý tất cả đơn hàng của khách hàng",
+  "totalOrders": "Tổng đơn hàng",
+  "today": "Hôm nay",
+  "search": "Tìm kiếm theo ID đơn hàng, người dùng hoặc sản phẩm...",
+  "filterByStatus": "Lọc theo trạng thái",
+  "allStatus": "Tất cả trạng thái",
+  "pending": "Đang chờ",
+  "processing": "Đang xử lý",
+  "shipped": "Đã gửi",
+  "delivered": "Đã giao",
+  "cancelled": "Đã hủy",
+  "table": {
+    "orderId": "ID đơn hàng",
+    "user": "Người dùng",
+    "product": "Sản phẩm",
+    "amount": "Số tiền",
+    "commission": "Hoa hồng",
+    "status": "Trạng thái",
+    "date": "Ngày",
+    "actions": "Hành động"
+  },
+  "pagination": {
+    "showing": "Hiển thị",
+    "of": "trong tổng số",
+    "orders": "đơn hàng",
+    "previous": "Trước",
+    "next": "Tiếp"
+  },
+  "loading": "Đang tải đơn hàng...",
+  "noOrders": "Không tìm thấy đơn hàng",
+  "viewDialog": {
+    "title": "Chi tiết đơn hàng",
+    "orderId": "ID đơn hàng",
+    "orderDate": "Ngày đặt hàng",
+    "deliveryDate": "Ngày giao hàng",
+    "customerInformation": "Thông tin khách hàng",
+    "balance": "Số dư",
+    "vipLevel": "Cấp VIP",
+    "productDetails": "Chi tiết sản phẩm",
+    "brand": "Thương hiệu",
+    "category": "Danh mục",
+    "amount": "Số tiền",
+    "commission": "Hoa hồng",
+    "rate": "Tỷ lệ",
+    "orderProgress": "Tiến độ đơn hàng",
+    "updateStatus": "Cập nhật trạng thái đơn hàng",
+    "close": "Đóng",
+    "updateButton": "Cập nhật trạng thái",
+    "updating": "Đang cập nhật..."
+  },
+  "notifications": {
+    "statusUpdated": "Trạng thái đơn hàng được cập nhật thành: {{status}}"
+  }
+}

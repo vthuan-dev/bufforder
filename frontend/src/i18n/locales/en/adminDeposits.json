@@ -1,0 +1,60 @@
+{
+  "title": "Deposit Requests",
+  "subtitle": "Review and process deposit requests ({{count}} pending)",
+  "refresh": "Refresh",
+  "loading": "Loading...",
+  "pending": "Pending",
+  "pendingCount": "{{count}} Pending",
+  "search": "Search by name, email, or transaction ID...",
+  "filterByStatus": "Filter by status",
+  "allStatus": "All Status",
+  "approved": "Approved",
+  "rejected": "Rejected",
+  "table": {
+    "user": "User",
+    "amount": "Amount",
+    "status": "Status",
+    "requestDate": "Request Date",
+    "actions": "Actions"
+  },
+  "actions": {
+    "approve": "Approve",
+    "reject": "Reject",
+    "viewDetails": "View Details"
+  },
+  "pagination": {
+    "showing": "Showing",
+    "of": "of",
+    "requests": "requests",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "actionDialog": {
+    "approveTitle": "Approve Deposit Request",
+    "rejectTitle": "Reject Deposit Request",
+    "user": "User",
+    "amount": "Amount",
+    "notes": "Notes",
+    "notesRequired": "*",
+    "notesPlaceholderApprove": "Add optional notes...",
+    "notesPlaceholderReject": "Provide reason for rejection...",
+    "cancel": "Cancel",
+    "approve": "Approve",
+    "reject": "Reject"
+  },
+  "viewDialog": {
+    "title": "Deposit Details",
+    "user": "User",
+    "email": "Email",
+    "amount": "Amount",
+    "status": "Status",
+    "requestDate": "Request Date",
+    "close": "Close"
+  },
+  "notifications": {
+    "rejectReasonRequired": "Please provide a reason for rejection",
+    "approveSuccess": "Deposit approved successfully!",
+    "rejectSuccess": "Deposit rejected successfully!",
+    "actionFailed": "Action failed"
+  }
+}

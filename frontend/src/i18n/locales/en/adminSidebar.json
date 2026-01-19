@@ -1,0 +1,11 @@
+{
+  "dashboard": "Dashboard",
+  "users": "Users",
+  "products": "Products",
+  "deposits": "Deposits",
+  "withdrawals": "Withdrawals",
+  "orders": "Orders",
+  "chatSupport": "Chat Support",
+  "settings": "Settings",
+  "adminPanel": "Admin Panel"
+}

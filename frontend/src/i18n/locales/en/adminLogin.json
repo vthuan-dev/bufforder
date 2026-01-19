@@ -1,0 +1,19 @@
+{
+  "title": "Ashford Admin",
+  "subtitle": "Sign in to manage your platform",
+  "username": "Username",
+  "usernamePlaceholder": "Enter your username",
+  "password": "Password",
+  "passwordPlaceholder": "Enter your password",
+  "rememberMe": "Remember me",
+  "forgotPassword": "Forgot password?",
+  "signIn": "Sign In",
+  "signingIn": "Signing in...",
+  "footer": "Protected by 2FA and enterprise-grade security",
+  "copyright": "© 2025 Ashford. All rights reserved.",
+  "errors": {
+    "loginFailed": "Login failed",
+    "missingToken": "Login failed: missing token",
+    "invalidCredentials": "Invalid username or password"
+  }
+}

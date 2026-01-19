@@ -1,0 +1,58 @@
+{
+  "title": "Settings",
+  "subtitle": "Manage your admin account and preferences",
+  "tabs": {
+    "profile": "Profile",
+    "security": "Security"
+  },
+  "profile": {
+    "title": "Profile Information",
+    "subtitle": "Update your admin profile details",
+    "changeAvatar": "Change Avatar",
+    "avatarHint": "JPG, GIF or PNG. Max size of 2MB",
+    "fullName": "Full Name",
+    "email": "Email Address",
+    "phoneNumber": "Phone Number",
+    "role": "Role",
+    "roleValue": "Super Administrator",
+    "saveChanges": "Save Changes",
+    "saving": "Saving...",
+    "loading": "Loading..."
+  },
+  "security": {
+    "title": "Security Settings",
+    "subtitle": "Manage your password and security preferences",
+    "changePassword": "Change Password",
+    "currentPassword": "Current Password",
+    "currentPasswordPlaceholder": "Enter current password",
+    "newPassword": "New Password",
+    "newPasswordPlaceholder": "Enter new password",
+    "confirmPassword": "Confirm New Password",
+    "confirmPasswordPlaceholder": "Confirm new password",
+    "passwordStrength": {
+      "tooShort": "Too short",
+      "weak": "Weak",
+      "strong": "Strong"
+    },
+    "updateSecurity": "Update Security",
+    "updating": "Changing Password..."
+  },
+  "errors": {
+    "currentPasswordRequired": "Current password is required",
+    "newPasswordRequired": "New password is required",
+    "passwordTooShort": "Password must be at least 6 characters long",
+    "confirmPasswordRequired": "Please confirm your new password",
+    "passwordsDoNotMatch": "Passwords do not match",
+    "passwordSame": "New password must be different from current password",
+    "fixErrors": "Please fix the errors below",
+    "imageSizeTooLarge": "Image size must be less than 2MB",
+    "uploadFailed": "Failed to upload avatar",
+    "saveFailed": "Failed to save settings",
+    "passwordChangeFailed": "Failed to change password"
+  },
+  "notifications": {
+    "avatarUpdated": "Avatar updated successfully!",
+    "settingsSaved": "Settings saved successfully!",
+    "passwordChanged": "Password changed successfully!"
+  }
+}

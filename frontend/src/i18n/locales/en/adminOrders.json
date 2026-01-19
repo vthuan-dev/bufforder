@@ -1,0 +1,56 @@
+{
+  "title": "Order Management",
+  "subtitle": "Track and manage all customer orders",
+  "totalOrders": "Total Orders",
+  "today": "Today",
+  "search": "Search by order ID, user, or product...",
+  "filterByStatus": "Filter by status",
+  "allStatus": "All Status",
+  "pending": "Pending",
+  "processing": "Processing",
+  "shipped": "Shipped",
+  "delivered": "Delivered",
+  "cancelled": "Cancelled",
+  "table": {
+    "orderId": "Order ID",
+    "user": "User",
+    "product": "Product",
+    "amount": "Amount",
+    "commission": "Commission",
+    "status": "Status",
+    "date": "Date",
+    "actions": "Actions"
+  },
+  "pagination": {
+    "showing": "Showing",
+    "of": "of",
+    "orders": "orders",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "loading": "Loading orders...",
+  "noOrders": "No orders found",
+  "viewDialog": {
+    "title": "Order Details",
+    "orderId": "Order ID",
+    "orderDate": "Order Date",
+    "deliveryDate": "Delivery Date",
+    "customerInformation": "Customer Information",
+    "balance": "Balance",
+    "vipLevel": "VIP Level",
+    "productDetails": "Product Details",
+    "brand": "Brand",
+    "category": "Category",
+    "amount": "Amount",
+    "commission": "Commission",
+    "rate": "Rate",
+    "orderProgress": "Order Progress",
+    "updateStatus": "Update Order Status",
+    "close": "Close",
+    "updateButton": "Update Status",
+    "updating": "Updating..."
+  },
+  "notifications": {
+    "statusUpdated": "Order status updated to: {{status}}"
+  }
+}

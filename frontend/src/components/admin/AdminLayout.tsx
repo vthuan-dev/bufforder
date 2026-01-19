@@ -1,4 +1,5 @@
 import { ReactNode, useEffect, useState, useRef, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   LayoutDashboard,
   Users,
@@ -31,6 +32,7 @@ import { Badge } from "../ui/badge";
 import api from "../../services/api";
 import { getAdminSocket, initAdminSocket } from "./adminSocket";
 import { toast } from "sonner";
+import { AdminLanguageSwitcher } from "./AdminLanguageSwitcher";
 
 // Order notification interface
 interface OrderNotification {
@@ -106,6 +108,8 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
   const [chatUnread, setChatUnread] = useState<number>(0);
   const [adminData, setAdminData] = useState<any>(null);
   const socketInitialized = useRef(false);
+  const { t: tAccountMenu } = useTranslation('adminAccountMenu');
+  const { t: tSidebar } = useTranslation('adminSidebar');
 
   // 🔔 Order notifications state
   const [orderNotifications, setOrderNotifications] = useState<OrderNotification[]>(() => {
@@ -679,7 +683,7 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
               </div>
               <div>
                 <h2 className="text-gray-900">Ashford</h2>
-                <p className="text-xs text-gray-500">Admin Panel</p>
+                <p className="text-xs text-gray-500">{tSidebar('adminPanel')}</p>
               </div>
             </div>
             <button
@@ -695,6 +699,7 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
             {baseMenuItems.map((item) => {
               const Icon = item.icon;
               const isActive = currentPage === item.id;
+              const labelKey = item.id === 'chat' ? 'chatSupport' : item.id;
               return (
                 <button
                   key={item.id}
@@ -709,7 +714,7 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
                     }`}
                 >
                   <Icon className="w-5 h-5" />
-                  <span className="flex-1 text-left text-sm">{item.label}</span>
+                  <span className="flex-1 text-left text-sm">{tSidebar(labelKey)}</span>
                   {item.id === 'chat' && chatUnread > 0 && (
                     <Badge variant="secondary" className="bg-red-500 text-white text-xs">
                       {chatUnread}
@@ -768,7 +773,7 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
               </div>
             </div>
 
-            {/* Right: Dark Mode, Notifications, Profile */}
+            {/* Right: Language Switcher, Notifications, Profile */}
             <div className="flex items-center gap-2 lg:gap-3">
               {/* Enable Sound Button - shows only if not enabled */}
               {!orderSoundEnabled && (
@@ -781,6 +786,9 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
                   <span className="hidden sm:inline">Enable Sound</span>
                 </button>
               )}
+
+              {/* Language Switcher */}
+              <AdminLanguageSwitcher />
 
               {/* Notifications */}
               <DropdownMenu>
@@ -960,20 +968,20 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuLabel>{tAccountMenu('myAccount')}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => onNavigate('settings')}>
                     <User className="w-4 h-4 mr-2" />
-                    Profile
+                    {tAccountMenu('profile')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => onNavigate('settings')}>
                     <Settings className="w-4 h-4 mr-2" />
-                    Settings
+                    {tAccountMenu('settings')}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={onLogout} className="text-red-600">
                     <LogOut className="w-4 h-4 mr-2" />
-                    Logout
+                    {tAccountMenu('logout')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
