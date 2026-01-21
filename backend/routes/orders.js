@@ -9,7 +9,7 @@ const {
   resolveCommissionRate,
   resolveDailyTarget,
   resolveNumberOfOrders,
-  resolveAutoFreezeThreshold
+  getFreezeConfig
 } = require('../lib/utils');
 const { getUserStats, getOrdersPaginated } = require('../lib/optimized-queries'); // ⚡ Optimized queries
 
@@ -105,18 +105,18 @@ router.get('/stats', authenticateToken, async (req, res) => {
     // Calculate freeze threshold for frontend
     let freezeThreshold = null;
     let freezeTargetProductId = null;
-    
+
     if (user.vipLevel !== 'vip-0' && !user.isFrozen && effectiveNumberOfOrders > 0) {
       const customThreshold = resolveAutoFreezeThreshold(user);
       const commissionConfig = parseJsonField(user.commissionConfig, {});
-      
+
       if (customThreshold != null && customThreshold > 0) {
         freezeThreshold = customThreshold;
       } else {
         // Use 85% as average for display (actual is random 80-90%)
         freezeThreshold = Math.floor(effectiveNumberOfOrders * 0.85);
       }
-      
+
       // Get target product ID if admin specified one
       freezeTargetProductId = commissionConfig.freezeTargetProductId || null;
     }
@@ -206,40 +206,47 @@ router.post('/take', authenticateToken, async (req, res) => {
     const randomProduct = { id, name, price: Number(price), brand, category, image };
 
     // ============================================
-    // 🔒 FREEZE MECHANISM - ALL VIP LEVELS
+    // 🔒 FREEZE MECHANISM - ADMIN CONTROLLED ONLY
     // ============================================
-    // Trigger freeze when BOTH conditions are met:
-    // 1. User reaches custom threshold OR 80-90% of max orders (random)
-    // 2. Product price > user's current balance
+    // Freeze ONLY happens when admin explicitly enables it for the user
+    // Two modes available:
+    // 1. 'random' - Freeze at 80-90% of max orders (random)
+    // 2. 'custom' - Freeze at specific order number
     // Applied to all VIP levels (except VIP 0)
     let shouldFreeze = false;
     let freezeTrigger = null;
-    
+
     if (user.vipLevel !== 'vip-0' && !user.isFrozen && effectiveOrdersLimit > 0) {
-      // Check if admin set custom freeze threshold
-      const customThreshold = resolveAutoFreezeThreshold(user);
-      
-      if (customThreshold != null && customThreshold > 0) {
-        // Use admin's custom threshold
-        freezeTrigger = customThreshold;
-        console.log(`[Orders/take] ${user.vipLevel.toUpperCase()} freeze check: ${todayOrders.length}/${freezeTrigger} orders (CUSTOM threshold)`);
+      // Get freeze config from admin settings
+      const freezeConfig = getFreezeConfig(user);
+
+      // Only proceed if admin has ENABLED freeze for this user
+      if (freezeConfig.enabled) {
+        if (freezeConfig.mode === 'random') {
+          // Random 80-90% of max orders
+          const freezePercentMin = 0.80;
+          const freezePercentMax = 0.90;
+          const randomPercent = freezePercentMin + (Math.random() * (freezePercentMax - freezePercentMin));
+          freezeTrigger = Math.floor(effectiveOrdersLimit * randomPercent);
+          console.log(`[Orders/take] ${user.vipLevel.toUpperCase()} freeze check: ${todayOrders.length}/${freezeTrigger} orders (RANDOM ${Math.round(randomPercent * 100)}% mode)`);
+        } else if (freezeConfig.mode === 'custom' && freezeConfig.threshold != null) {
+          // Use admin's custom threshold
+          freezeTrigger = freezeConfig.threshold;
+          console.log(`[Orders/take] ${user.vipLevel.toUpperCase()} freeze check: ${todayOrders.length}/${freezeTrigger} orders (CUSTOM threshold)`);
+        }
+
+        // Check BOTH conditions: order count reached AND product price exceeds balance
+        if (freezeTrigger != null) {
+          const nextOrderNumber = todayOrders.length + 1;
+
+          if (nextOrderNumber >= freezeTrigger && Number(randomProduct.price) > user.balance) {
+            shouldFreeze = true;
+            console.log('[Orders/take] 🔒 Will trigger freeze mechanism after creating suspended order...');
+            console.log(`[Orders/take] Freeze conditions met: nextOrder=${nextOrderNumber} >= threshold=${freezeTrigger}, productPrice=${randomProduct.price} > balance=${user.balance}`);
+          }
+        }
       } else {
-        // Use default 80-90% calculation
-        const freezePercentMin = 0.80; // 80%
-        const freezePercentMax = 0.90; // 90%
-        const randomPercent = freezePercentMin + (Math.random() * (freezePercentMax - freezePercentMin));
-        freezeTrigger = Math.floor(effectiveOrdersLimit * randomPercent);
-        console.log(`[Orders/take] ${user.vipLevel.toUpperCase()} freeze check: ${todayOrders.length}/${freezeTrigger} orders (${Math.round(randomPercent * 100)}% of ${effectiveOrdersLimit})`);
-      }
-      
-      // Check BOTH conditions: order count reached AND product price exceeds balance
-      // Note: todayOrders.length is BEFORE creating new order, so we check if NEXT order reaches threshold
-      const nextOrderNumber = todayOrders.length + 1; // This will be the order number after creation
-      
-      if (nextOrderNumber >= freezeTrigger && Number(randomProduct.price) > user.balance) {
-        shouldFreeze = true;
-        console.log('[Orders/take] 🔒 Will trigger freeze mechanism after creating suspended order...');
-        console.log(`[Orders/take] Freeze conditions met: nextOrder=${nextOrderNumber} >= threshold=${freezeTrigger}, productPrice=${randomProduct.price} > balance=${user.balance}`);
+        console.log(`[Orders/take] ${user.vipLevel.toUpperCase()} - Freeze NOT enabled by admin, processing normal order`);
       }
     }
 
@@ -279,7 +286,7 @@ router.post('/take', authenticateToken, async (req, res) => {
     // ============================================
     // DUPLICATE DETECTION - BEFORE TRANSACTION
     // ============================================
-    
+
     // Check idempotency key BEFORE transaction
     if (clientRequestId) {
       const existingByKey = await prisma.order.findFirst({
@@ -322,7 +329,7 @@ router.post('/take', authenticateToken, async (req, res) => {
       result = await prisma.$transaction(async (tx) => {
         // Determine order status based on freeze condition
         const orderStatus = shouldFreeze ? 'suspended' : 'pending';
-        
+
         const newOrder = await tx.order.create({
           data: {
             userId,
@@ -369,7 +376,7 @@ router.post('/take', authenticateToken, async (req, res) => {
           delete currentConfig.freezeTargetProductId;
           delete currentConfig.freezeTargetPrice;
           delete currentConfig.autoFreezeThreshold; // Also clear threshold
-          
+
           updatedUser = await tx.user.update({
             where: { id: userId },
             data: {
@@ -382,7 +389,7 @@ router.post('/take', authenticateToken, async (req, res) => {
               commissionConfig: JSON.stringify(currentConfig) // Clear everything
             }
           });
-          
+
           console.log('[Orders/take] ✅ Account frozen with suspended order (freeze config cleared):', {
             userId,
             orderId: newOrder.id,
@@ -406,15 +413,15 @@ router.post('/take', authenticateToken, async (req, res) => {
       });
     } catch (transactionError) {
       // Check if it's a unique constraint violation on clientRequestId
-      if (transactionError.code === 'P2002' && 
-          transactionError.meta?.target?.includes('clientRequestId')) {
+      if (transactionError.code === 'P2002' &&
+        transactionError.meta?.target?.includes('clientRequestId')) {
         console.log('[Orders/take] ⚠️ Database constraint caught duplicate:', clientRequestId);
-        
+
         // Fetch the existing order
         const existing = await prisma.order.findFirst({
           where: { userId, clientRequestId }
         });
-        
+
         if (existing) {
           return res.json({
             success: true,
@@ -422,7 +429,7 @@ router.post('/take', authenticateToken, async (req, res) => {
           });
         }
       }
-      
+
       // Re-throw if it's a different error
       console.error('[Orders/take] ❌ Transaction error:', transactionError);
       throw transactionError;

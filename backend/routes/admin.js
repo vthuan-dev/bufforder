@@ -113,18 +113,18 @@ router.get('/my-location', async (req, res) => {
   try {
     const rawIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString();
     const ip = rawIp.split(',')[0].trim();
-    
+
     if (!ip || ip === '::1' || ip === '127.0.0.1' || ip === '::ffff:127.0.0.1') {
-      return res.json({ 
-        success: true, 
-        data: { 
-          status: 'success', 
-          city: 'Local', 
-          regionName: 'Local', 
+      return res.json({
+        success: true,
+        data: {
+          status: 'success',
+          city: 'Local',
+          regionName: 'Local',
           country: 'Local',
           lat: 0,
           lon: 0
-        } 
+        }
       });
     }
 
@@ -365,10 +365,10 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
         frozenBalance: user.frozenBalance,
         depositAmount: amount
       });
-      
+
       const totalBalance = user.frozenBalance + amount; // Frozen + new deposit
       console.log('[Admin] 💰 Total balance after deposit:', totalBalance);
-      
+
       // Find suspended order
       const suspendedOrder = await prisma.order.findFirst({
         where: {
@@ -388,17 +388,17 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
         console.log(`[Admin]    + Commission earned: ${suspendedOrder.commissionAmount}`);
         console.log(`[Admin]    = Final balance: ${totalBalance + suspendedOrder.commissionAmount}`);
         console.log('[Admin] 📝 Note: Product price NOT deducted (orders only add commission, never deduct balance)');
-        
+
         // Update order to pending (NO price deduction)
         await prisma.order.update({
           where: { id: suspendedOrder.id },
           data: { status: 'pending' }
         });
-        
+
         // Calculate final balance: frozen + deposit + commission (NO deduction)
         const finalBalance = totalBalance + suspendedOrder.commissionAmount;
         console.log('[Admin] 💎 Final balance:', finalBalance);
-        
+
         // Clear target product from commission config when auto-unlocking
         let currentConfig = {};
         try {
@@ -410,7 +410,7 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
         delete currentConfig.freezeTargetProductId;
         delete currentConfig.freezeTargetPrice;
         delete currentConfig.autoFreezeThreshold; // Also clear threshold
-        
+
         updateData.isFrozen = false;
         updateData.balance = finalBalance;
         updateData.frozenBalance = 0;
@@ -418,7 +418,7 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
         updateData.unfrozenAt = new Date();
         updateData.unfrozenBy = req.adminId;
         updateData.commissionConfig = JSON.stringify(currentConfig); // Clear target product
-        
+
         suspendedOrderProcessed = {
           orderId: suspendedOrder.id,
           orderNumber: suspendedOrder.orderNumber,
@@ -426,7 +426,7 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
           commission: suspendedOrder.commissionAmount,
           newStatus: 'pending'
         };
-        
+
         console.log('[Admin] ✅ Suspended order processed and account unlocked (target product cleared)');
       } else if (suspendedOrder) {
         console.log('[Admin] ⚠️ Insufficient balance to process suspended order');
@@ -446,7 +446,7 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
         delete currentConfig.freezeTargetProductId;
         delete currentConfig.freezeTargetPrice;
         delete currentConfig.autoFreezeThreshold; // Also clear threshold
-        
+
         updateData.isFrozen = false;
         updateData.balance = totalBalance;
         updateData.frozenBalance = 0;
@@ -493,9 +493,9 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
     res.json({
       success: true,
       message: 'Deposit approved',
-      data: { 
-        requestId, 
-        amount, 
+      data: {
+        requestId,
+        amount,
         user: { id: user.id, newBalance: updateData.balance, newTotalDeposited, newVipLevel: newVipLevel?.id },
         suspendedOrderProcessed // Include info if suspended order was processed
       }
@@ -788,11 +788,11 @@ router.get('/users/:id', verifyAdminToken, async (req, res) => {
 router.get('/users/:id/order-stats', verifyAdminToken, async (req, res) => {
   try {
     const userId = req.params.id;
-    
+
     // Get today's date key
     const today = new Date();
     const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    
+
     // Count today's completed orders
     const todayOrders = await prisma.order.count({
       where: {
@@ -803,13 +803,13 @@ router.get('/users/:id/order-stats', verifyAdminToken, async (req, res) => {
         }
       }
     });
-    
+
     // Get user's commission config to check for saved target product
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { commissionConfig: true }
     });
-    
+
     // Parse commissionConfig (it's stored as JSON string)
     let commissionConfig = {};
     try {
@@ -818,9 +818,9 @@ router.get('/users/:id/order-stats', verifyAdminToken, async (req, res) => {
       console.error('Failed to parse commissionConfig:', e);
       commissionConfig = {};
     }
-    
+
     const freezeTargetProductId = commissionConfig.freezeTargetProductId;
-    
+
     // If there's a saved target product, fetch its details
     let targetProduct = null;
     if (freezeTargetProductId) {
@@ -835,12 +835,14 @@ router.get('/users/:id/order-stats', verifyAdminToken, async (req, res) => {
         }
       });
     }
-    
+
     res.json({
       success: true,
       data: {
         todayOrders,
         dateKey: todayKey,
+        autoFreezeEnabled: commissionConfig.autoFreezeEnabled || false,
+        autoFreezeMode: commissionConfig.autoFreezeMode || 'custom',
         autoFreezeThreshold: commissionConfig.autoFreezeThreshold || null,
         freezeTargetProductId,
         targetProduct
@@ -896,11 +898,11 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
     // Handle balance changes (add, set, or subtract)
     let balanceDelta = 0;
     let balanceChangeType = 'none'; // 'add', 'set', 'subtract', 'none'
-    
+
     if (balance !== undefined) {
       const newBalance = Number(balance);
       const currentBalance = currentUser.balance;
-      
+
       // Determine the type of balance change
       if (newBalance > currentBalance) {
         balanceChangeType = 'add';
@@ -909,10 +911,10 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
         balanceChangeType = 'subtract';
         balanceDelta = currentBalance - newBalance;
       }
-      
+
       // Always allow balance changes (add, set, or subtract)
       data.balance = newBalance;
-      
+
       // Only update totalDeposited if balance increased (add operation)
       if (balanceChangeType === 'add') {
         data.totalDeposited = currentUser.totalDeposited + balanceDelta;
@@ -925,7 +927,7 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
     // Use transaction to update user and create appropriate records
     let user;
     let notification;
-    
+
     if (balanceChangeType === 'add') {
       // Balance increased - create deposit request
       const result = await prisma.$transaction([
@@ -1126,7 +1128,7 @@ router.post('/users/:id/unlock', verifyAdminToken, async (req, res) => {
     delete currentConfig.freezeTargetProductId;
     delete currentConfig.freezeTargetPrice;
     delete currentConfig.autoFreezeThreshold; // Also clear threshold
-    
+
     const updateData = {
       isFrozen: false,
       unfrozenAt: new Date(),
@@ -1148,7 +1150,7 @@ router.post('/users/:id/unlock', verifyAdminToken, async (req, res) => {
         data: {
           userId: userId,
           title: 'Account Unlocked',
-          message: restoreBalance 
+          message: restoreBalance
             ? `Your account has been unlocked. Balance restored: $${user.frozenBalance.toFixed(2)}`
             : 'Your account has been unlocked by admin.',
           type: 'success'
@@ -1331,7 +1333,7 @@ router.patch('/users/:id/commission-config', verifyAdminToken, async (req, res) 
       console.error('Failed to parse existing commissionConfig:', e);
       existingConfig = {};
     }
-    
+
     const newConfig = { ...existingConfig, ...commissionConfig };
 
     // Stringify once for String field
@@ -1668,7 +1670,7 @@ router.get('/products/:id', verifyAdminToken, async (req, res) => {
 router.get('/products/find-by-price/:targetPrice', verifyAdminToken, async (req, res) => {
   try {
     const targetPrice = parseFloat(req.params.targetPrice);
-    
+
     if (isNaN(targetPrice) || targetPrice <= 0) {
       return res.status(400).json({ success: false, message: 'Invalid price' });
     }
@@ -1692,8 +1694,8 @@ router.get('/products/find-by-price/:targetPrice', verifyAdminToken, async (req,
     });
 
     if (products.length === 0) {
-      return res.json({ 
-        success: true, 
+      return res.json({
+        success: true,
         data: [],
         message: 'No products found in price range'
       });
@@ -1708,8 +1710,8 @@ router.get('/products/find-by-price/:targetPrice', verifyAdminToken, async (req,
       .sort((a, b) => a.priceDiff - b.priceDiff)
       .map(({ priceDiff, ...product }) => product);
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       data: sortedProducts
     });
   } catch (error) {

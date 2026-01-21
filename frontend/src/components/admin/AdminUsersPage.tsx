@@ -30,6 +30,8 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { formatSafeDate } from "../ui/utils";
+import { Switch } from "../ui/switch";
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import api from "../../services/api";
 
 interface UserRow {
@@ -81,14 +83,18 @@ export function AdminUsersPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createFullName, setCreateFullName] = useState("");
   const [createEmail, setCreateEmail] = useState("");
-  
+
   // Freeze Threshold Dialog
   const [freezeThresholdDialogOpen, setFreezeThresholdDialogOpen] = useState(false);
   const [freezeThresholdUser, setFreezeThresholdUser] = useState<UserRow | null>(null);
   const [freezeThresholdValue, setFreezeThresholdValue] = useState("");
   const [freezeThresholdCurrentOrders, setFreezeThresholdCurrentOrders] = useState(0);
   const [freezeThresholdLoading, setFreezeThresholdLoading] = useState(false);
-  
+
+  // NEW: Freeze Enable and Mode
+  const [freezeEnabled, setFreezeEnabled] = useState(false);
+  const [freezeMode, setFreezeMode] = useState<'random' | 'custom'>('custom');
+
   // Target Product for Freeze
   const [targetProductPrice, setTargetProductPrice] = useState("");
   const [targetProduct, setTargetProduct] = useState<any>(null);
@@ -96,7 +102,7 @@ export function AdminUsersPage() {
   const [productSearchError, setProductSearchError] = useState("");
   const [productList, setProductList] = useState<any[]>([]); // List of products from search
   const [showProductDropdown, setShowProductDropdown] = useState(false); // Show/hide dropdown
-  
+
   const [createPhone, setCreatePhone] = useState("");
   const [createPassword, setCreatePassword] = useState("");
   const [creating, setCreating] = useState(false);
@@ -324,7 +330,7 @@ export function AdminUsersPage() {
   const handleFreeze = async (user: UserRow) => {
     const reason = prompt(t('notifications.freezeReasonPrompt'));
     if (reason === null) return; // User cancelled
-    
+
     if (!confirm(t('notifications.freezeConfirm', { name: user.name }))) return;
     try {
       await api.adminFreezeUser(user.id, reason || undefined);
@@ -342,24 +348,35 @@ export function AdminUsersPage() {
     setFreezeThresholdCurrentOrders(0);
     setTargetProduct(null); // Reset
     setTargetProductPrice(""); // Reset
+    setFreezeEnabled(false); // Reset
+    setFreezeMode('custom'); // Reset to custom mode
     setFreezeThresholdLoading(true);
     setFreezeThresholdDialogOpen(true);
-    
+
     try {
       // Fetch today's order count and saved target product for this user
       const statsRes = await api.adminGetUserOrderStats(user.id);
-      
+
       if (statsRes?.success && statsRes?.data) {
         const todayOrders = Number(statsRes.data.todayOrders || 0);
         console.log('[FreezeThreshold] Today orders:', todayOrders);
         setFreezeThresholdCurrentOrders(todayOrders);
-        
+
+        // Load saved freeze enabled state
+        const isEnabled = statsRes.data.autoFreezeEnabled === true ||
+          (statsRes.data.autoFreezeThreshold != null && statsRes.data.autoFreezeThreshold > 0);
+        setFreezeEnabled(isEnabled);
+
+        // Load saved freeze mode
+        const savedMode = statsRes.data.autoFreezeMode || 'custom';
+        setFreezeMode(savedMode as 'random' | 'custom');
+
         // Load saved freeze threshold if exists
         if (statsRes.data.autoFreezeThreshold) {
           console.log('[FreezeThreshold] Loaded saved threshold:', statsRes.data.autoFreezeThreshold);
           setFreezeThresholdValue(String(statsRes.data.autoFreezeThreshold));
         }
-        
+
         // Load saved target product if exists
         if (statsRes.data.targetProduct) {
           console.log('[FreezeThreshold] Loaded saved target product:', statsRes.data.targetProduct);
@@ -384,22 +401,22 @@ export function AdminUsersPage() {
     if (targetProduct) {
       return;
     }
-    
+
     const price = parseFloat(targetProductPrice);
-    
+
     if (isNaN(price) || price <= 0) {
       setProductList([]);
       setShowProductDropdown(false);
       return;
     }
-    
+
     const timer = setTimeout(async () => {
       try {
         setSearchingProduct(true);
         setProductSearchError('');
-        
+
         const response = await api.adminFindProductByPrice(price);
-        
+
         if (response.success && response.data && Array.isArray(response.data)) {
           setProductList(response.data);
           setShowProductDropdown(response.data.length > 0);
@@ -415,26 +432,26 @@ export function AdminUsersPage() {
         setSearchingProduct(false);
       }
     }, 500); // Debounce 500ms
-    
+
     return () => clearTimeout(timer);
   }, [targetProductPrice, targetProduct]);
 
   // Search for target product by price
   const handleSearchProductByPrice = async () => {
     const price = parseFloat(targetProductPrice);
-    
+
     if (isNaN(price) || price <= 0) {
       setProductSearchError('Vui lòng nhập giá hợp lệ');
       return;
     }
-    
+
     try {
       setSearchingProduct(true);
       setProductSearchError('');
       setTargetProduct(null);
-      
+
       const response = await api.adminFindProductByPrice(price);
-      
+
       if (response.success && response.data && Array.isArray(response.data)) {
         setProductList(response.data);
         setShowProductDropdown(response.data.length > 0);
@@ -451,7 +468,7 @@ export function AdminUsersPage() {
       setSearchingProduct(false);
     }
   };
-  
+
   // Select product from dropdown
   const handleSelectProduct = (product: any) => {
     setTargetProduct(product);
@@ -462,58 +479,64 @@ export function AdminUsersPage() {
 
   const handleConfirmFreezeThreshold = async () => {
     if (!freezeThresholdUser) return;
-    
+
     try {
-      const threshold = freezeThresholdValue === '' ? null : parseInt(freezeThresholdValue);
       const maxOrders = VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] || 0;
-      
-      if (freezeThresholdValue !== '') {
-        if (isNaN(threshold!) || threshold! < 1) {
-          toast.error(t('freezeThresholdDialog.errorInvalid'));
+
+      // Validate only when enabled and custom mode
+      if (freezeEnabled && freezeMode === 'custom') {
+        const threshold = freezeThresholdValue === '' ? null : parseInt(freezeThresholdValue);
+
+        if (threshold === null || isNaN(threshold) || threshold < 1) {
+          toast.error('Vui lòng nhập số đơn hợp lệ khi chọn mode "Số đơn cụ thể"');
           return;
         }
-        
+
         // Validate: threshold must be > current orders and < max orders
-        if (threshold! <= freezeThresholdCurrentOrders) {
+        if (threshold <= freezeThresholdCurrentOrders) {
           toast.error(t('freezeThresholdDialog.errorTooLow', { current: freezeThresholdCurrentOrders }));
           return;
         }
-        
-        if (threshold! >= maxOrders) {
+
+        if (threshold >= maxOrders) {
           toast.error(t('freezeThresholdDialog.errorTooHigh', { max: maxOrders }));
           return;
         }
       }
-      
-      // Validate: target product price must be > user balance
-      if (targetProduct && targetProduct.price <= freezeThresholdUser.balance) {
-        toast.error(t('freezeThresholdDialog.errorProductPriceTooLow', { 
-          price: targetProduct.price.toFixed(2), 
-          balance: freezeThresholdUser.balance.toFixed(2) 
+
+      // Validate: target product price must be > user balance (only when enabled)
+      if (freezeEnabled && targetProduct && targetProduct.price <= freezeThresholdUser.balance) {
+        toast.error(t('freezeThresholdDialog.errorProductPriceTooLow', {
+          price: targetProduct.price.toFixed(2),
+          balance: freezeThresholdUser.balance.toFixed(2)
         }));
         return;
       }
-      
+
       // Build commission config with freeze settings
       const config: any = {
-        autoFreezeThreshold: threshold
+        autoFreezeEnabled: freezeEnabled,
+        autoFreezeMode: freezeMode,
+        autoFreezeThreshold: freezeMode === 'custom' ? parseInt(freezeThresholdValue) || null : null
       };
-      
+
       // Add target product if specified
       if (targetProduct) {
         config.freezeTargetProductId = targetProduct.id;
         config.freezeTargetPrice = targetProduct.price;
       }
-      
-      await api.adminSetFreezeThreshold(freezeThresholdUser.id, threshold, config);
-      
-      toast.success(threshold === null 
-        ? t('freezeThresholdDialog.successDefault')
-        : targetProduct 
-          ? `Đã đặt ngưỡng ${threshold} với sản phẩm ${targetProduct.name}`
-          : t('freezeThresholdDialog.successCustom', { threshold })
-      );
-      
+
+      await api.adminSetFreezeThreshold(freezeThresholdUser.id, config.autoFreezeThreshold, config);
+
+      // Show appropriate success message
+      if (!freezeEnabled) {
+        toast.success('Đã TẮT đóng băng tự động cho user này');
+      } else if (freezeMode === 'random') {
+        toast.success('Đã BẬT đóng băng tự động (80-90% random)');
+      } else {
+        toast.success(`Đã BẬT đóng băng ở đơn thứ ${freezeThresholdValue}${targetProduct ? ` với sản phẩm ${targetProduct.name}` : ''}`);
+      }
+
       setFreezeThresholdDialogOpen(false);
       setTimeout(() => window.location.reload(), 500);
     } catch (e: any) {
@@ -804,7 +827,7 @@ export function AdminUsersPage() {
                         <div className="space-y-2">
                           <div className="bg-blue-50 rounded-lg p-2 border border-blue-200">
                             <p className="text-xs text-blue-600 mb-1">{t('editDialog.current')}: ${formBalance}</p>
-                            
+
                             {/* Operation Selector */}
                             <div className="mb-2">
                               <Select value={balanceOperation} onValueChange={(v: any) => setBalanceOperation(v)}>
@@ -828,8 +851,8 @@ export function AdminUsersPage() {
                                 className="pl-8 h-9 text-sm"
                                 placeholder={
                                   balanceOperation === 'add' ? t('editDialog.balancePlaceholders.add') :
-                                  balanceOperation === 'set' ? t('editDialog.balancePlaceholders.set') :
-                                  t('editDialog.balancePlaceholders.subtract')
+                                    balanceOperation === 'set' ? t('editDialog.balancePlaceholders.set') :
+                                      t('editDialog.balancePlaceholders.subtract')
                                 }
                                 autoFocus
                                 onKeyDown={(e) => {
@@ -847,8 +870,8 @@ export function AdminUsersPage() {
                               <p className="text-xs text-blue-700 mt-1 font-medium">
                                 {t('editDialog.new')}: ${
                                   balanceOperation === 'add' ? (Number(formBalance) + Number(addBalanceAmount)).toFixed(2) :
-                                  balanceOperation === 'set' ? Number(addBalanceAmount).toFixed(2) :
-                                  Math.max(0, Number(formBalance) - Number(addBalanceAmount)).toFixed(2)
+                                    balanceOperation === 'set' ? Number(addBalanceAmount).toFixed(2) :
+                                      Math.max(0, Number(formBalance) - Number(addBalanceAmount)).toFixed(2)
                                 }
                               </p>
                             )}
@@ -1193,7 +1216,7 @@ export function AdminUsersPage() {
           <DialogTitle className="text-lg font-semibold text-gray-900 mb-4">
             {t('freezeThresholdDialog.title')}
           </DialogTitle>
-          
+
           {freezeThresholdUser && (
             <div className="space-y-4">
               {/* User Info Card */}
@@ -1229,138 +1252,182 @@ export function AdminUsersPage() {
                 </div>
               </div>
 
-              {/* Default Range Info */}
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                <p className="text-xs text-yellow-800 font-medium mb-1">
-                  <Target className="w-3 h-3 inline mr-1" />
-                  {t('freezeThresholdDialog.defaultFreezeRange')}
-                </p>
-                <p className="text-sm text-yellow-900 font-semibold">
-                  {t('freezeThresholdDialog.ordersRange', {
-                    min: Math.floor((VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] || 0) * 0.8),
-                    max: Math.floor((VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] || 0) * 0.9)
-                  })}
-                </p>
-              </div>
-
-              {/* Input */}
-              <div>
-                <Label className="text-sm text-gray-700 mb-2 block">
-                  {t('freezeThresholdDialog.customThreshold')}
-                </Label>
-                <Input
-                  type="number"
-                  value={freezeThresholdValue}
-                  onChange={(e) => setFreezeThresholdValue(e.target.value)}
-                  placeholder={t('freezeThresholdDialog.placeholder')}
-                  className="h-11"
-                  min={freezeThresholdCurrentOrders + 1}
-                  max={VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] - 1}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  {t('freezeThresholdDialog.hint')}
-                </p>
-                {freezeThresholdValue && (
-                  <p className="text-xs text-blue-600 mt-1 font-medium">
-                    ✓ Phạm vi hợp lệ: {freezeThresholdCurrentOrders + 1} - {VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] - 1} đơn
+              {/* Enable/Disable Freeze Toggle */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex-1">
+                  <Label className="text-sm font-medium text-gray-900">🔒 Bật đóng băng tự động</Label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Khi bật, user sẽ bị freeze khi đạt ngưỡng + giá sản phẩm &gt; balance
                   </p>
-                )}
+                </div>
+                <Switch
+                  checked={freezeEnabled}
+                  onCheckedChange={setFreezeEnabled}
+                />
               </div>
 
-              {/* Target Product Selection */}
-              <div className="border-t border-gray-200 pt-4 mt-4 relative">
-                <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                  💰 Số tiền sản phẩm treo (tùy chọn)
-                </Label>
-                <div className="relative">
-                  <Input
-                    type="number"
-                    value={targetProductPrice}
-                    onChange={(e) => {
-                      setTargetProductPrice(e.target.value);
-                      setProductSearchError('');
-                      setTargetProduct(null); // Clear selected product when typing
-                    }}
-                    onFocus={() => {
-                      if (productList.length > 0) {
-                        setShowProductDropdown(true);
-                      }
-                    }}
-                    placeholder="Nhập giá sản phẩm (VD: 2000)"
-                    className="w-full"
-                    min={0}
-                  />
-                  {searchingProduct && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+              {/* Freeze Mode Selection - Only show when enabled */}
+              {freezeEnabled && (
+                <>
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium text-gray-700">📊 Chọn chế độ đóng băng</Label>
+                    <RadioGroup value={freezeMode} onValueChange={(value: string) => setFreezeMode(value as 'random' | 'custom')}>
+                      <div className="flex items-start space-x-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer">
+                        <RadioGroupItem value="random" id="mode-random" className="mt-0.5" />
+                        <div className="flex-1">
+                          <Label htmlFor="mode-random" className="text-sm font-medium text-gray-900 cursor-pointer">
+                            80-90% Random
+                          </Label>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            Đóng băng ngẫu nhiên trong khoảng {Math.floor((VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] || 0) * 0.8)} - {Math.floor((VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] || 0) * 0.9)} đơn
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer">
+                        <RadioGroupItem value="custom" id="mode-custom" className="mt-0.5" />
+                        <div className="flex-1">
+                          <Label htmlFor="mode-custom" className="text-sm font-medium text-gray-900 cursor-pointer">
+                            Số đơn cụ thể
+                          </Label>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            Chọn chính xác số đơn sẽ đóng băng
+                          </p>
+                        </div>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  {/* Custom Threshold Input - Only show when custom mode */}
+                  {freezeMode === 'custom' && (
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <Label className="text-sm text-gray-700 mb-2 block">
+                        🎯 Số đơn sẽ đóng băng
+                      </Label>
+                      <Input
+                        type="number"
+                        value={freezeThresholdValue}
+                        onChange={(e) => setFreezeThresholdValue(e.target.value)}
+                        placeholder={`Nhập số từ ${freezeThresholdCurrentOrders + 1} đến ${VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] - 1}`}
+                        className="h-11 bg-white"
+                        min={freezeThresholdCurrentOrders + 1}
+                        max={VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] - 1}
+                      />
+                      <p className="text-xs text-blue-600 mt-2 font-medium">
+                        ✓ Phạm vi hợp lệ: {freezeThresholdCurrentOrders + 1} - {VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] - 1} đơn
+                      </p>
                     </div>
                   )}
-                  
-                  {/* Dropdown Product List */}
-                  {showProductDropdown && productList.length > 0 && (
-                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
-                      {productList.map((product) => (
+                </>
+              )}
+
+              {/* Status indicator when disabled */}
+              {!freezeEnabled && (
+                <div className="p-4 bg-gray-100 rounded-lg border border-gray-200 text-center">
+                  <p className="text-sm text-gray-600">
+                    ℹ️ Đóng băng tự động đang <span className="font-bold text-gray-900">TẮT</span>
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    User sẽ nhận đơn bình thường đến khi hết giới hạn hàng ngày
+                  </p>
+                </div>
+              )}
+
+              {/* Target Product Selection - Only show when freeze is enabled */}
+              {freezeEnabled && (
+                <div className="border-t border-gray-200 pt-4 mt-4 relative">
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                    💰 Số tiền sản phẩm treo (tùy chọn)
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      value={targetProductPrice}
+                      onChange={(e) => {
+                        setTargetProductPrice(e.target.value);
+                        setProductSearchError('');
+                        setTargetProduct(null); // Clear selected product when typing
+                      }}
+                      onFocus={() => {
+                        if (productList.length > 0) {
+                          setShowProductDropdown(true);
+                        }
+                      }}
+                      placeholder="Nhập giá sản phẩm (VD: 2000)"
+                      className="w-full"
+                      min={0}
+                    />
+                    {searchingProduct && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                      </div>
+                    )}
+
+                    {/* Dropdown Product List */}
+                    {showProductDropdown && productList.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                        {productList.map((product) => (
+                          <button
+                            key={product.id}
+                            onClick={() => handleSelectProduct(product)}
+                            className="w-full px-3 py-2 hover:bg-gray-50 flex items-center gap-3 border-b border-gray-100 last:border-0 transition-colors text-left"
+                          >
+                            <img
+                              src={product.image}
+                              alt={product.name}
+                              className="w-10 h-10 object-cover rounded border border-gray-200"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
+                              <p className="text-xs text-gray-500">{product.brand}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-bold text-green-600">${product.price}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Nhập giá sản phẩm, danh sách sẽ tự động hiện ra để chọn
+                  </p>
+
+                  {/* Product Search Error */}
+                  {productSearchError && (
+                    <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-600">
+                      {productSearchError}
+                    </div>
+                  )}
+
+                  {/* Target Product Display */}
+                  {targetProduct && (
+                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <p className="text-xs text-green-800 font-medium mb-2">✓ Sản phẩm đã chọn:</p>
+                      <div className="flex gap-3">
+                        <img
+                          src={targetProduct.image}
+                          alt={targetProduct.name}
+                          className="w-16 h-16 object-cover rounded border border-green-300"
+                        />
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-gray-900">{targetProduct.name}</p>
+                          <p className="text-xs text-gray-600">{targetProduct.brand}</p>
+                          <p className="text-sm font-bold text-green-600 mt-1">${targetProduct.price.toLocaleString()}</p>
+                        </div>
                         <button
-                          key={product.id}
-                          onClick={() => handleSelectProduct(product)}
-                          className="w-full px-3 py-2 hover:bg-gray-50 flex items-center gap-3 border-b border-gray-100 last:border-0 transition-colors text-left"
+                          onClick={() => {
+                            setTargetProduct(null);
+                            setTargetProductPrice('');
+                          }}
+                          className="text-gray-400 hover:text-red-500"
                         >
-                          <img 
-                            src={product.image} 
-                            alt={product.name}
-                            className="w-10 h-10 object-cover rounded border border-gray-200"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
-                            <p className="text-xs text-gray-500">{product.brand}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-bold text-green-600">${product.price}</p>
-                          </div>
+                          <X className="w-4 h-4" />
                         </button>
-                      ))}
+                      </div>
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Nhập giá sản phẩm, danh sách sẽ tự động hiện ra để chọn
-                </p>
-
-                {/* Product Search Error */}
-                {productSearchError && (
-                  <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-600">
-                    {productSearchError}
-                  </div>
-                )}
-
-                {/* Target Product Display */}
-                {targetProduct && (
-                  <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-xs text-green-800 font-medium mb-2">✓ Sản phẩm đã chọn:</p>
-                    <div className="flex gap-3">
-                      <img 
-                        src={targetProduct.image} 
-                        alt={targetProduct.name}
-                        className="w-16 h-16 object-cover rounded border border-green-300"
-                      />
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-gray-900">{targetProduct.name}</p>
-                        <p className="text-xs text-gray-600">{targetProduct.brand}</p>
-                        <p className="text-sm font-bold text-green-600 mt-1">${targetProduct.price.toLocaleString()}</p>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setTargetProduct(null);
-                          setTargetProductPrice('');
-                        }}
-                        className="text-gray-400 hover:text-red-500"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+              )}
 
               {/* Action Buttons */}
               <div className="freeze-modal-actions">
@@ -1375,7 +1442,7 @@ export function AdminUsersPage() {
                   disabled={freezeThresholdLoading}
                   className="freeze-confirm-btn"
                 >
-                  {freezeThresholdValue === '' ? t('freezeThresholdDialog.useDefault') : t('freezeThresholdDialog.setThreshold')}
+                  {freezeEnabled ? 'Lưu cấu hình' : 'Tắt đóng băng'}
                 </button>
               </div>
             </div>
@@ -1383,6 +1450,6 @@ export function AdminUsersPage() {
         </DialogContent>
       </Dialog>
 
-    </div>
+    </div >
   );
 }

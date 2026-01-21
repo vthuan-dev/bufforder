@@ -88,13 +88,44 @@ function resolveNumberOfOrders(user, vipLevel) {
 }
 
 /**
- * Get auto freeze threshold from user override or return null (use default 80-90%)
- * @returns {number|null} - Specific order count to freeze at, or null for default behavior
+ * Get auto freeze threshold from user override or return null
+ * @deprecated Use getFreezeConfig instead
+ * @returns {number|null} - Specific order count to freeze at, or null
  */
 function resolveAutoFreezeThreshold(user) {
     const config = parseJsonField(user?.commissionConfig, {});
     if (config.autoFreezeThreshold != null) return Number(config.autoFreezeThreshold);
-    return null; // Use default 80-90% calculation
+    return null;
+}
+
+/**
+ * Get freeze configuration for user
+ * Freeze only happens when admin explicitly enables it
+ * @param {Object} user - User object with commissionConfig
+ * @returns {{ enabled: boolean, mode: 'random'|'custom'|null, threshold: number|null, targetProductId: number|null }}
+ */
+function getFreezeConfig(user) {
+    const config = parseJsonField(user?.commissionConfig, {});
+
+    // Check if freeze is explicitly enabled by admin
+    // Backward compatibility: if autoFreezeThreshold exists but no autoFreezeEnabled, treat as enabled with custom mode
+    const hasLegacyThreshold = config.autoFreezeThreshold != null && config.autoFreezeThreshold > 0;
+    const isEnabled = config.autoFreezeEnabled === true || hasLegacyThreshold;
+
+    if (!isEnabled) {
+        return { enabled: false, mode: null, threshold: null, targetProductId: null };
+    }
+
+    // Determine mode: 'random' (80-90%) or 'custom' (specific number)
+    // Default to 'custom' for backward compatibility with existing configs
+    const mode = config.autoFreezeMode || (hasLegacyThreshold ? 'custom' : 'random');
+
+    return {
+        enabled: true,
+        mode: mode,
+        threshold: config.autoFreezeThreshold != null ? Number(config.autoFreezeThreshold) : null,
+        targetProductId: config.freezeTargetProductId != null ? Number(config.freezeTargetProductId) : null
+    };
 }
 
 module.exports = {
@@ -106,5 +137,6 @@ module.exports = {
     resolveCommissionRate,
     resolveDailyTarget,
     resolveNumberOfOrders,
-    resolveAutoFreezeThreshold
+    resolveAutoFreezeThreshold,
+    getFreezeConfig
 };
