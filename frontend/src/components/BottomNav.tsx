@@ -3,20 +3,13 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { TABS_CONFIG, getEnabledTabs } from "../config/tabs.config";
 
-// Partner brands data - Only reliable logos
+// Partner brands data - Only verified working logos from simpleicons.org
 const partnerBrands = [
   { name: 'Starbucks', logo: 'https://cdn.simpleicons.org/starbucks/00704A' },
-  { name: 'Amazon', logo: 'https://cdn.simpleicons.org/amazon/FF9900' },
   { name: 'Target', logo: 'https://cdn.simpleicons.org/target/CC0000' },
   { name: 'Apple', logo: 'https://cdn.simpleicons.org/apple/000000' },
   { name: 'Nike', logo: 'https://cdn.simpleicons.org/nike/000000' },
-  { name: 'Adidas', logo: 'https://cdn.simpleicons.org/adidas/000000' },
-  { name: 'Puma', logo: 'https://cdn.simpleicons.org/puma/000000' },
-  { name: 'Gucci', logo: 'https://cdn.simpleicons.org/gucci/000000' },
-  { name: 'Zara', logo: 'https://cdn.simpleicons.org/zara/000000' },
   { name: 'Uniqlo', logo: 'https://cdn.simpleicons.org/uniqlo/ED1C24' },
-  { name: 'Gap', logo: 'https://cdn.simpleicons.org/gap/003087' },
-  { name: 'Sephora', logo: 'https://cdn.simpleicons.org/sephora/000000' },
   { name: 'eBay', logo: 'https://cdn.simpleicons.org/ebay/E53238' },
   { name: 'Etsy', logo: 'https://cdn.simpleicons.org/etsy/F16521' },
   { name: 'Shopify', logo: 'https://cdn.simpleicons.org/shopify/7AB55C' },
@@ -24,7 +17,6 @@ const partnerBrands = [
   { name: 'AliExpress', logo: 'https://cdn.simpleicons.org/aliexpress/FF4747' },
   { name: 'Ikea', logo: 'https://cdn.simpleicons.org/ikea/0058A3' },
   { name: 'Samsung', logo: 'https://cdn.simpleicons.org/samsung/1428A0' },
-  { name: 'Sony', logo: 'https://cdn.simpleicons.org/sony/000000' },
   { name: 'LG', logo: 'https://cdn.simpleicons.org/lg/A50034' },
   { name: 'Dell', logo: 'https://cdn.simpleicons.org/dell/007DB8' },
   { name: 'HP', logo: 'https://cdn.simpleicons.org/hp/0096D6' },
@@ -84,42 +76,42 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
       {/* Partner Brands Marquee - Hidden on help and orders tabs */}
       {activeTab !== 'help' && activeTab !== 'orders' && (
         <div className="px-3 pt-1 pb-0.5 border-b border-gray-100">
-        <p className="text-center text-[9px] text-gray-500 mb-0.5 font-medium">
-          {t('common:sponsors')}
-        </p>
-        <div className="relative overflow-hidden bg-gradient-to-r from-purple-50 via-pink-50 to-blue-50 py-0.5 rounded-md" style={{ maxHeight: '24px' }}>
-          <div className="partner-marquee">
-            <div className="partner-marquee-content">
-              {partnerBrands.map((brand, index) => (
-                <div key={`brand-1-${index}`} className="partner-item">
-                  <img 
-                    src={brand.logo} 
-                    alt={brand.name}
-                    className="partner-logo"
-                    loading="lazy"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                </div>
-              ))}
-              {partnerBrands.map((brand, index) => (
-                <div key={`brand-2-${index}`} className="partner-item">
-                  <img 
-                    src={brand.logo} 
-                    alt={brand.name}
-                    className="partner-logo"
-                    loading="lazy"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                </div>
-              ))}
+          <p className="text-center text-[9px] text-gray-500 mb-0.5 font-medium">
+            {t('common:sponsors')}
+          </p>
+          <div className="relative overflow-hidden bg-gradient-to-r from-purple-50 via-pink-50 to-blue-50 py-0.5 rounded-md" style={{ maxHeight: '24px' }}>
+            <div className="partner-marquee">
+              <div className="partner-marquee-content">
+                {partnerBrands.map((brand, index) => (
+                  <div key={`brand-1-${index}`} className="partner-item">
+                    <img
+                      src={brand.logo}
+                      alt={brand.name}
+                      className="partner-logo"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                ))}
+                {partnerBrands.map((brand, index) => (
+                  <div key={`brand-2-${index}`} className="partner-item">
+                    <img
+                      src={brand.logo}
+                      alt={brand.name}
+                      className="partner-logo"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
-      </div>
       )}
 
       <div className="relative">

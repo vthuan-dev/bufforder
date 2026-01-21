@@ -186,7 +186,7 @@ function ClientApp() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-md mx-auto bg-white min-h-screen shadow-2xl relative">
+      <div className="max-w-md mx-auto bg-white min-h-screen shadow-2xl relative pb-28">
         <audio ref={clientAudioRef} src={new URL('./assets/sound/noti.mp3', import.meta.url).toString()} preload="auto" />
         <Suspense fallback={<PageLoader />}>
           <Routes>
@@ -232,14 +232,14 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
         setIsAuthenticated(false);
         return;
       }
-      
+
       try {
         const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
         const res = await fetch(`${API_BASE}/api/orders/stats`, {
           headers: { 'Authorization': `Bearer ${token}` },
           signal: AbortSignal.timeout(5000) // 5 second timeout
         });
-        
+
         // Only logout if explicitly unauthorized
         if (res.status === 401 || res.status === 403) {
           console.log('[Auth] Token invalid, logging out');
