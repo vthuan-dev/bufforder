@@ -137,6 +137,24 @@
     "errorTooLow": "Ngưỡng phải lớn hơn số đơn hiện tại ({{current}})",
     "errorTooHigh": "Ngưỡng phải nhỏ hơn số đơn tối đa ({{max}})",
     "errorProductPriceTooLow": "Giá sản phẩm treo (${{price}}) phải lớn hơn số dư hiện tại của user (${{balance}})",
-    "errorFailed": "Đặt ngưỡng thất bại"
+    "errorFailed": "Đặt ngưỡng thất bại",
+    "enableAutoFreeze": "Bật đóng băng tự động",
+    "enableAutoFreezeHint": "Khi bật, user sẽ bị freeze khi đạt ngưỡng + giá sản phẩm > balance",
+    "selectFreezeMode": "Chọn chế độ đóng băng",
+    "randomMode": "80-90% Random",
+    "randomModeHint": "Đóng băng ngẫu nhiên trong khoảng {{min}} - {{max}} đơn",
+    "customMode": "Số đơn cụ thể",
+    "customModeHint": "Chọn chính xác số đơn sẽ đóng băng",
+    "freezeAtOrder": "Số đơn sẽ đóng băng",
+    "validRange": "Phạm vi hợp lệ: {{min}} - {{max}} đơn",
+    "enterOrderNumber": "Nhập số từ {{min}} đến {{max}}",
+    "targetProductPrice": "Số tiền sản phẩm treo (tùy chọn)",
+    "currentBalance": "Số dư",
+    "enterProductPrice": "Nhập giá sản phẩm (VD: 2000)",
+    "productPriceHint": "Nhập giá sản phẩm, danh sách sẽ tự động hiện ra để chọn",
+    "autoFreezeDisabled": "Đóng băng tự động đang TẮT",
+    "autoFreezeDisabledHint": "User sẽ nhận đơn bình thường đến khi hết giới hạn hàng ngày",
+    "saveConfig": "Lưu cấu hình",
+    "disableFreeze": "Tắt đóng băng"
   }
 }

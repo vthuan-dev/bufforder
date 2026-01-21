@@ -137,6 +137,24 @@
     "errorTooLow": "Threshold must be greater than current orders ({{current}})",
     "errorTooHigh": "Threshold must be less than max orders ({{max}})",
     "errorProductPriceTooLow": "Target product price (${{price}}) must be greater than user's current balance (${{balance}})",
-    "errorFailed": "Failed to set threshold"
+    "errorFailed": "Failed to set threshold",
+    "enableAutoFreeze": "Enable Auto Freeze",
+    "enableAutoFreezeHint": "When enabled, user will be frozen when reaching threshold + product price > balance",
+    "selectFreezeMode": "Select Freeze Mode",
+    "randomMode": "80-90% Random",
+    "randomModeHint": "Freeze randomly between {{min}} - {{max}} orders",
+    "customMode": "Specific Order Count",
+    "customModeHint": "Choose exact order count to freeze",
+    "freezeAtOrder": "Freeze at Order",
+    "validRange": "Valid range: {{min}} - {{max}} orders",
+    "enterOrderNumber": "Enter number from {{min}} to {{max}}",
+    "targetProductPrice": "Target Product Price (optional)",
+    "currentBalance": "Balance",
+    "enterProductPrice": "Enter product price (e.g. 2000)",
+    "productPriceHint": "Enter product price, matching products will appear to choose",
+    "autoFreezeDisabled": "Auto freeze is OFF",
+    "autoFreezeDisabledHint": "User will receive orders normally until daily limit",
+    "saveConfig": "Save Config",
+    "disableFreeze": "Disable Freeze"
   }
 }
