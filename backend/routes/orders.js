@@ -6,9 +6,11 @@ const { authenticateToken } = require('../middleware/auth');
 const {
   parseJsonField,
   getDateKey,
+  getTodayRange,
   resolveCommissionRate,
   resolveDailyTarget,
   resolveNumberOfOrders,
+  resolveAutoFreezeThreshold,
   getFreezeConfig
 } = require('../lib/utils');
 const { getUserStats, getOrdersPaginated } = require('../lib/optimized-queries'); // ⚡ Optimized queries
@@ -507,12 +509,11 @@ router.post('/take', authenticateToken, async (req, res) => {
         ...(shouldFreeze && {
           accountFrozen: true,
           freezeNotification: {
-            title: 'Tài khoản bị đóng băng',
-            message: `Đơn hàng của bạn đã bị treo do số dư không đủ. Giá sản phẩm ($${randomProduct.price}) vượt quá số dư khả dụng ($${user.balance}). Vui lòng nạp tiền để mở khóa tài khoản.`,
-            frozenBalance: user.balance,
-            orderStatus: 'suspended',
+            // Send data for frontend to translate, not hardcoded text
             productPrice: randomProduct.price,
-            availableBalance: user.balance
+            availableBalance: user.balance,
+            frozenBalance: user.balance,
+            orderStatus: 'suspended'
           }
         })
       }

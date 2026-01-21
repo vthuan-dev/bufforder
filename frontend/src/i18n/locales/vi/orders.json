@@ -81,8 +81,8 @@
     "contactAdmin": "Vui lòng liên hệ admin hoặc nạp thêm để mở khóa tài khoản.",
     "topUpNow": "Nạp tiền ngay",
     "contactSupport": "Liên hệ hỗ trợ",
-    "orderSuspended": "Đơn hàng bị treo",
-    "orderSuspendedMessage": "Đơn hàng của bạn đã bị treo do đạt giới hạn đơn hàng. Vui lòng liên hệ admin hoặc nạp tiền để mở khóa tài khoản.",
+    "orderSuspended": "Tài khoản bị đóng băng",
+    "orderSuspendedMessage": "Đơn hàng của bạn đã bị treo do số dư không đủ. Giá sản phẩm (${{price}}) vượt quá số dư khả dụng (${{balance}}). Vui lòng nạp tiền để mở khóa tài khoản.",
     "orderStatus": "Trạng thái đơn hàng"
   }
 }

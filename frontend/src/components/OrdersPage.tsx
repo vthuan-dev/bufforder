@@ -437,19 +437,24 @@ export function OrdersPage() {
       // ✅ Check if account was frozen
       if (takeRes?.data?.accountFrozen) {
         const freezeNotif = takeRes.data.freezeNotification;
-        toast.error(freezeNotif?.title || t('orders:frozen.orderSuspended'), {
-          description: freezeNotif?.message || t('orders:frozen.orderSuspendedMessage'),
+        
+        // Use translation with params instead of backend text
+        const price = freezeNotif?.productPrice || 0;
+        const balance = freezeNotif?.availableBalance || 0;
+        
+        toast.error(t('orders:frozen.orderSuspended'), {
+          description: t('orders:frozen.orderSuspendedMessage', { price, balance }),
           duration: 8000,
           action: {
             label: t('orders:frozen.topUpNow'),
-            onClick: () => window.location.hash = '#/topup'
+            onClick: () => window.location.href = '/my'
           }
         });
 
         // Update freeze status
         setIsFrozen(true);
         setFrozenBalance(freezeNotif?.frozenBalance || 0);
-        setFrozenReason(freezeNotif?.message || '');
+        setFrozenReason(t('orders:frozen.orderSuspendedMessage', { price, balance }));
         setAvailableBalance(0); // Balance moved to frozen
 
         setShowOrderPopup(false);
@@ -639,13 +644,13 @@ export function OrdersPage() {
                 <p className="text-white/90 text-xs mb-3">{t('orders:frozen.contactAdmin')}</p>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => window.location.hash = '#/my'}
+                    onClick={() => window.location.href = '/my'}
                     className="px-4 py-2 bg-white text-red-600 rounded-lg text-xs font-medium hover:bg-white/90 transition-colors"
                   >
                     {t('orders:frozen.topUpNow')}
                   </button>
                   <button
-                    onClick={() => window.location.hash = '#/help'}
+                    onClick={() => window.location.href = '/help'}
                     className="px-4 py-2 bg-white/20 text-white rounded-lg text-xs font-medium hover:bg-white/30 transition-colors"
                   >
                     {t('orders:frozen.contactSupport')}

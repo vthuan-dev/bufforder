@@ -81,8 +81,8 @@
     "contactAdmin": "Please contact admin or top up to unlock your account.",
     "topUpNow": "Top Up Now",
     "contactSupport": "Contact Support",
-    "orderSuspended": "Order Suspended",
-    "orderSuspendedMessage": "Your order has been suspended due to reaching order limit. Please contact admin or top up to unlock your account.",
+    "orderSuspended": "Account Frozen",
+    "orderSuspendedMessage": "Your order has been suspended due to insufficient balance. Product price (${{price}}) exceeds your available balance (${{balance}}). Please top up to unlock your account.",
     "orderStatus": "Order Status"
   }
 }
