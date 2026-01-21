@@ -1272,27 +1272,41 @@ export function AdminUsersPage() {
                   <div className="space-y-3">
                     <Label className="text-sm font-medium text-gray-700">📊 Chọn chế độ đóng băng</Label>
                     <RadioGroup value={freezeMode} onValueChange={(value: string) => setFreezeMode(value as 'random' | 'custom')}>
-                      <div className="flex items-start space-x-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer">
+                      <div
+                        className={`flex items-start space-x-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${freezeMode === 'random'
+                            ? 'border-blue-500 bg-blue-50 shadow-sm'
+                            : 'border-gray-200 hover:bg-gray-50'
+                          }`}
+                        onClick={() => setFreezeMode('random')}
+                      >
                         <RadioGroupItem value="random" id="mode-random" className="mt-0.5" />
                         <div className="flex-1">
-                          <Label htmlFor="mode-random" className="text-sm font-medium text-gray-900 cursor-pointer">
+                          <Label htmlFor="mode-random" className={`text-sm font-medium cursor-pointer ${freezeMode === 'random' ? 'text-blue-700' : 'text-gray-900'}`}>
                             80-90% Random
                           </Label>
                           <p className="text-xs text-gray-500 mt-0.5">
                             Đóng băng ngẫu nhiên trong khoảng {Math.floor((VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] || 0) * 0.8)} - {Math.floor((VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] || 0) * 0.9)} đơn
                           </p>
                         </div>
+                        {freezeMode === 'random' && <span className="text-blue-500 font-bold">✓</span>}
                       </div>
-                      <div className="flex items-start space-x-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer">
+                      <div
+                        className={`flex items-start space-x-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${freezeMode === 'custom'
+                            ? 'border-blue-500 bg-blue-50 shadow-sm'
+                            : 'border-gray-200 hover:bg-gray-50'
+                          }`}
+                        onClick={() => setFreezeMode('custom')}
+                      >
                         <RadioGroupItem value="custom" id="mode-custom" className="mt-0.5" />
                         <div className="flex-1">
-                          <Label htmlFor="mode-custom" className="text-sm font-medium text-gray-900 cursor-pointer">
+                          <Label htmlFor="mode-custom" className={`text-sm font-medium cursor-pointer ${freezeMode === 'custom' ? 'text-blue-700' : 'text-gray-900'}`}>
                             Số đơn cụ thể
                           </Label>
                           <p className="text-xs text-gray-500 mt-0.5">
                             Chọn chính xác số đơn sẽ đóng băng
                           </p>
                         </div>
+                        {freezeMode === 'custom' && <span className="text-blue-500 font-bold">✓</span>}
                       </div>
                     </RadioGroup>
                   </div>
