@@ -51,6 +51,8 @@ export function MyPage() {
   const [isFrozen, setIsFrozen] = useState(false);
   const [frozenReason, setFrozenReason] = useState('');
   const [userId, setUserId] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [vipTierId, setVipTierId] = useState<string>(DEFAULT_VIP_THEME_KEY);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -70,6 +72,8 @@ export function MyPage() {
         setAvailableBalance(Number(user.balance || 0));
         setFreezeBalance(Number(user.frozenBalance || 0)); // Fix: use frozenBalance not freezeBalance
         setUserId(String(user._id || user.id || '').toUpperCase());
+        setFullName(user.fullName || '');
+        setPhoneNumber(user.phoneNumber || '');
         setIsFrozen(Boolean(user.isFrozen));
         setFrozenReason(user.frozenReason || '');
       }
@@ -91,7 +95,7 @@ export function MyPage() {
         { ...newNotify, id: `temp-${Date.now()}`, createdAt: new Date(), isRead: false },
         ...prev
       ].slice(0, 50));
-      
+
       // Trigger bell shake animation
       setBellShake(true);
       setTimeout(() => setBellShake(false), 1000);
@@ -195,15 +199,15 @@ export function MyPage() {
             {/* Bell Icon for Notifications + Language Switcher + Logout */}
             <div className="flex items-center gap-2">
               <LanguageSwitcher />
-              
+
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ 
-                  opacity: 1, 
+                animate={{
+                  opacity: 1,
                   scale: 1,
                   rotate: bellShake ? [0, -15, 15, -15, 15, 0] : 0
                 }}
-                transition={{ 
+                transition={{
                   delay: 0.2,
                   rotate: { duration: 0.5, ease: "easeInOut" }
                 }}
@@ -214,7 +218,7 @@ export function MyPage() {
                 >
                   <Bell className="w-5 h-5" />
                   {unreadCount > 0 && (
-                    <motion.span 
+                    <motion.span
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-white shadow-lg"
@@ -326,15 +330,37 @@ export function MyPage() {
                   >
                     {vipSubtitle}
                   </motion.p>
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.1 }}
-                    className="text-[10px] font-bold"
-                    style={{ color: vipTheme.idColor || '#fde68a' }}
-                  >
-                    {t('my:vip.id')}: {userId}
-                  </motion.p>
+                  <div className="flex flex-col mt-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.15 }}
+                        className="text-[11px] font-bold tracking-wide"
+                        style={{ color: vipTheme.titleColor || '#ffffff' }}
+                      >
+                        {fullName}
+                      </motion.p>
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.2 }}
+                        className="text-[10px] font-bold opacity-90"
+                        style={{ color: vipTheme.idColor || '#fde68a' }}
+                      >
+                        • {phoneNumber}
+                      </motion.p>
+                    </div>
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.25 }}
+                      className="text-[10px] font-bold mt-0.5"
+                      style={{ color: vipTheme.idColor || '#fde68a' }}
+                    >
+                      ID: {userId}
+                    </motion.p>
+                  </div>
                 </div>
               </div>
               {/* Enhanced Balance Display */}
@@ -488,42 +514,42 @@ export function MyPage() {
                   notifications.map((n) => {
                     const translated = translateNotification({ title: n.title, message: n.message });
                     return (
-                    <motion.div
-                      layout
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      key={n.id}
-                      onClick={() => !n.isRead && markAsRead(n.id)}
-                      className={`group p-4 rounded-2xl transition-all cursor-pointer border ${n.isRead
-                        ? 'bg-white border-gray-100 hover:border-gray-200'
-                        : 'bg-blue-50/50 border-blue-100 hover:border-blue-200 shadow-sm'
-                        }`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            {!n.isRead && <div className="w-2 h-2 bg-blue-500 rounded-full" />}
-                            <p className={`font-bold text-sm ${n.isRead ? 'text-gray-600' : 'text-blue-900'}`}>{translated.title}</p>
-                          </div>
-                          <p className="text-sm text-gray-600 mt-1 leading-relaxed">{translated.message}</p>
-                          <p className="text-[10px] text-gray-400 mt-2 flex items-center gap-1">
-                            <Sparkles className="w-3 h-3" />
-                            {new Date(n.createdAt).toLocaleString()}
-                          </p>
-                        </div>
-                        {n.isRead ? (
-                          <div className="mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <CheckCheck className="w-4 h-4 text-gray-300" />
-                          </div>
-                        ) : (
-                          <div className="mt-1">
-                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                              <CheckCheck className="w-4 h-4 text-blue-500" />
+                      <motion.div
+                        layout
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        key={n.id}
+                        onClick={() => !n.isRead && markAsRead(n.id)}
+                        className={`group p-4 rounded-2xl transition-all cursor-pointer border ${n.isRead
+                          ? 'bg-white border-gray-100 hover:border-gray-200'
+                          : 'bg-blue-50/50 border-blue-100 hover:border-blue-200 shadow-sm'
+                          }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              {!n.isRead && <div className="w-2 h-2 bg-blue-500 rounded-full" />}
+                              <p className={`font-bold text-sm ${n.isRead ? 'text-gray-600' : 'text-blue-900'}`}>{translated.title}</p>
                             </div>
+                            <p className="text-sm text-gray-600 mt-1 leading-relaxed">{translated.message}</p>
+                            <p className="text-[10px] text-gray-400 mt-2 flex items-center gap-1">
+                              <Sparkles className="w-3 h-3" />
+                              {new Date(n.createdAt).toLocaleString()}
+                            </p>
                           </div>
-                        )}
-                      </div>
-                    </motion.div>
+                          {n.isRead ? (
+                            <div className="mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <CheckCheck className="w-4 h-4 text-gray-300" />
+                            </div>
+                          ) : (
+                            <div className="mt-1">
+                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                <CheckCheck className="w-4 h-4 text-blue-500" />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
                     );
                   })
                 )}

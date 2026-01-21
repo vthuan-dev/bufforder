@@ -128,12 +128,24 @@ function getFreezeConfig(user) {
     };
 }
 
+/**
+ * Get start and end of day range for database queries (today)
+ * @param {Date} d - Reference date
+ * @returns {{ start: Date, end: Date }}
+ */
+function getTodayRange(d = new Date()) {
+    const start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const end = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+    return { start, end };
+}
+
 module.exports = {
     hashPassword,
     comparePassword,
     excludeFromUser,
     parseJsonField,
     getDateKey,
+    getTodayRange,
     resolveCommissionRate,
     resolveDailyTarget,
     resolveNumberOfOrders,

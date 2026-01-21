@@ -790,17 +790,14 @@ router.get('/users/:id/order-stats', verifyAdminToken, async (req, res) => {
     const userId = req.params.id;
 
     // Get today's date key
-    const today = new Date();
-    const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const todayKey = getDateKey();
+    const { start: startOfDay, end: endOfDay } = getTodayRange();
 
     // Count today's completed orders
-    const todayOrders = await prisma.order.count({
+    const todayOrdersCount = await prisma.order.count({
       where: {
         userId: userId,
-        createdAt: {
-          gte: new Date(today.setHours(0, 0, 0, 0)),
-          lt: new Date(today.setHours(23, 59, 59, 999))
-        }
+        orderDate: { gte: startOfDay, lt: endOfDay }
       }
     });
 
@@ -839,7 +836,7 @@ router.get('/users/:id/order-stats', verifyAdminToken, async (req, res) => {
     res.json({
       success: true,
       data: {
-        todayOrders,
+        todayOrders: todayOrdersCount,
         dateKey: todayKey,
         autoFreezeEnabled: commissionConfig.autoFreezeEnabled || false,
         autoFreezeMode: commissionConfig.autoFreezeMode || 'custom',

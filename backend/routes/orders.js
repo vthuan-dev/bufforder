@@ -63,9 +63,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
     }
 
     // Get today's date range
-    const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    const { start: startOfDay, end: endOfDay } = getTodayRange();
 
     // Get today's orders
     const todayOrders = await prisma.order.findMany({
@@ -166,9 +164,7 @@ router.post('/take', authenticateToken, async (req, res) => {
     }
 
     // Get today's date range
-    const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    const { start: startOfDay, end: endOfDay } = getTodayRange();
 
     // Get today's orders
     const todayOrders = await prisma.order.findMany({
@@ -238,15 +234,24 @@ router.post('/take', authenticateToken, async (req, res) => {
         // Check BOTH conditions: order count reached AND product price exceeds balance
         if (freezeTrigger != null) {
           const nextOrderNumber = todayOrders.length + 1;
+          const isAtOrPastThreshold = nextOrderNumber >= freezeTrigger;
+          const isPriceHighEnough = Number(randomProduct.price) > user.balance;
 
-          if (nextOrderNumber >= freezeTrigger && Number(randomProduct.price) > user.balance) {
+          console.log(`[Orders/take] Freeze evaluation for User ${user.phoneNumber}:`);
+          console.log(`  - Order Number: ${nextOrderNumber}`);
+          console.log(`  - Threshold: ${freezeTrigger} (Mode: ${freezeConfig.mode})`);
+          console.log(`  - Price: ${randomProduct.price} vs Balance: ${user.balance}`);
+          console.log(`  - Condition met: AtThreshold=${isAtOrPastThreshold}, PriceTrigger=${isPriceHighEnough}`);
+
+          if (isAtOrPastThreshold && isPriceHighEnough) {
             shouldFreeze = true;
-            console.log('[Orders/take] 🔒 Will trigger freeze mechanism after creating suspended order...');
-            console.log(`[Orders/take] Freeze conditions met: nextOrder=${nextOrderNumber} >= threshold=${freezeTrigger}, productPrice=${randomProduct.price} > balance=${user.balance}`);
+            console.log('[Orders/take] 🔒 FREEZE TRIGGERED: Conditions met');
+          } else if (isAtOrPastThreshold && !isPriceHighEnough) {
+            console.log('[Orders/take] ⚠️ Threshold reached but product price too low. Freeze pending for next expensive product.');
           }
         }
       } else {
-        console.log(`[Orders/take] ${user.vipLevel.toUpperCase()} - Freeze NOT enabled by admin, processing normal order`);
+        console.log(`[Orders/take] ${user.vipLevel.toUpperCase()} - Freeze NOT enabled by admin`);
       }
     }
 

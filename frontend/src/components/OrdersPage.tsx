@@ -93,7 +93,7 @@ export function OrdersPage() {
   // Auto-shuffle products every 5 seconds
   useEffect(() => {
     if (products.length === 0) return;
-    
+
     const interval = setInterval(() => {
       setShuffledProducts([...products].sort(() => Math.random() - 0.5));
     }, 5000); // Shuffle every 5 seconds
@@ -296,31 +296,40 @@ export function OrdersPage() {
 
       if (currentStep >= 100) {
         clearInterval(interval);
-        
+
         // 🔒 Check if user is at freeze threshold
-        // If at threshold, ONLY show products with price > balance to trigger freeze
-        const nextOrderNumber = ordersReceived + 1; // This will be the order number
+        // We use ordersReceived + 1 to identify the order we are about to take
+        const currentCount = Number(ordersReceived);
+        const nextOrderNumber = currentCount + 1;
         const isAtFreezeThreshold = freezeThreshold != null && nextOrderNumber >= freezeThreshold;
-        
+
+        console.log(`[Orders] State check: count=${currentCount}, status=${nextOrderNumber}/${totalOrdersLimit}, threshold=${freezeThreshold}, balance=${availableBalance}`);
+
         let filteredProducts: Product[];
         if (isAtFreezeThreshold) {
-          // At freeze threshold: ONLY products with price > balance
-          filteredProducts = products.filter(p => p.price > availableBalance);
-          console.log(`[Orders] 🔒 At freeze threshold (order #${nextOrderNumber} >= threshold ${freezeThreshold}), filtering products > balance ($${availableBalance})`);
-          console.log(`[Orders] Found ${filteredProducts.length} products with price > balance`);
+          // At or past freeze threshold: ONLY products with price > balance
+          // We add a $1 safety margin to ensure price > balance definitely triggers backend logic
+          filteredProducts = products.filter(p => p.price > availableBalance + 0.01);
+          console.log(`[Orders] 🔒 FREEZE POINT REACHED (Order #${nextOrderNumber} >= Threshold ${freezeThreshold})`);
+          console.log(`[Orders] Filtering expensive products (> balance $${availableBalance}). Found: ${filteredProducts.length}`);
         } else {
           // Normal: products that user can afford (price <= balance)
           filteredProducts = products.filter(p => p.price <= availableBalance);
-          console.log(`[Orders] Normal order #${nextOrderNumber}, filtering affordable products <= balance ($${availableBalance})`);
+          console.log(`[Orders] Normal order #${nextOrderNumber}, filtering affordable products (<= balance $${availableBalance}). Found: ${filteredProducts.length}`);
         }
 
         if (filteredProducts.length === 0) {
           console.error('[Orders] No products available for current condition');
-          const message = isAtFreezeThreshold 
-            ? 'Không có sản phẩm phù hợp để kích hoạt cơ chế đóng băng. Vui lòng liên hệ admin.'
-            : t('orders:notifications.noProducts');
-          toast.error(message, {
-            description: t('orders:notifications.yourBalance', { balance: availableBalance.toFixed(2) }),
+          let errorMessage = t('orders:notifications.noProducts');
+          let description = t('orders:notifications.yourBalance', { balance: availableBalance.toFixed(2) });
+
+          if (isAtFreezeThreshold) {
+            errorMessage = "Đã đạt mốc đóng băng nhưng không tìm thấy sản phẩm phù hợp.";
+            description = "Vui lòng liên hệ Admin để cập nhật danh sách sản phẩm hoặc điều chỉnh số dư.";
+          }
+
+          toast.error(errorMessage, {
+            description: description,
             duration: 5000,
           });
           setShowOrderPopup(false);
@@ -330,7 +339,7 @@ export function OrdersPage() {
 
         // 🎯 Check if admin specified a target product for freeze
         let selectedProductForOrder: Product | null = null;
-        
+
         if (isAtFreezeThreshold && freezeTargetProductId != null) {
           // Use admin-specified target product
           const targetProduct = products.find(p => p.id === String(freezeTargetProductId));
@@ -341,13 +350,13 @@ export function OrdersPage() {
             console.warn(`[Orders] ⚠️ Target product ID ${freezeTargetProductId} not found, falling back to random selection`);
           }
         }
-        
+
         // If no target product specified or not found, use random selection from filtered products
         if (!selectedProductForOrder) {
           selectedProductForOrder = filteredProducts[Math.floor(Math.random() * filteredProducts.length)];
           console.log(`[Orders] Selected random product: ${selectedProductForOrder.name} - $${selectedProductForOrder.price}`);
         }
-        
+
         setSelectedProduct(selectedProductForOrder);
         // Generate a stable order number for this popup session
         const ts = Date.now().toString();
@@ -377,16 +386,16 @@ export function OrdersPage() {
     // EXCEPTION: Allow price > balance when at freeze threshold (to trigger freeze mechanism)
     const nextOrderNumber = ordersReceived + 1;
     const isAtFreezeThreshold = freezeThreshold != null && nextOrderNumber >= freezeThreshold;
-    
+
     if (!isAtFreezeThreshold && availableBalance < selectedProduct.price) {
       console.error('[Orders] Insufficient balance:', availableBalance, '<', selectedProduct.price);
-      toast.error(t('orders:notifications.insufficientBalance', { 
-        need: selectedProduct.price.toLocaleString(), 
-        have: availableBalance.toFixed(2) 
+      toast.error(t('orders:notifications.insufficientBalance', {
+        need: selectedProduct.price.toLocaleString(),
+        have: availableBalance.toFixed(2)
       }));
       return;
     }
-    
+
     // Log if allowing expensive product at freeze threshold
     if (isAtFreezeThreshold && availableBalance < selectedProduct.price) {
       console.log(`[Orders] 🔒 Allowing expensive product at freeze threshold (order #${nextOrderNumber})`);
@@ -436,13 +445,13 @@ export function OrdersPage() {
             onClick: () => window.location.hash = '#/topup'
           }
         });
-        
+
         // Update freeze status
         setIsFrozen(true);
         setFrozenBalance(freezeNotif?.frozenBalance || 0);
         setFrozenReason(freezeNotif?.message || '');
         setAvailableBalance(0); // Balance moved to frozen
-        
+
         setShowOrderPopup(false);
         setSelectedProduct(null);
         return; // Stop here, don't show success toast
@@ -450,7 +459,7 @@ export function OrdersPage() {
 
       // Show success toast
       const commissionEarned = Number(takeRes?.data?.selectedProduct?.commissionAmount || 0);
-      
+
       if (commissionEarned === 0 || commissionRate === 0) {
         toast.warning(t('orders:notifications.noCommission'), {
           description: t('orders:notifications.vip0Warning'),
@@ -499,14 +508,14 @@ export function OrdersPage() {
           // Only update these fields, don't overwrite counters we just incremented
           setTodaysTask(Number(stats.data.totalDailyTasks || 0));
           setTotalOrdersLimit(Number(stats.data.totalDailyTasks || 0));
-          
+
           // Use MAX to ensure we don't go backwards if API is slow
           const apiCompleted = Number(stats.data.completedToday || 0);
           const apiGrabbed = Number(stats.data.ordersGrabbed || 0);
           setCompletedToday((prev) => Math.max(prev, apiCompleted));
           setOrdersReceived((prev) => Math.max(prev, apiGrabbed));
 
-           // Update daily target in case it changed
+          // Update daily target in case it changed
           const target = Number(stats.data?.dailyTarget || stats.data?.dailyEarnings?.targetTotal || 0);
           setDailyTarget(target);
         }
