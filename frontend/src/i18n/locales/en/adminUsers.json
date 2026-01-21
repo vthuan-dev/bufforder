@@ -155,6 +155,7 @@
     "autoFreezeDisabled": "Auto freeze is OFF",
     "autoFreezeDisabledHint": "User will receive orders normally until daily limit",
     "saveConfig": "Save Config",
-    "disableFreeze": "Disable Freeze"
+    "disableFreeze": "Disable Freeze",
+    "selectedProduct": "Selected Product"
   }
 }

@@ -1255,9 +1255,9 @@ export function AdminUsersPage() {
               {/* Enable/Disable Freeze Toggle */}
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <div className="flex-1">
-                  <Label className="text-sm font-medium text-gray-900">🔒 Bật đóng băng tự động</Label>
+                  <Label className="text-sm font-medium text-gray-900">🔒 {t('freezeThresholdDialog.enableAutoFreeze')}</Label>
                   <p className="text-xs text-gray-500 mt-1">
-                    Khi bật, user sẽ bị freeze khi đạt ngưỡng + giá sản phẩm &gt; balance
+                    {t('freezeThresholdDialog.enableAutoFreezeHint')}
                   </p>
                 </div>
                 <Switch
@@ -1270,7 +1270,7 @@ export function AdminUsersPage() {
               {freezeEnabled && (
                 <>
                   <div className="space-y-3">
-                    <Label className="text-sm font-medium text-gray-700">📊 Chọn chế độ đóng băng</Label>
+                    <Label className="text-sm font-medium text-gray-700">📊 {t('freezeThresholdDialog.selectFreezeMode')}</Label>
                     <RadioGroup value={freezeMode} onValueChange={(value: string) => setFreezeMode(value as 'random' | 'custom')}>
                       <div
                         className={`flex items-start space-x-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${freezeMode === 'random'
@@ -1282,10 +1282,13 @@ export function AdminUsersPage() {
                         <RadioGroupItem value="random" id="mode-random" className="mt-0.5" />
                         <div className="flex-1">
                           <Label htmlFor="mode-random" className={`text-sm font-medium cursor-pointer ${freezeMode === 'random' ? 'text-blue-700' : 'text-gray-900'}`}>
-                            80-90% Random
+                            {t('freezeThresholdDialog.randomMode')}
                           </Label>
                           <p className="text-xs text-gray-500 mt-0.5">
-                            Đóng băng ngẫu nhiên trong khoảng {Math.floor((VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] || 0) * 0.8)} - {Math.floor((VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] || 0) * 0.9)} đơn
+                            {t('freezeThresholdDialog.randomModeHint', {
+                              min: Math.floor((VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] || 0) * 0.8),
+                              max: Math.floor((VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] || 0) * 0.9)
+                            })}
                           </p>
                         </div>
                         {freezeMode === 'random' && <span className="text-blue-500 font-bold">✓</span>}
@@ -1300,10 +1303,10 @@ export function AdminUsersPage() {
                         <RadioGroupItem value="custom" id="mode-custom" className="mt-0.5" />
                         <div className="flex-1">
                           <Label htmlFor="mode-custom" className={`text-sm font-medium cursor-pointer ${freezeMode === 'custom' ? 'text-blue-700' : 'text-gray-900'}`}>
-                            Số đơn cụ thể
+                            {t('freezeThresholdDialog.customMode')}
                           </Label>
                           <p className="text-xs text-gray-500 mt-0.5">
-                            Chọn chính xác số đơn sẽ đóng băng
+                            {t('freezeThresholdDialog.customModeHint')}
                           </p>
                         </div>
                         {freezeMode === 'custom' && <span className="text-blue-500 font-bold">✓</span>}
@@ -1315,19 +1318,25 @@ export function AdminUsersPage() {
                   {freezeMode === 'custom' && (
                     <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                       <Label className="text-sm text-gray-700 mb-2 block">
-                        🎯 Số đơn sẽ đóng băng
+                        🎯 {t('freezeThresholdDialog.freezeAtOrder')}
                       </Label>
                       <Input
                         type="number"
                         value={freezeThresholdValue}
                         onChange={(e) => setFreezeThresholdValue(e.target.value)}
-                        placeholder={`Nhập số từ ${freezeThresholdCurrentOrders + 1} đến ${VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] - 1}`}
+                        placeholder={t('freezeThresholdDialog.enterOrderNumber', {
+                          min: freezeThresholdCurrentOrders + 1,
+                          max: VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] - 1
+                        })}
                         className="h-11 bg-white"
                         min={freezeThresholdCurrentOrders + 1}
                         max={VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] - 1}
                       />
                       <p className="text-xs text-blue-600 mt-2 font-medium">
-                        ✓ Phạm vi hợp lệ: {freezeThresholdCurrentOrders + 1} - {VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] - 1} đơn
+                        ✓ {t('freezeThresholdDialog.validRange', {
+                          min: freezeThresholdCurrentOrders + 1,
+                          max: VIP_MAX_ORDERS[freezeThresholdUser.vipLevel] - 1
+                        })}
                       </p>
                     </div>
                   )}
@@ -1338,10 +1347,10 @@ export function AdminUsersPage() {
               {!freezeEnabled && (
                 <div className="p-4 bg-gray-100 rounded-lg border border-gray-200 text-center">
                   <p className="text-sm text-gray-600">
-                    ℹ️ Đóng băng tự động đang <span className="font-bold text-gray-900">TẮT</span>
+                    ℹ️ {t('freezeThresholdDialog.autoFreezeDisabled')}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    User sẽ nhận đơn bình thường đến khi hết giới hạn hàng ngày
+                    {t('freezeThresholdDialog.autoFreezeDisabledHint')}
                   </p>
                 </div>
               )}
@@ -1351,10 +1360,10 @@ export function AdminUsersPage() {
                 <div className="border-t border-gray-200 pt-4 mt-4 relative">
                   <div className="flex items-center justify-between mb-2">
                     <Label className="text-sm font-medium text-gray-700">
-                      💰 Số tiền sản phẩm treo (tùy chọn)
+                      {t('freezeThresholdDialog.targetProductPrice')}
                     </Label>
                     <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full">
-                      Số dư: ${(freezeThresholdUser.balance || 0).toLocaleString()}
+                      {t('freezeThresholdDialog.currentBalance')}: ${(freezeThresholdUser.balance || 0).toLocaleString()}
                     </span>
                   </div>
                   <div className="relative">
@@ -1371,7 +1380,7 @@ export function AdminUsersPage() {
                           setShowProductDropdown(true);
                         }
                       }}
-                      placeholder="Nhập giá sản phẩm (VD: 2000)"
+                      placeholder={t('freezeThresholdDialog.enterProductPrice')}
                       className="w-full"
                       min={0}
                     />
@@ -1408,7 +1417,7 @@ export function AdminUsersPage() {
                     )}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    Nhập giá sản phẩm, danh sách sẽ tự động hiện ra để chọn
+                    {t('freezeThresholdDialog.productPriceHint')}
                   </p>
 
                   {/* Product Search Error */}
@@ -1421,7 +1430,7 @@ export function AdminUsersPage() {
                   {/* Target Product Display */}
                   {targetProduct && (
                     <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                      <p className="text-xs text-green-800 font-medium mb-2">✓ Sản phẩm đã chọn:</p>
+                      <p className="text-xs text-green-800 font-medium mb-2">✓ {t('freezeThresholdDialog.selectedProduct')}:</p>
                       <div className="flex gap-3">
                         <img
                           src={targetProduct.image}
@@ -1461,7 +1470,7 @@ export function AdminUsersPage() {
                   disabled={freezeThresholdLoading}
                   className="freeze-confirm-btn"
                 >
-                  {freezeEnabled ? 'Lưu cấu hình' : 'Tắt đóng băng'}
+                  {freezeEnabled ? t('freezeThresholdDialog.saveConfig') : t('freezeThresholdDialog.disableFreeze')}
                 </button>
               </div>
             </div>

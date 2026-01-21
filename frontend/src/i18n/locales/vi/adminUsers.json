@@ -155,6 +155,7 @@
     "autoFreezeDisabled": "Đóng băng tự động đang TẮT",
     "autoFreezeDisabledHint": "User sẽ nhận đơn bình thường đến khi hết giới hạn hàng ngày",
     "saveConfig": "Lưu cấu hình",
-    "disableFreeze": "Tắt đóng băng"
+    "disableFreeze": "Tắt đóng băng",
+    "selectedProduct": "Sản phẩm đã chọn"
   }
 }
