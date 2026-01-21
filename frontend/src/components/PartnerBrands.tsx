@@ -39,7 +39,7 @@ export function PartnerBrands() {
   const visibleBrands = partnerBrands.filter((_, index) => !hiddenBrands.has(index));
 
   return (
-    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-full max-w-md bg-gradient-to-r from-blue-500 to-purple-500 border-t-2 border-white z-50 shadow-2xl">
+    <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-md bg-gradient-to-r from-blue-500 to-purple-500 border-t-2 border-white z-10 shadow-2xl">
       <div className="px-4 pt-2 pb-1.5">
         <h2 className="text-white mb-1.5 text-center text-xs font-bold">
           {t('home:ourPartners', 'Đối tác liên kết của chúng tôi')}

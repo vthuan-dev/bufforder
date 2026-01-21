@@ -4777,3 +4777,15 @@ html {
 .partner-marquee:hover .partner-marquee-content {
   animation-play-state: paused;
 }
+
+/* Hide number input arrows (spinner) */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
