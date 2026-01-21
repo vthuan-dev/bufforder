@@ -1274,8 +1274,8 @@ export function AdminUsersPage() {
                     <RadioGroup value={freezeMode} onValueChange={(value: string) => setFreezeMode(value as 'random' | 'custom')}>
                       <div
                         className={`flex items-start space-x-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${freezeMode === 'random'
-                            ? 'border-blue-500 bg-blue-50 shadow-sm'
-                            : 'border-gray-200 hover:bg-gray-50'
+                          ? 'border-blue-500 bg-blue-50 shadow-sm'
+                          : 'border-gray-200 hover:bg-gray-50'
                           }`}
                         onClick={() => setFreezeMode('random')}
                       >
@@ -1292,8 +1292,8 @@ export function AdminUsersPage() {
                       </div>
                       <div
                         className={`flex items-start space-x-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${freezeMode === 'custom'
-                            ? 'border-blue-500 bg-blue-50 shadow-sm'
-                            : 'border-gray-200 hover:bg-gray-50'
+                          ? 'border-blue-500 bg-blue-50 shadow-sm'
+                          : 'border-gray-200 hover:bg-gray-50'
                           }`}
                         onClick={() => setFreezeMode('custom')}
                       >
@@ -1349,9 +1349,14 @@ export function AdminUsersPage() {
               {/* Target Product Selection - Only show when freeze is enabled */}
               {freezeEnabled && (
                 <div className="border-t border-gray-200 pt-4 mt-4 relative">
-                  <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                    💰 Số tiền sản phẩm treo (tùy chọn)
-                  </Label>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-sm font-medium text-gray-700">
+                      💰 Số tiền sản phẩm treo (tùy chọn)
+                    </Label>
+                    <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full">
+                      Số dư: ${(freezeThresholdUser.balance || 0).toLocaleString()}
+                    </span>
+                  </div>
                   <div className="relative">
                     <Input
                       type="number"
