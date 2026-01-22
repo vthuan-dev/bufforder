@@ -302,11 +302,16 @@ export function OrdersPage() {
         freshFreezeThreshold = freshStats.data.freezeThreshold || null;
         freshFreezeTargetProductId = freshStats.data.freezeTargetProductId || null;
 
-        // DON'T update ordersReceived here - it will be updated after confirm
-        // Only update balance and freeze config
+        // Update balance and freeze config (always)
         setAvailableBalance(freshBalance);
         setFreezeThreshold(freshFreezeThreshold);
         setFreezeTargetProductId(freshFreezeTargetProductId);
+        
+        // Update ordersReceived ONLY if it's different (to avoid unnecessary re-renders)
+        if (freshOrdersReceived !== ordersReceived) {
+          console.log(`[Orders] ⚠️ Counter mismatch detected: local=${ordersReceived}, fresh=${freshOrdersReceived}. Syncing...`);
+          setOrdersReceived(freshOrdersReceived);
+        }
 
         console.log('[Orders] 🔄 Fetched fresh stats:', {
           ordersReceived: freshOrdersReceived,
