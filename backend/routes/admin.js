@@ -876,6 +876,57 @@ router.post('/users', verifyAdminToken, async (req, res) => {
   }
 });
 
+// Reset user password (Admin)
+router.post('/users/:id/reset-password', verifyAdminToken, async (req, res) => {
+  try {
+    const { newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters'
+      });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: req.params.id } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const hashedPassword = await hashPassword(newPassword);
+    await prisma.user.update({
+      where: { id: req.params.id },
+      data: { password: hashedPassword }
+    });
+
+    // Create notification for user
+    await prisma.notification.create({
+      data: {
+        userId: req.params.id,
+        title: 'Password Reset',
+        message: 'Your password has been reset by administrator.',
+        type: 'warning'
+      }
+    });
+
+    // 🔔 Emit notification to client
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user:${req.params.id}`).emit('notification:new', {
+          title: 'Password Reset',
+          message: 'Your password has been reset by administrator.',
+          type: 'warning'
+        });
+      }
+    } catch (e) { console.error('[Socket] Notify error:', e); }
+
+    res.json({ success: true, message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 router.put('/users/:id', verifyAdminToken, async (req, res) => {
   try {
     const { fullName, email, phoneNumber, password, vipLevel, balance, isActive, commissionConfig } = req.body;

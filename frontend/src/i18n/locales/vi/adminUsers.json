@@ -22,7 +22,8 @@
     "delete": "Xóa",
     "unlock": "Mở khóa tài khoản",
     "freeze": "Đóng băng số dư",
-    "setFreezeThreshold": "Đặt ngưỡng đóng băng"
+    "setFreezeThreshold": "Đặt ngưỡng đóng băng",
+    "resetPassword": "Đặt lại mật khẩu"
   },
   "pagination": {
     "showing": "Hiển thị",
@@ -113,7 +114,23 @@
     "freezeConfirm": "Bạn có chắc chắn muốn đóng băng tài khoản và số dư của {{name}}?",
     "freezeReasonPrompt": "Nhập lý do đóng băng (tùy chọn):",
     "userFrozen": "Đóng băng tài khoản thành công! Số dư đã được chuyển sang số dư đóng băng.",
-    "freezeFailed": "Đóng băng tài khoản thất bại"
+    "freezeFailed": "Đóng băng tài khoản thất bại",
+    "resetPasswordConfirm": "Bạn có chắc chắn muốn đặt lại mật khẩu cho {{name}}?",
+    "passwordResetSuccess": "Đặt lại mật khẩu thành công! Người dùng có thể đăng nhập với mật khẩu mới.",
+    "passwordResetFailed": "Đặt lại mật khẩu thất bại"
+  },
+  "resetPasswordDialog": {
+    "title": "Đặt lại mật khẩu",
+    "subtitle": "Đặt mật khẩu mới cho người dùng này",
+    "newPassword": "Mật khẩu mới",
+    "newPasswordPlaceholder": "Nhập mật khẩu mới (tối thiểu 6 ký tự)",
+    "confirmPassword": "Xác nhận mật khẩu",
+    "confirmPasswordPlaceholder": "Xác nhận mật khẩu mới",
+    "passwordsDoNotMatch": "Mật khẩu không khớp",
+    "passwordTooShort": "Mật khẩu phải có ít nhất 6 ký tự",
+    "cancel": "Hủy",
+    "resetPassword": "Đặt lại mật khẩu",
+    "resetting": "Đang đặt lại..."
   },
   "freezeThresholdDialog": {
     "title": "Đặt ngưỡng tự động đóng băng",

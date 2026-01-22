@@ -22,7 +22,8 @@
     "delete": "Delete",
     "unlock": "Unlock Account",
     "freeze": "Freeze Balance",
-    "setFreezeThreshold": "Set Freeze Threshold"
+    "setFreezeThreshold": "Set Freeze Threshold",
+    "resetPassword": "Reset Password"
   },
   "pagination": {
     "showing": "Showing",
@@ -113,7 +114,23 @@
     "freezeConfirm": "Are you sure you want to freeze {{name}}'s account and balance?",
     "freezeReasonPrompt": "Enter reason for freezing (optional):",
     "userFrozen": "Account frozen successfully! Balance has been moved to frozen balance.",
-    "freezeFailed": "Failed to freeze account"
+    "freezeFailed": "Failed to freeze account",
+    "resetPasswordConfirm": "Are you sure you want to reset password for {{name}}?",
+    "passwordResetSuccess": "Password reset successfully! User can now login with the new password.",
+    "passwordResetFailed": "Failed to reset password"
+  },
+  "resetPasswordDialog": {
+    "title": "Reset Password",
+    "subtitle": "Set a new password for this user",
+    "newPassword": "New Password",
+    "newPasswordPlaceholder": "Enter new password (min 6 characters)",
+    "confirmPassword": "Confirm Password",
+    "confirmPasswordPlaceholder": "Confirm new password",
+    "passwordsDoNotMatch": "Passwords do not match",
+    "passwordTooShort": "Password must be at least 6 characters",
+    "cancel": "Cancel",
+    "resetPassword": "Reset Password",
+    "resetting": "Resetting..."
   },
   "freezeThresholdDialog": {
     "title": "Set Auto Freeze Threshold",

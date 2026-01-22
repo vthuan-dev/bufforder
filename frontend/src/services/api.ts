@@ -89,7 +89,7 @@ async function request(endpoint: string, options: RequestOptions = {}) {
 
         // 🔍 Check if this is a new endpoint that might not exist in production yet
         const isNewEndpoint = endpoint.includes('/usdt-wallets');
-        
+
         if (isNewEndpoint) {
           console.warn('[API] New endpoint not available yet:', endpoint);
           throw new Error('This feature is not available yet. Please update your backend.');
@@ -795,11 +795,11 @@ export default {
   // Admin - Freeze user account and balance
   adminFreezeUser(userId: string, reason?: string) {
     const headers: Record<string, string> = { 'Content-Type': 'application/json', ...adminTokenHeader() } as Record<string, string>;
-    return request(`/admin/users/${userId}/freeze`, { 
-      method: 'POST', 
-      headers, 
+    return request(`/admin/users/${userId}/freeze`, {
+      method: 'POST',
+      headers,
       body: JSON.stringify({ reason: reason || 'Frozen by admin' }),
-      useCache: false 
+      useCache: false
     });
   },
 
@@ -831,6 +831,17 @@ export default {
     return request(`/admin/users/${userId}/order-stats`, {
       method: 'GET',
       headers,
+      useCache: false
+    });
+  },
+
+  // Admin - Reset user password
+  adminResetPassword(userId: string, newPassword: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json', ...adminTokenHeader() } as Record<string, string>;
+    return request(`/admin/users/${userId}/reset-password`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ newPassword }),
       useCache: false
     });
   },

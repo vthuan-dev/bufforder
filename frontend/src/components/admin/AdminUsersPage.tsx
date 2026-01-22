@@ -121,6 +121,13 @@ export function AdminUsersPage() {
   const [addBalanceAmount, setAddBalanceAmount] = useState<string>("");
   const [balanceOperation, setBalanceOperation] = useState<'add' | 'set' | 'subtract'>('add');
 
+  // Reset Password Dialog
+  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
+  const [resetPasswordUser, setResetPasswordUser] = useState<UserRow | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+
   const mapBackendUser = (u: any): UserRow => ({
     id: u.id || u._id, // Support both Prisma (id) and MongoDB (_id)
     name: u.fullName || u.username || "Unknown",
@@ -339,6 +346,40 @@ export function AdminUsersPage() {
       setTimeout(() => window.location.reload(), 500);
     } catch (e: any) {
       toast.error(e?.message || t('notifications.freezeFailed'));
+    }
+  };
+
+  const handleResetPassword = (user: UserRow) => {
+    setResetPasswordUser(user);
+    setNewPassword("");
+    setConfirmNewPassword("");
+    setResetPasswordDialogOpen(true);
+  };
+
+  const handleConfirmResetPassword = async () => {
+    if (!resetPasswordUser) return;
+
+    // Validate password
+    if (newPassword.length < 6) {
+      toast.error(t('resetPasswordDialog.passwordTooShort'));
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      toast.error(t('resetPasswordDialog.passwordsDoNotMatch'));
+      return;
+    }
+
+    setResetPasswordLoading(true);
+    try {
+      await api.adminResetPassword(resetPasswordUser.id, newPassword);
+      toast.success(t('notifications.passwordResetSuccess'));
+      setResetPasswordDialogOpen(false);
+      setNewPassword("");
+      setConfirmNewPassword("");
+    } catch (e: any) {
+      toast.error(e?.message || t('notifications.passwordResetFailed'));
+    } finally {
+      setResetPasswordLoading(false);
     }
   };
 
@@ -673,6 +714,10 @@ export function AdminUsersPage() {
                         <DropdownMenuItem onClick={() => handleSetFreezeThreshold(user)} className="text-purple-600">
                           <Target className="w-4 h-4 mr-2" />
                           {t('actions.setFreezeThreshold')}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleResetPassword(user)} className="text-blue-600">
+                          <Lock className="w-4 h-4 mr-2" />
+                          {t('actions.resetPassword')}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleEdit(user)}>
                           <Edit className="w-4 h-4 mr-2" />
@@ -1474,6 +1519,130 @@ export function AdminUsersPage() {
                 </button>
               </div>
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={resetPasswordDialogOpen} onOpenChange={setResetPasswordDialogOpen}>
+        <DialogContent className="sm:max-w-md max-h-[90vh] p-0 overflow-hidden [&>button]:text-white [&>button]:hover:text-white">
+          <DialogTitle className="sr-only">{t('resetPasswordDialog.title')}</DialogTitle>
+          {resetPasswordUser && (
+            <>
+              {/* Header */}
+              <div className="bg-blue-600 px-6 py-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
+                    <Lock className="w-7 h-7 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-white text-lg font-semibold">{t('resetPasswordDialog.title')}</h2>
+                    <p className="text-white/80 text-sm">{t('resetPasswordDialog.subtitle')}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* User Info Card */}
+              <div className="px-6 py-4">
+                <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 border border-blue-200 mb-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src="" />
+                      <AvatarFallback className="bg-blue-100 text-blue-600">
+                        {resetPasswordUser.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-semibold text-gray-900">{resetPasswordUser.name}</p>
+                      <p className="text-sm text-gray-500">{resetPasswordUser.phone}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Password Form */}
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm text-gray-700 mb-2 block">
+                      {t('resetPasswordDialog.newPassword')} <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Input
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+                        placeholder={t('resetPasswordDialog.newPasswordPlaceholder')}
+                      />
+                    </div>
+                    {newPassword && newPassword.length < 6 && (
+                      <p className="text-xs text-red-500 mt-1">{t('resetPasswordDialog.passwordTooShort')}</p>
+                    )}
+                  </div>
+                  <div>
+                    <Label className="text-sm text-gray-700 mb-2 block">
+                      {t('resetPasswordDialog.confirmPassword')} <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Input
+                        type="password"
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                        className={`pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors ${confirmNewPassword && newPassword !== confirmNewPassword
+                            ? 'border-red-300 focus:ring-red-500'
+                            : confirmNewPassword && newPassword === confirmNewPassword
+                              ? 'border-green-300 focus:ring-green-500'
+                              : ''
+                          }`}
+                        placeholder={t('resetPasswordDialog.confirmPasswordPlaceholder')}
+                      />
+                      {confirmNewPassword && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          {newPassword === confirmNewPassword ? (
+                            <CheckCircle2 className="w-4 h-4 text-green-500" />
+                          ) : (
+                            <XCircle className="w-4 h-4 text-red-500" />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    {confirmNewPassword && newPassword !== confirmNewPassword && (
+                      <p className="text-xs text-red-500 mt-1">{t('resetPasswordDialog.passwordsDoNotMatch')}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="px-6 py-4 bg-gray-50 border-t flex gap-3">
+                <Button
+                  onClick={() => setResetPasswordDialogOpen(false)}
+                  variant="outline"
+                  className="flex-1 h-11"
+                  disabled={resetPasswordLoading}
+                >
+                  {t('resetPasswordDialog.cancel')}
+                </Button>
+                <Button
+                  onClick={handleConfirmResetPassword}
+                  className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={resetPasswordLoading || !newPassword || newPassword.length < 6 || newPassword !== confirmNewPassword}
+                >
+                  {resetPasswordLoading ? (
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      {t('resetPasswordDialog.resetting')}
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <Lock className="w-4 h-4" />
+                      {t('resetPasswordDialog.resetPassword')}
+                    </span>
+                  )}
+                </Button>
+              </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
