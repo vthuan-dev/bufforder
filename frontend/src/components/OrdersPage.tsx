@@ -50,11 +50,23 @@ export function OrdersPage() {
   // Daily stats with auto-reset at new day
   const [dailyCommission, setDailyCommission] = useState<number>(0);
   const [ordersReceived, setOrdersReceived] = useState<number>(0);
+  const ordersReceivedRef = React.useRef<number>(0); // Track max value to prevent decreases
   const [availableBalance, setAvailableBalance] = useState<number>(0);
   const [todaysTask, setTodaysTask] = useState<number>(0);
   const [completedToday, setCompletedToday] = useState<number>(0);
   const [totalOrdersLimit, setTotalOrdersLimit] = useState<number>(100);
   const [dailyTarget, setDailyTarget] = useState<number>(0); // Daily commission target from VIP level
+
+  // Safe setter for ordersReceived that prevents decreases
+  const safeSetOrdersReceived = React.useCallback((value: number | ((prev: number) => number)) => {
+    setOrdersReceived(prev => {
+      const newValue = typeof value === 'function' ? value(prev) : value;
+      const safeValue = Math.max(newValue, ordersReceivedRef.current);
+      console.log('[OrdersPage] safeSetOrdersReceived:', { prev, newValue, safeValue, ref: ordersReceivedRef.current });
+      ordersReceivedRef.current = safeValue;
+      return safeValue;
+    });
+  }, []);
 
   // Freeze status
   const [isFrozen, setIsFrozen] = useState<boolean>(false);
@@ -112,13 +124,16 @@ export function OrdersPage() {
       localStorage.setItem("stats:dailyCommission", "0");
       localStorage.setItem("stats:ordersReceived", "0");
       setDailyCommission(0);
-      setOrdersReceived(0);
+      safeSetOrdersReceived(0);
+      ordersReceivedRef.current = 0; // Reset ref on new day
     } else {
       // Load persisted stats for today
       const savedCommission = parseFloat(localStorage.getItem("stats:dailyCommission") || "0");
       const savedOrders = parseInt(localStorage.getItem("stats:ordersReceived") || "0", 10);
       setDailyCommission(isNaN(savedCommission) ? 0 : savedCommission);
-      setOrdersReceived(isNaN(savedOrders) ? 0 : savedOrders);
+      const initialOrders = isNaN(savedOrders) ? 0 : savedOrders;
+      safeSetOrdersReceived(initialOrders);
+      ordersReceivedRef.current = initialOrders; // Initialize ref
     }
     // load current balance and vip from api
     (async () => {
@@ -129,7 +144,9 @@ export function OrdersPage() {
           setTodaysTask(Number(stats.data.totalDailyTasks || 0));
           setCompletedToday(Number(stats.data.completedToday || 0));
           setTotalOrdersLimit(Number(stats.data.totalDailyTasks || 0));
-          setOrdersReceived(Number(stats.data.ordersGrabbed || 0));
+          const apiOrders = Number(stats.data.ordersGrabbed || 0);
+          console.log('[OrdersPage] Initial API load - ordersGrabbed:', apiOrders);
+          safeSetOrdersReceived(apiOrders);
           // Sync today's earned commission from backend
           // Backend commissionAmount is credited 100% to the user's balance.
           // UI shows Earned commission = total commission earned today.
@@ -189,10 +206,21 @@ export function OrdersPage() {
 
       // Only update counters if this is from admin delivery (not from user grab)
       const isFromOrderGrab = data.source === 'order_grab';
+      console.log('[OrdersPage] Socket event - source:', data.source, 'isFromOrderGrab:', isFromOrderGrab);
+      
       if (!isFromOrderGrab) {
         // Admin delivered order - increment counters
-        setCompletedToday(prev => prev + 1);
-        setOrdersReceived(prev => prev + 1);
+        console.log('[OrdersPage] Admin delivery - incrementing counters');
+        setCompletedToday(prev => {
+          console.log('[OrdersPage] completedToday:', prev, '->', prev + 1);
+          return prev + 1;
+        });
+        safeSetOrdersReceived(prev => {
+          console.log('[OrdersPage] ordersReceived (socket):', prev, '->', prev + 1);
+          return prev + 1;
+        });
+      } else {
+        console.log('[OrdersPage] User grab - NOT incrementing counters');
       }
 
       // Show appropriate toast based on source
@@ -302,16 +330,11 @@ export function OrdersPage() {
         freshFreezeThreshold = freshStats.data.freezeThreshold || null;
         freshFreezeTargetProductId = freshStats.data.freezeTargetProductId || null;
 
-        // Update balance and freeze config (always)
+        // ONLY update balance and freeze config - NEVER update ordersReceived here
+        // ordersReceived will be updated after confirm order succeeds
         setAvailableBalance(freshBalance);
         setFreezeThreshold(freshFreezeThreshold);
         setFreezeTargetProductId(freshFreezeTargetProductId);
-        
-        // Update ordersReceived ONLY if it's different (to avoid unnecessary re-renders)
-        if (freshOrdersReceived !== ordersReceived) {
-          console.log(`[Orders] ⚠️ Counter mismatch detected: local=${ordersReceived}, fresh=${freshOrdersReceived}. Syncing...`);
-          setOrdersReceived(freshOrdersReceived);
-        }
 
         console.log('[Orders] 🔄 Fetched fresh stats:', {
           ordersReceived: freshOrdersReceived,
@@ -548,7 +571,8 @@ export function OrdersPage() {
       // Update UI: count order grabbed AND completed today IMMEDIATELY
       const newOrdersReceived = ordersReceived + 1;
       const newCompletedToday = completedToday + 1;
-      setOrdersReceived(newOrdersReceived);
+      console.log('[OrdersPage] Confirm order - incrementing counters:', { from: ordersReceived, to: newOrdersReceived });
+      safeSetOrdersReceived(newOrdersReceived);
       setCompletedToday(newCompletedToday);
 
       console.log('[Orders] ✅ Counters updated:', {
@@ -567,8 +591,9 @@ export function OrdersPage() {
           // Use MAX to ensure we don't go backwards if API is slow
           const apiCompleted = Number(stats.data.completedToday || 0);
           const apiGrabbed = Number(stats.data.ordersGrabbed || 0);
+          console.log('[OrdersPage] API refresh after confirm:', { apiCompleted, apiGrabbed, currentOrders: ordersReceived });
           setCompletedToday((prev) => Math.max(prev, apiCompleted));
-          setOrdersReceived((prev) => Math.max(prev, apiGrabbed));
+          safeSetOrdersReceived((prev) => Math.max(prev, apiGrabbed));
 
           // Update daily target in case it changed
           const target = Number(stats.data?.dailyTarget || stats.data?.dailyEarnings?.targetTotal || 0);
