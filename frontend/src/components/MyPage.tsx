@@ -57,6 +57,7 @@ export function MyPage() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [bellShake, setBellShake] = useState(false);
+  const [expandedNotifications, setExpandedNotifications] = useState<Set<string | number>>(new Set());
 
   // ⚡ Fetch data in parallel, not sequential
   useEffect(() => {
@@ -114,6 +115,18 @@ export function MyPage() {
       }
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
     } catch { }
+  };
+
+  const toggleExpanded = (id: string | number) => {
+    setExpandedNotifications(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
   };
 
   const clearAll = async () => {
@@ -513,7 +526,7 @@ export function MyPage() {
                 ) : (
                   notifications.map((n) => {
                     const translated = translateNotification({ title: n.title, message: n.message });
-                    const [isExpanded, setIsExpanded] = React.useState(false);
+                    const isExpanded = expandedNotifications.has(n.id);
                     const maxLength = 100;
                     const shouldTruncate = translated.message.length > maxLength;
                     const displayMessage = shouldTruncate && !isExpanded 
@@ -545,7 +558,7 @@ export function MyPage() {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setIsExpanded(!isExpanded);
+                                    toggleExpanded(n.id);
                                   }}
                                   className="text-xs text-blue-600 hover:text-blue-700 font-medium mt-1 inline-flex items-center gap-1"
                                 >
