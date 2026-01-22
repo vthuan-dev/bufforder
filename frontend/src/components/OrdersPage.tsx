@@ -565,6 +565,16 @@ export function OrdersPage() {
           // Update daily target in case it changed
           const target = Number(stats.data?.dailyTarget || stats.data?.dailyEarnings?.targetTotal || 0);
           setDailyTarget(target);
+
+          // 🔄 CRITICAL: Update freeze threshold and target product after each order
+          // This ensures the next order uses the latest freeze config
+          setFreezeThreshold(stats.data?.freezeThreshold || null);
+          setFreezeTargetProductId(stats.data?.freezeTargetProductId || null);
+          
+          console.log('[Orders] 🔄 Updated freeze config:', {
+            freezeThreshold: stats.data?.freezeThreshold,
+            freezeTargetProductId: stats.data?.freezeTargetProductId
+          });
         }
       } catch { }
 

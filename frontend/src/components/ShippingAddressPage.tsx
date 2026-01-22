@@ -22,20 +22,22 @@ export function ShippingAddressPage({ onBack }: ShippingAddressPageProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAddress, setNewAddress] = useState({ name: '', phone: '', address: '' });
 
+  const fetchAddresses = async () => {
+    try {
+      const res = await api.getAddresses();
+      const list = (res?.data?.addresses || []).map((a: any) => ({
+        id: a._id,
+        name: a.fullName,
+        phone: a.phoneNumber,
+        address: `${a.addressLine1}, ${a.city}, ${a.postalCode}`,
+        isDefault: !!a.isDefault,
+      }));
+      setAddresses(list);
+    } catch {}
+  };
+
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await api.getAddresses();
-        const list = (res?.data?.addresses || []).map((a: any) => ({
-          id: a._id,
-          name: a.fullName,
-          phone: a.phoneNumber,
-          address: `${a.addressLine1}, ${a.city}, ${a.postalCode}`,
-          isDefault: !!a.isDefault,
-        }));
-        setAddresses(list);
-      } catch {}
-    })();
+    fetchAddresses();
   }, []);
 
   const handleAddAddress = async () => {
@@ -52,27 +54,11 @@ export function ShippingAddressPage({ onBack }: ShippingAddressPageProps) {
         postalCode: '00000',
         isDefault: addresses.length === 0,
       };
-      const res = await api.addAddress(payload);
-      const added = (res?.data?.address || null);
-      const list = res?.data?.addresses || [];
-      if (list.length) {
-        const mapped = list.map((a: any) => ({
-          id: a._id,
-          name: a.fullName,
-          phone: a.phoneNumber,
-          address: `${a.addressLine1}, ${a.city}, ${a.postalCode}`,
-          isDefault: !!a.isDefault,
-        }));
-        setAddresses(mapped);
-      } else if (added) {
-        setAddresses(prev => [...prev, {
-          id: added._id,
-          name: added.fullName,
-          phone: added.phoneNumber,
-          address: `${added.addressLine1}, ${added.city}, ${added.postalCode}`,
-          isDefault: !!added.isDefault,
-        }]);
-      }
+      await api.addAddress(payload);
+      
+      // Refresh addresses list after adding
+      await fetchAddresses();
+      
       setNewAddress({ name: '', phone: '', address: '' });
       setShowAddForm(false);
     } catch (e: any) {
@@ -84,7 +70,8 @@ export function ShippingAddressPage({ onBack }: ShippingAddressPageProps) {
     if (!confirm(t('shippingAddress:confirmDelete'))) return;
     try {
       await api.deleteAddress(id);
-      setAddresses(addresses.filter(addr => addr.id !== id));
+      // Refresh addresses list after deleting
+      await fetchAddresses();
     } catch (e: any) {
       alert(e?.message || t('common:error.failed'));
     }
