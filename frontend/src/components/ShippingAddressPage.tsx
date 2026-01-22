@@ -56,11 +56,12 @@ export function ShippingAddressPage({ onBack }: ShippingAddressPageProps) {
       };
       await api.addAddress(payload);
       
-      // Refresh addresses list after adding
-      await fetchAddresses();
-      
+      // Reset form and close
       setNewAddress({ name: '', phone: '', address: '' });
       setShowAddForm(false);
+      
+      // Reload page to ensure fresh data
+      window.location.reload();
     } catch (e: any) {
       alert(e?.message || t('common:error.failed'));
     }
