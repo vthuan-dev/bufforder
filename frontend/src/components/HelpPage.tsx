@@ -404,6 +404,12 @@ export function HelpPage() {
   const isSendingRef = useRef(false);
 
   const handleSendMessage = async (text?: string) => {
+    // If there's a selected image, send it instead
+    if (selectedImage) {
+      await handleSendImage();
+      return;
+    }
+    
     const messageText = text || inputMessage;
     if (!messageText.trim() || isSendingRef.current) return;
 
@@ -726,63 +732,32 @@ export function HelpPage() {
 
       {/* Input Area */}
       <div className="flex-shrink-0 bg-white border-t border-gray-200 px-4 py-3">
-        {/* Image Preview - Show above input when image is selected */}
-        <AnimatePresence>
+        <div className="flex items-center gap-2 max-w-md mx-auto">
+          {/* Image Thumbnail Preview - Show inline when image selected */}
           {selectedImage && (
             <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="max-w-md mx-auto mb-3"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              className="relative flex-shrink-0"
             >
-              <div className="bg-gray-50 rounded-2xl p-3 border border-gray-200">
-                <div className="flex items-start gap-3">
-                  {/* Image Thumbnail */}
-                  <div className="relative flex-shrink-0">
-                    <img
-                      src={imagePreviewUrl}
-                      alt="Preview"
-                      className="w-20 h-20 object-cover rounded-xl"
-                    />
-                  </div>
-
-                  {/* File Info & Actions */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-700 font-medium truncate">
-                      {selectedImage.name}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {(selectedImage.size / 1024).toFixed(1)} KB
-                    </p>
-                    
-                    {/* Action Buttons */}
-                    <div className="flex gap-2 mt-2">
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        onClick={handleCancelImage}
-                        className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-xs font-medium transition-colors"
-                      >
-                        Cancel
-                      </motion.button>
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        onClick={handleSendImage}
-                        className="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-lg text-xs font-medium shadow-sm transition-all"
-                      >
-                        Send Image
-                      </motion.button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <img
+                src={imagePreviewUrl}
+                alt="Preview"
+                className="w-12 h-12 object-cover rounded-xl border-2 border-purple-300"
+              />
+              <button
+                onClick={handleCancelImage}
+                className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs shadow-lg"
+              >
+                ×
+              </button>
             </motion.div>
           )}
-        </AnimatePresence>
 
-        <div className="flex items-center gap-2 max-w-md mx-auto">
           <motion.button
             whileTap={{ scale: 0.9 }}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
             onClick={handlePickImage}
           >
             <Paperclip className="w-5 h-5 text-gray-600" />
@@ -841,7 +816,7 @@ export function HelpPage() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => handleSendMessage()}
-            disabled={!inputMessage.trim()}
+            disabled={!inputMessage.trim() && !selectedImage}
             className="bg-gradient-to-r from-purple-500 via-blue-500 to-indigo-500 text-white p-2.5 rounded-full shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="w-5 h-5" />
