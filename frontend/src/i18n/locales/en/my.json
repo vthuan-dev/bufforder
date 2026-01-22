@@ -37,6 +37,8 @@
     "markAsRead": "Mark as read",
     "clearAll": "Clear all",
     "close": "Close",
+    "showMore": "Show more",
+    "showLess": "Show less",
     "types": {
       "balanceAdjusted": "Balance Adjusted",
       "depositApproved": "Deposit Approved",

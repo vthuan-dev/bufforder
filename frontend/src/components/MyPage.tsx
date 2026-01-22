@@ -513,41 +513,79 @@ export function MyPage() {
                 ) : (
                   notifications.map((n) => {
                     const translated = translateNotification({ title: n.title, message: n.message });
+                    const [isExpanded, setIsExpanded] = React.useState(false);
+                    const maxLength = 100;
+                    const shouldTruncate = translated.message.length > maxLength;
+                    const displayMessage = shouldTruncate && !isExpanded 
+                      ? translated.message.slice(0, maxLength) + '...' 
+                      : translated.message;
+
                     return (
                       <motion.div
                         layout
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         key={n.id}
-                        onClick={() => !n.isRead && markAsRead(n.id)}
-                        className={`group p-4 rounded-2xl transition-all cursor-pointer border ${n.isRead
+                        className={`group p-4 rounded-2xl transition-all border ${n.isRead
                           ? 'bg-white border-gray-100 hover:border-gray-200'
                           : 'bg-blue-50/50 border-blue-100 hover:border-blue-200 shadow-sm'
                           }`}
                       >
                         <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              {!n.isRead && <div className="w-2 h-2 bg-blue-500 rounded-full" />}
+                              {!n.isRead && <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />}
                               <p className={`font-bold text-sm ${n.isRead ? 'text-gray-600' : 'text-blue-900'}`}>{translated.title}</p>
                             </div>
-                            <p className="text-sm text-gray-600 mt-1 leading-relaxed">{translated.message}</p>
+                            <div className="mt-1">
+                              <p className="text-sm text-gray-600 leading-relaxed break-words whitespace-pre-wrap">
+                                {displayMessage}
+                              </p>
+                              {shouldTruncate && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsExpanded(!isExpanded);
+                                  }}
+                                  className="text-xs text-blue-600 hover:text-blue-700 font-medium mt-1 inline-flex items-center gap-1"
+                                >
+                                  {isExpanded ? (
+                                    <>
+                                      {t('my:notifications.showLess', 'Show less')}
+                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                      </svg>
+                                    </>
+                                  ) : (
+                                    <>
+                                      {t('my:notifications.showMore', 'Show more')}
+                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                      </svg>
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                            </div>
                             <p className="text-[10px] text-gray-400 mt-2 flex items-center gap-1">
                               <Sparkles className="w-3 h-3" />
                               {new Date(n.createdAt).toLocaleString()}
                             </p>
                           </div>
-                          {n.isRead ? (
-                            <div className="mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <CheckCheck className="w-4 h-4 text-gray-300" />
-                            </div>
-                          ) : (
-                            <div className="mt-1">
+                          <div 
+                            className="flex-shrink-0 mt-1 cursor-pointer"
+                            onClick={() => !n.isRead && markAsRead(n.id)}
+                          >
+                            {n.isRead ? (
+                              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                <CheckCheck className="w-4 h-4 text-gray-300" />
+                              </div>
+                            ) : (
                               <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                                 <CheckCheck className="w-4 h-4 text-blue-500" />
                               </div>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
                       </motion.div>
                     );

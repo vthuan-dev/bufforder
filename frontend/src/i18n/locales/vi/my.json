@@ -37,6 +37,8 @@
     "markAsRead": "Đánh dấu đã đọc",
     "clearAll": "Xóa tất cả",
     "close": "Đóng",
+    "showMore": "Xem thêm",
+    "showLess": "Thu gọn",
     "types": {
       "balanceAdjusted": "Số dư đã điều chỉnh",
       "depositApproved": "Nạp tiền đã được duyệt",
