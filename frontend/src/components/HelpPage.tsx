@@ -732,39 +732,43 @@ export function HelpPage() {
 
       {/* Input Area */}
       <div className="flex-shrink-0 bg-white border-t border-gray-200 px-4 py-3">
-        <div className="flex items-center gap-2 max-w-md mx-auto">
-          {/* Image Thumbnail Preview - Show inline when image selected */}
-          {selectedImage && (
-            <motion.div
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0, opacity: 0 }}
-              className="relative flex-shrink-0"
-            >
-              <img
-                src={imagePreviewUrl}
-                alt="Preview"
-                className="w-12 h-12 object-cover rounded-xl border-2 border-purple-300"
-              />
-              <button
-                onClick={handleCancelImage}
-                className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs shadow-lg"
+        <div className="max-w-md mx-auto">
+          {/* Image Preview - Show above input */}
+          <AnimatePresence>
+            {selectedImage && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="mb-3 relative inline-block"
               >
-                ×
-              </button>
-            </motion.div>
-          )}
+                <img
+                  src={imagePreviewUrl}
+                  alt="Preview"
+                  className="w-20 h-20 object-cover rounded-xl border-2 border-purple-300 shadow-md"
+                />
+                <button
+                  onClick={handleCancelImage}
+                  className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-colors"
+                >
+                  <span className="text-sm font-bold">×</span>
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
-            onClick={handlePickImage}
-          >
-            <Paperclip className="w-5 h-5 text-gray-600" />
-          </motion.button>
-          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+          {/* Input Row */}
+          <div className="flex items-center gap-2">
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
+              onClick={handlePickImage}
+            >
+              <Paperclip className="w-5 h-5 text-gray-600" />
+            </motion.button>
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
 
-          <div className="flex-1">
+            <div className="flex-1">
             <input
               ref={inputRef}
               type="text"
@@ -821,6 +825,7 @@ export function HelpPage() {
           >
             <Send className="w-5 h-5" />
           </motion.button>
+          </div>
         </div>
       </div>
     </div>
