@@ -132,15 +132,15 @@ export function TopUpPage({ onBack }: TopUpPageProps) {
         {/* <div className="bg-blue-50 rounded-3xl p-5 mb-6 border border-blue-100">
           <h3 className="text-sm text-gray-800 mb-3">Payment Instructions:</h3>
           <ol className="space-y-2 text-xs text-gray-700">
-            <li className="flex gap-2">
+            <li key="step-1" className="flex gap-2">
               <span className="text-blue-600">1.</span>
               <span>Select or enter the amount you want to top up</span>
             </li>
-            <li className="flex gap-2">
+            <li key="step-2" className="flex gap-2">
               <span className="text-blue-600">2.</span>
               <span>Click "Submit Request" button</span>
             </li>
-            <li className="flex gap-2">
+            <li key="step-3" className="flex gap-2">
               <span className="text-blue-600">3.</span>
               <span>Balance will be updated within 5-10 minutes</span>
             </li>
