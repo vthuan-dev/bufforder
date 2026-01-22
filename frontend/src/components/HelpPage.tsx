@@ -33,6 +33,10 @@ export function HelpPage() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  // Image preview state
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string>('');
 
   // ⚡ NO SOCKET HERE - Use events from App.tsx global socket
 
@@ -487,15 +491,37 @@ export function HelpPage() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    // Create preview URL
+    const previewUrl = URL.createObjectURL(file);
+    setSelectedImage(file);
+    setImagePreviewUrl(previewUrl);
+    
+    // Reset input
+    e.target.value = '';
+  };
+
+  const handleSendImage = async () => {
+    if (!selectedImage) return;
+    
     try {
       const threadId = threadIdRef.current!;
-      await api.chatSendImage(threadId, file);
+      await api.chatSendImage(threadId, selectedImage);
       // message will appear via global socket 'chat:message'
+      
+      // Cleanup
+      URL.revokeObjectURL(imagePreviewUrl);
+      setSelectedImage(null);
+      setImagePreviewUrl('');
     } catch (err: any) {
       alert(err?.message || 'Upload failed');
-    } finally {
-      e.target.value = '';
     }
+  };
+
+  const handleCancelImage = () => {
+    URL.revokeObjectURL(imagePreviewUrl);
+    setSelectedImage(null);
+    setImagePreviewUrl('');
   };
 
   // Emoji picker handlers
@@ -700,6 +726,59 @@ export function HelpPage() {
 
       {/* Input Area */}
       <div className="flex-shrink-0 bg-white border-t border-gray-200 px-4 py-3">
+        {/* Image Preview - Show above input when image is selected */}
+        <AnimatePresence>
+          {selectedImage && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="max-w-md mx-auto mb-3"
+            >
+              <div className="bg-gray-50 rounded-2xl p-3 border border-gray-200">
+                <div className="flex items-start gap-3">
+                  {/* Image Thumbnail */}
+                  <div className="relative flex-shrink-0">
+                    <img
+                      src={imagePreviewUrl}
+                      alt="Preview"
+                      className="w-20 h-20 object-cover rounded-xl"
+                    />
+                  </div>
+
+                  {/* File Info & Actions */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-700 font-medium truncate">
+                      {selectedImage.name}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {(selectedImage.size / 1024).toFixed(1)} KB
+                    </p>
+                    
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 mt-2">
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleCancelImage}
+                        className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-xs font-medium transition-colors"
+                      >
+                        Cancel
+                      </motion.button>
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleSendImage}
+                        className="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-lg text-xs font-medium shadow-sm transition-all"
+                      >
+                        Send Image
+                      </motion.button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="flex items-center gap-2 max-w-md mx-auto">
           <motion.button
             whileTap={{ scale: 0.9 }}
