@@ -16,7 +16,7 @@
       "accountName": "Account Name",
       "setDefault": "Set as default",
       "placeholders": {
-        "bankName": "e.g. Vietcombank",
+        "bankName": "e.g. HSBC, Citibank, Standard Chartered",
         "cardNumber": "Enter card number",
         "accountName": "Enter account holder name"
       }

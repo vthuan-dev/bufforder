@@ -16,7 +16,7 @@
       "accountName": "Tên chủ thẻ",
       "setDefault": "Đặt làm mặc định",
       "placeholders": {
-        "bankName": "VD: Vietcombank",
+        "bankName": "VD: HSBC, Citibank, Standard Chartered",
         "cardNumber": "Nhập số thẻ",
         "accountName": "Nhập tên chủ thẻ"
       }
