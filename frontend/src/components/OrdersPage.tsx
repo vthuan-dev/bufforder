@@ -302,8 +302,8 @@ export function OrdersPage() {
         freshFreezeThreshold = freshStats.data.freezeThreshold || null;
         freshFreezeTargetProductId = freshStats.data.freezeTargetProductId || null;
 
-        // Update local state with fresh data
-        setOrdersReceived(freshOrdersReceived);
+        // DON'T update ordersReceived here - it will be updated after confirm
+        // Only update balance and freeze config
         setAvailableBalance(freshBalance);
         setFreezeThreshold(freshFreezeThreshold);
         setFreezeTargetProductId(freshFreezeTargetProductId);
