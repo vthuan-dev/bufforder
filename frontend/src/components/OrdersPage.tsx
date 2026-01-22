@@ -187,12 +187,15 @@ export function OrdersPage() {
         });
       }
 
-      // Update completed today count
-      setCompletedToday(prev => prev + 1);
-      setOrdersReceived(prev => prev + 1);
+      // Only update counters if this is from admin delivery (not from user grab)
+      const isFromOrderGrab = data.source === 'order_grab';
+      if (!isFromOrderGrab) {
+        // Admin delivered order - increment counters
+        setCompletedToday(prev => prev + 1);
+        setOrdersReceived(prev => prev + 1);
+      }
 
       // Show appropriate toast based on source
-      const isFromOrderGrab = data.source === 'order_grab';
       if (!isFromOrderGrab) {
         // Only show toast for admin-delivered orders (order_grab already has its own toast)
         toast.success(`Order delivered! +$${data.commissionIncrement?.toFixed(2) || '0.00'}`, {
