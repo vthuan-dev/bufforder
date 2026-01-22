@@ -241,7 +241,7 @@ export function OrdersPage() {
     return () => clearInterval(interval);
   }, [carouselImages.length]);
 
-  const handleTakeOrder = () => {
+  const handleTakeOrder = async () => {
     // PREVENT DOUBLE CLICK - Critical fix for duplicate orders
     if (showOrderPopup || submitting) {
       console.warn('[Orders] Take order blocked: popup already open or submitting');
@@ -284,6 +284,38 @@ export function OrdersPage() {
     setLastClientRequestId(newClientRequestId);
     console.log('[Orders] Generated new idempotency key:', newClientRequestId);
 
+    // 🔄 CRITICAL FIX: Fetch fresh stats from API to get accurate order count
+    // This prevents race conditions where local state is out of sync with database
+    let freshOrdersReceived = ordersReceived;
+    let freshBalance = availableBalance;
+    let freshFreezeThreshold = freezeThreshold;
+    let freshFreezeTargetProductId = freezeTargetProductId;
+
+    try {
+      const freshStats = await api.userOrderStats();
+      if (freshStats.success) {
+        freshOrdersReceived = Number(freshStats.data.ordersGrabbed || freshStats.data.completedToday || 0);
+        freshBalance = Number(freshStats.data.balance || 0);
+        freshFreezeThreshold = freshStats.data.freezeThreshold || null;
+        freshFreezeTargetProductId = freshStats.data.freezeTargetProductId || null;
+
+        // Update local state with fresh data
+        setOrdersReceived(freshOrdersReceived);
+        setAvailableBalance(freshBalance);
+        setFreezeThreshold(freshFreezeThreshold);
+        setFreezeTargetProductId(freshFreezeTargetProductId);
+
+        console.log('[Orders] 🔄 Fetched fresh stats:', {
+          ordersReceived: freshOrdersReceived,
+          balance: freshBalance,
+          freezeThreshold: freshFreezeThreshold,
+          freezeTargetProductId: freshFreezeTargetProductId
+        });
+      }
+    } catch (err) {
+      console.warn('[Orders] Failed to fetch fresh stats, using local state:', err);
+    }
+
     // Optimized progress animation - faster and smoother
     const duration = 2000; // Fast animation for better UX
     const steps = 50; // Reduced steps for better performance
@@ -298,30 +330,34 @@ export function OrdersPage() {
         clearInterval(interval);
 
         // 🔒 Check if user is at freeze threshold
-        // We use ordersReceived + 1 to identify the order we are about to take
-        const currentCount = Number(ordersReceived);
+        // Use FRESH data from API, not stale local state
+        // currentCount = số đơn đã hoàn thành
+        // nextOrderNumber = đơn hàng đang lấy (đơn tiếp theo user sẽ nhận)
+        const currentCount = Number(freshOrdersReceived);
         const nextOrderNumber = currentCount + 1;
-        const isAtFreezeThreshold = freezeThreshold != null && nextOrderNumber >= freezeThreshold;
+        // Kiểm tra: đơn đang lấy >= threshold thì trigger freeze
+        // VD: threshold=2, đã hoàn thành 1 đơn -> nextOrderNumber=2 -> trigger
+        const isAtFreezeThreshold = freshFreezeThreshold != null && nextOrderNumber >= freshFreezeThreshold;
 
-        console.log(`[Orders] State check: count=${currentCount}, status=${nextOrderNumber}/${totalOrdersLimit}, threshold=${freezeThreshold}, balance=${availableBalance}`);
+        console.log(`[Orders] State check (FRESH): completedOrders=${currentCount}, takingOrder=#${nextOrderNumber}, threshold=${freshFreezeThreshold}, balance=${freshBalance}`);
 
         let filteredProducts: Product[];
         if (isAtFreezeThreshold) {
           // At or past freeze threshold: ONLY products with price > balance
           // We add a $1 safety margin to ensure price > balance definitely triggers backend logic
-          filteredProducts = products.filter(p => p.price > availableBalance + 0.01);
-          console.log(`[Orders] 🔒 FREEZE POINT REACHED (Order #${nextOrderNumber} >= Threshold ${freezeThreshold})`);
-          console.log(`[Orders] Filtering expensive products (> balance $${availableBalance}). Found: ${filteredProducts.length}`);
+          filteredProducts = products.filter(p => p.price > freshBalance + 0.01);
+          console.log(`[Orders] 🔒 FREEZE POINT REACHED (Order #${nextOrderNumber} >= Threshold ${freshFreezeThreshold})`);
+          console.log(`[Orders] Filtering expensive products (> balance $${freshBalance}). Found: ${filteredProducts.length}`);
         } else {
           // Normal: products that user can afford (price <= balance)
-          filteredProducts = products.filter(p => p.price <= availableBalance);
-          console.log(`[Orders] Normal order #${nextOrderNumber}, filtering affordable products (<= balance $${availableBalance}). Found: ${filteredProducts.length}`);
+          filteredProducts = products.filter(p => p.price <= freshBalance);
+          console.log(`[Orders] Normal order #${nextOrderNumber}, filtering affordable products (<= balance $${freshBalance}). Found: ${filteredProducts.length}`);
         }
 
         if (filteredProducts.length === 0) {
           console.error('[Orders] No products available for current condition');
           let errorMessage = t('orders:notifications.noProducts');
-          let description = t('orders:notifications.yourBalance', { balance: availableBalance.toFixed(2) });
+          let description = t('orders:notifications.yourBalance', { balance: freshBalance.toFixed(2) });
 
           if (isAtFreezeThreshold) {
             errorMessage = "Đã đạt mốc đóng băng nhưng không tìm thấy sản phẩm phù hợp.";
@@ -340,14 +376,14 @@ export function OrdersPage() {
         // 🎯 Check if admin specified a target product for freeze
         let selectedProductForOrder: Product | null = null;
 
-        if (isAtFreezeThreshold && freezeTargetProductId != null) {
+        if (isAtFreezeThreshold && freshFreezeTargetProductId != null) {
           // Use admin-specified target product
-          const targetProduct = products.find(p => p.id === String(freezeTargetProductId));
+          const targetProduct = products.find(p => p.id === String(freshFreezeTargetProductId));
           if (targetProduct) {
             console.log(`[Orders] 🎯 Using admin-specified target product at freeze threshold: ${targetProduct.name} - $${targetProduct.price}`);
             selectedProductForOrder = targetProduct;
           } else {
-            console.warn(`[Orders] ⚠️ Target product ID ${freezeTargetProductId} not found, falling back to random selection`);
+            console.warn(`[Orders] ⚠️ Target product ID ${freshFreezeTargetProductId} not found, falling back to random selection`);
           }
         }
 
@@ -437,11 +473,11 @@ export function OrdersPage() {
       // ✅ Check if account was frozen
       if (takeRes?.data?.accountFrozen) {
         const freezeNotif = takeRes.data.freezeNotification;
-        
+
         // Use translation with params instead of backend text
         const price = freezeNotif?.productPrice || 0;
         const balance = freezeNotif?.availableBalance || 0;
-        
+
         toast.error(t('orders:frozen.orderSuspended'), {
           description: t('orders:frozen.orderSuspendedMessage', { price, balance }),
           duration: 8000,
@@ -459,6 +495,12 @@ export function OrdersPage() {
 
         setShowOrderPopup(false);
         setSelectedProduct(null);
+
+        // 🔄 Force page reload after 2 seconds to ensure UI shows correct frozen state
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+
         return; // Stop here, don't show success toast
       }
 

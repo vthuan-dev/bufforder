@@ -370,7 +370,7 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
               createdAt: new Date(req.requestDate),
               isRead: false
             }));
-            
+
             // Merge with existing localStorage notifications (avoid duplicates)
             setDepositNotifications(prev => {
               const existingIds = new Set(prev.map(n => n.requestId));
@@ -395,7 +395,7 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
               createdAt: new Date(req.requestDate),
               isRead: false
             }));
-            
+
             // Merge with existing localStorage notifications (avoid duplicates)
             setWithdrawalNotifications(prev => {
               const existingIds = new Set(prev.map(n => n.requestId));
@@ -819,116 +819,114 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
                       </div>
                     ) : (
                       <>
-                        {/* Deposit Notifications */}
-                        {depositNotifications.length > 0 && (
-                          <>
-                            <div className="px-2 py-1 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                              Deposits ({unreadDepositCount} new)
-                            </div>
-                            {depositNotifications.slice(0, 5).map((notification) => (
-                              <DropdownMenuItem
-                                key={notification.id}
-                                className="flex flex-col items-start gap-1 py-3 cursor-pointer"
-                                onClick={() => onNavigate('deposits')}
-                              >
-                                <div className="flex items-center gap-2 w-full">
-                                  {!notification.isRead && (
-                                    <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />
-                                  )}
-                                  <ArrowDownCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                                  <span className={`font-medium text-sm ${notification.isRead ? 'text-gray-600' : 'text-gray-900'}`}>
-                                    New Deposit Request
-                                  </span>
-                                </div>
-                                <p className="text-xs text-gray-500 pl-6">
-                                  {notification.userName}
-                                </p>
-                                <div className="flex items-center justify-between w-full pl-6">
-                                  <span className="text-xs text-green-600 font-medium">
-                                    ${notification.amount.toLocaleString()}
-                                  </span>
-                                  <span className="text-xs text-gray-400">
-                                    {formatTimeAgo(notification.createdAt)}
-                                  </span>
-                                </div>
-                              </DropdownMenuItem>
-                            ))}
-                          </>
-                        )}
+                        {/* All Notifications - Sorted by newest first */}
+                        {(() => {
+                          // Combine all notifications with type info
+                          const allNotifications = [
+                            ...depositNotifications.map(n => ({ ...n, type: 'deposit' as const })),
+                            ...withdrawalNotifications.map(n => ({ ...n, type: 'withdrawal' as const })),
+                            ...orderNotifications.map(n => ({ ...n, type: 'order' as const }))
+                          ];
 
-                        {/* Withdrawal Notifications */}
-                        {withdrawalNotifications.length > 0 && (
-                          <>
-                            <div className="px-2 py-1 text-xs font-medium text-gray-400 uppercase tracking-wide mt-2">
-                              Withdrawals ({unreadWithdrawalCount} new)
-                            </div>
-                            {withdrawalNotifications.slice(0, 5).map((notification) => (
-                              <DropdownMenuItem
-                                key={notification.id}
-                                className="flex flex-col items-start gap-1 py-3 cursor-pointer"
-                                onClick={() => onNavigate('withdrawals')}
-                              >
-                                <div className="flex items-center gap-2 w-full">
-                                  {!notification.isRead && (
-                                    <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />
-                                  )}
-                                  <ArrowUpCircle className="w-4 h-4 text-orange-500 flex-shrink-0" />
-                                  <span className={`font-medium text-sm ${notification.isRead ? 'text-gray-600' : 'text-gray-900'}`}>
-                                    New Withdrawal Request
-                                  </span>
-                                </div>
-                                <p className="text-xs text-gray-500 pl-6">
-                                  {notification.userName}
-                                </p>
-                                <div className="flex items-center justify-between w-full pl-6">
-                                  <span className="text-xs text-orange-600 font-medium lowercase">
-                                    ${notification.amount.toLocaleString()} ({notification.withdrawalType})
-                                  </span>
-                                  <span className="text-xs text-gray-400">
-                                    {formatTimeAgo(notification.createdAt)}
-                                  </span>
-                                </div>
-                              </DropdownMenuItem>
-                            ))}
-                          </>
-                        )}
+                          // Sort by createdAt (newest first)
+                          allNotifications.sort((a, b) =>
+                            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                          );
 
-                        {/* Order Notifications */}
-                        {orderNotifications.length > 0 && (
-                          <>
-                            <div className="px-2 py-1 text-xs font-medium text-gray-400 uppercase tracking-wide mt-2">
-                              Orders ({unreadOrderCount} new)
-                            </div>
-                            {orderNotifications.slice(0, 5).map((notification) => (
-                              <DropdownMenuItem
-                                key={notification.id}
-                                className="flex flex-col items-start gap-1 py-3 cursor-pointer"
-                                onClick={() => onNavigate('orders')}
-                              >
-                                <div className="flex items-center gap-2 w-full">
-                                  {!notification.isRead && (
-                                    <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />
-                                  )}
-                                  <ShoppingBag className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                                  <span className={`font-medium text-sm ${notification.isRead ? 'text-gray-600' : 'text-gray-900'}`}>
-                                    New Order #{notification.orderNumber}
-                                  </span>
-                                </div>
-                                <p className="text-xs text-gray-500 pl-6">
-                                  {notification.userName} - {notification.productName}
-                                </p>
-                                <div className="flex items-center justify-between w-full pl-6">
-                                  <span className="text-xs text-green-600 font-medium">
-                                    ${notification.productPrice.toLocaleString()}
-                                  </span>
-                                  <span className="text-xs text-gray-400">
-                                    {formatTimeAgo(notification.createdAt)}
-                                  </span>
-                                </div>
-                              </DropdownMenuItem>
-                            ))}
-                          </>
-                        )}
+                          return allNotifications.slice(0, 15).map((notification) => {
+                            if (notification.type === 'deposit') {
+                              const n = notification as DepositNotification & { type: 'deposit' };
+                              return (
+                                <DropdownMenuItem
+                                  key={n.id}
+                                  className="flex flex-col items-start gap-1 py-3 cursor-pointer"
+                                  onClick={() => onNavigate('deposits')}
+                                >
+                                  <div className="flex items-center gap-2 w-full">
+                                    {!n.isRead && (
+                                      <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />
+                                    )}
+                                    <ArrowDownCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                    <span className={`font-medium text-sm ${n.isRead ? 'text-gray-600' : 'text-gray-900'}`}>
+                                      New Deposit Request
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-gray-500 pl-6">
+                                    {n.userName}
+                                  </p>
+                                  <div className="flex items-center justify-between w-full pl-6">
+                                    <span className="text-xs text-green-600 font-medium">
+                                      ${n.amount.toLocaleString()}
+                                    </span>
+                                    <span className="text-xs text-gray-400">
+                                      {formatTimeAgo(n.createdAt)}
+                                    </span>
+                                  </div>
+                                </DropdownMenuItem>
+                              );
+                            } else if (notification.type === 'withdrawal') {
+                              const n = notification as WithdrawalNotification & { type: 'withdrawal' };
+                              return (
+                                <DropdownMenuItem
+                                  key={n.id}
+                                  className="flex flex-col items-start gap-1 py-3 cursor-pointer"
+                                  onClick={() => onNavigate('withdrawals')}
+                                >
+                                  <div className="flex items-center gap-2 w-full">
+                                    {!n.isRead && (
+                                      <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />
+                                    )}
+                                    <ArrowUpCircle className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                                    <span className={`font-medium text-sm ${n.isRead ? 'text-gray-600' : 'text-gray-900'}`}>
+                                      New Withdrawal Request
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-gray-500 pl-6">
+                                    {n.userName}
+                                  </p>
+                                  <div className="flex items-center justify-between w-full pl-6">
+                                    <span className="text-xs text-orange-600 font-medium lowercase">
+                                      ${n.amount.toLocaleString()} ({n.withdrawalType})
+                                    </span>
+                                    <span className="text-xs text-gray-400">
+                                      {formatTimeAgo(n.createdAt)}
+                                    </span>
+                                  </div>
+                                </DropdownMenuItem>
+                              );
+                            } else {
+                              const n = notification as OrderNotification & { type: 'order' };
+                              return (
+                                <DropdownMenuItem
+                                  key={n.id}
+                                  className="flex flex-col items-start gap-1 py-3 cursor-pointer"
+                                  onClick={() => onNavigate('orders')}
+                                >
+                                  <div className="flex items-center gap-2 w-full">
+                                    {!n.isRead && (
+                                      <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />
+                                    )}
+                                    <ShoppingBag className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                                    <span className={`font-medium text-sm ${n.isRead ? 'text-gray-600' : 'text-gray-900'}`}>
+                                      New Order #{n.orderNumber}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-gray-500 pl-6">
+                                    {n.userName} - {n.productName}
+                                  </p>
+                                  <div className="flex items-center justify-between w-full pl-6">
+                                    <span className="text-xs text-green-600 font-medium">
+                                      ${n.productPrice.toLocaleString()}
+                                    </span>
+                                    <span className="text-xs text-gray-400">
+                                      {formatTimeAgo(n.createdAt)}
+                                    </span>
+                                  </div>
+                                </DropdownMenuItem>
+                              );
+                            }
+                          });
+                        })()}
                       </>
                     )}
                   </div>

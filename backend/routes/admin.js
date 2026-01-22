@@ -429,10 +429,15 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
 
         console.log('[Admin] ✅ Suspended order processed and account unlocked (target product cleared)');
       } else if (suspendedOrder) {
-        console.log('[Admin] ⚠️ Insufficient balance to process suspended order');
-        console.log(`[Admin] Need: ${suspendedOrder.productPrice}, Have: ${totalBalance}`);
-        // Still frozen, just add to frozen balance
-        updateData.frozenBalance = totalBalance;
+        // ⚠️ NOT ENOUGH - Keep frozen, add to frozenBalance only
+        console.log('[Admin] ⚠️ NOT ENOUGH to unlock - keeping frozen');
+        console.log(`[Admin] 📊 Need: $${suspendedOrder.productPrice}, Have: $${totalBalance}`);
+        console.log(`[Admin] 📊 Still need: $${(suspendedOrder.productPrice - totalBalance).toFixed(2)} more`);
+
+        // Explicitly keep frozen state - DO NOT touch balance
+        updateData.isFrozen = true; // Keep frozen explicitly
+        updateData.balance = 0; // Balance stays 0
+        updateData.frozenBalance = totalBalance; // Add deposit to frozen balance
       } else {
         // No suspended order, just unlock
         // Clear target product from commission config
@@ -459,6 +464,23 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
       updateData.balance = user.balance + amount;
     }
 
+    // Determine notification message based on frozen status
+    let notifTitle = 'Deposit Approved';
+    let notifMessage = `Your deposit of $${amount.toLocaleString()} has been approved.`;
+    let notifType = 'success';
+
+    if (updateData.isFrozen === true) {
+      // Still frozen after deposit
+      notifTitle = 'Deposit Received (Account Still Frozen)';
+      notifMessage = `Your deposit of $${amount.toLocaleString()} has been added to frozen balance ($${updateData.frozenBalance?.toFixed(2) || '0.00'}). Top up more to unlock your account.`;
+      notifType = 'warning';
+    } else if (updateData.isFrozen === false && user.isFrozen) {
+      // Was frozen, now unlocked
+      notifTitle = 'Account Unlocked!';
+      notifMessage = `Your deposit of $${amount.toLocaleString()} has been approved. Your account is now unlocked with balance $${updateData.balance?.toFixed(2)}.`;
+      notifType = 'success';
+    }
+
     await prisma.$transaction([
       prisma.user.update({
         where: { id: user.id },
@@ -471,9 +493,9 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
       prisma.notification.create({
         data: {
           userId: user.id,
-          title: 'Deposit Approved',
-          message: `Your deposit of $${amount.toLocaleString()} has been approved.`,
-          type: 'success'
+          title: notifTitle,
+          message: notifMessage,
+          type: notifType
         }
       })
     ]);
@@ -483,9 +505,17 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
       const io = req.app.get('io');
       if (io) {
         io.to(`user:${user.id}`).emit('notification:new', {
-          title: 'Deposit Approved',
-          message: `Your deposit of $${amount.toLocaleString()} has been approved.`,
-          type: 'success'
+          title: notifTitle,
+          message: notifMessage,
+          type: notifType
+        });
+        // Emit balance update for real-time UI refresh
+        io.to(`user:${user.id}`).emit('balance:updated', {
+          userId: user.id,
+          newBalance: updateData.balance || 0,
+          frozenBalance: updateData.frozenBalance || 0,
+          isFrozen: updateData.isFrozen ?? user.isFrozen,
+          source: 'deposit_approved'
         });
       }
     } catch (e) { console.error('[Socket] Notify error:', e); }
@@ -951,6 +981,19 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
       const newBalance = Number(balance);
       const currentBalance = currentUser.balance;
 
+      // 🔒 Check if user is frozen - cannot ADD balance to frozen account
+      if (currentUser.isFrozen && newBalance > currentBalance) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot add balance to frozen account. Please unlock the account first or approve a deposit request.',
+          error: {
+            code: 'ACCOUNT_FROZEN',
+            frozenBalance: currentUser.frozenBalance,
+            suggestion: 'Use the unlock button or approve deposit from Deposits page to unlock this account.'
+          }
+        });
+      }
+
       // Determine the type of balance change
       if (newBalance > currentBalance) {
         balanceChangeType = 'add';
@@ -1087,6 +1130,19 @@ router.post('/users/:id/topup', verifyAdminToken, async (req, res) => {
 
     const user = await prisma.user.findUnique({ where: { id: req.params.id } });
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    // 🔒 Check if user is frozen - must unlock first before adding balance
+    if (user.isFrozen) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot add balance to frozen account. Please unlock the account first or approve a deposit request.',
+        error: {
+          code: 'ACCOUNT_FROZEN',
+          frozenBalance: user.frozenBalance,
+          suggestion: 'Use the unlock button or approve deposit from Deposits page to unlock this account.'
+        }
+      });
+    }
 
     const newTotalDeposited = user.totalDeposited + add;
     const newVipLevel = getVipLevelByAmount(newTotalDeposited);
