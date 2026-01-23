@@ -306,16 +306,19 @@ export function OrdersPage() {
       if (freshStats.success) {
         freshOrdersReceived = Number(freshStats.data.ordersGrabbed || freshStats.data.completedToday || 0);
         freshBalance = Number(freshStats.data.balance || 0);
-        freshFreezeThreshold = freshStats.data.freezeThreshold || null;
-        freshFreezeTargetProductId = freshStats.data.freezeTargetProductId || null;
+        freshFreezeThreshold = freshStats.data?.freezeThreshold || null;
+        freshFreezeTargetProductId = freshStats.data?.freezeTargetProductId || null;
 
-        // ONLY update balance and freeze config - NEVER update ordersReceived here
-        // ordersReceived will be updated after confirm order succeeds
+        // 🔧 FIX: Update ALL state immediately to ensure sync
+        // This ensures the next check uses the latest values
         setAvailableBalance(freshBalance);
         setFreezeThreshold(freshFreezeThreshold);
         setFreezeTargetProductId(freshFreezeTargetProductId);
+        // Also update ordersReceived to ensure it's in sync with API
+        setOrdersReceived(freshOrdersReceived);
+        ordersReceivedRef.current = freshOrdersReceived;
 
-        console.log('[Orders] 🔄 Fetched fresh stats:', {
+        console.log('[Orders] 🔄 Fetched fresh stats and updated state:', {
           ordersReceived: freshOrdersReceived,
           balance: freshBalance,
           freezeThreshold: freshFreezeThreshold,

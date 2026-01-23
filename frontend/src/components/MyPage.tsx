@@ -157,8 +157,17 @@ export function MyPage() {
 
   const handleLogout = () => {
     try {
+      // Clear all auth and user-specific data
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      
+      // 🔧 Clear any stats data that might be cached
+      localStorage.removeItem('stats:lastDate');
+      localStorage.removeItem('stats:dailyCommission');
+      localStorage.removeItem('stats:ordersReceived');
+      
+      // Or clear everything (more aggressive but safer)
+      // localStorage.clear();
     } catch { }
     // Redirect to login/home
     window.location.href = '/';
