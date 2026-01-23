@@ -128,8 +128,8 @@ router.get('/stats', authenticateToken, async (req, res) => {
         balance: user.balance,
         freezeBalance: user.freezeBalance,
         totalDailyTasks: effectiveNumberOfOrders,
-        completedToday: todayOrders.length,
-        ordersGrabbed: todayOrders.length,
+        completedToday: todayOrders.length, // ✅ Same as ordersGrabbed - orders are auto-completed
+        ordersGrabbed: todayOrders.length, // ✅ All orders grabbed (any status)
         vipLevel: user.vipLevel,
         commissionRate, // Percentage rate (e.g., 0.012 = 1.2%)
         dailyTarget,

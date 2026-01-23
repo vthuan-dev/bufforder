@@ -114,27 +114,9 @@ export function OrdersPage() {
   }, [products]);
 
   useEffect(() => {
-    const today = new Date();
-    const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-    const lastDate = localStorage.getItem("stats:lastDate");
-
-    if (lastDate !== todayKey) {
-      // New day: reset daily stats
-      localStorage.setItem("stats:lastDate", todayKey);
-      localStorage.setItem("stats:dailyCommission", "0");
-      localStorage.setItem("stats:ordersReceived", "0");
-      setDailyCommission(0);
-      safeSetOrdersReceived(0);
-      ordersReceivedRef.current = 0; // Reset ref on new day
-    } else {
-      // Load persisted stats for today
-      const savedCommission = parseFloat(localStorage.getItem("stats:dailyCommission") || "0");
-      const savedOrders = parseInt(localStorage.getItem("stats:ordersReceived") || "0", 10);
-      setDailyCommission(isNaN(savedCommission) ? 0 : savedCommission);
-      const initialOrders = isNaN(savedOrders) ? 0 : savedOrders;
-      safeSetOrdersReceived(initialOrders);
-      ordersReceivedRef.current = initialOrders; // Initialize ref
-    }
+    // 🔧 FIX: Don't use localStorage for ordersReceived - always get from API
+    // localStorage can have stale data from previous users causing wrong counts
+    
     // load current balance and vip from api
     (async () => {
       try {
@@ -146,7 +128,9 @@ export function OrdersPage() {
           setTotalOrdersLimit(Number(stats.data.totalDailyTasks || 0));
           const apiOrders = Number(stats.data.ordersGrabbed || 0);
           console.log('[OrdersPage] Initial API load - ordersGrabbed:', apiOrders);
-          safeSetOrdersReceived(apiOrders);
+          // 🔧 FIX: Force set to API value, ignore localStorage
+          setOrdersReceived(apiOrders);
+          ordersReceivedRef.current = apiOrders;
           // Sync today's earned commission from backend
           // Backend commissionAmount is credited 100% to the user's balance.
           // UI shows Earned commission = total commission earned today.
@@ -174,13 +158,8 @@ export function OrdersPage() {
     })();
   }, []);
 
-  // Persist when stats change
-  useEffect(() => {
-    localStorage.setItem("stats:dailyCommission", String(dailyCommission));
-  }, [dailyCommission]);
-  useEffect(() => {
-    localStorage.setItem("stats:ordersReceived", String(ordersReceived));
-  }, [ordersReceived]);
+  // 🔧 FIX: Removed localStorage persistence for ordersReceived
+  // It was causing bugs when switching users - always use API as source of truth
 
   // 🔔 Listen for real-time balance updates (from socket)
   useEffect(() => {
