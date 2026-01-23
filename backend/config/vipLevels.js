@@ -56,14 +56,14 @@ const VIP_LEVELS = [
   },
   {
     id: 'vip-4',
-    name: 'VIP 4 (Bạch kim)',
+    name: 'VIP 4 (Kim cương)',
     amountRequired: 60000,
     commissionRate: 0.009, // 0.9% - Thực nhận: 0.81%
     dailyTarget: 600,
     numberOfOrders: 150,
     gradient: 'from-green-600 to-blue-600',
     crown: '👑',
-    description: 'Platinum member'
+    description: 'Diamond member'
   },
   {
     id: 'vip-3',
