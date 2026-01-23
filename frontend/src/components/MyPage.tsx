@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, lazy, Suspense } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   MapPin,
   Wallet,
@@ -45,7 +46,27 @@ const PageLoader = () => (
 
 export function MyPage() {
   const { t } = useTranslation(['common', 'my']);
-  const [currentView, setCurrentView] = useState<PageView>('main');
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get current view from URL path
+  const getCurrentView = (): PageView => {
+    const path = location.pathname;
+    if (path.includes('/my/address')) return 'address';
+    if (path.includes('/my/topup')) return 'topup';
+    if (path.includes('/my/withdrawal-methods')) return 'withdrawal-methods';
+    if (path.includes('/my/withdrawal')) return 'withdrawal';
+    if (path.includes('/my/history')) return 'history';
+    if (path.includes('/my/security')) return 'security';
+    return 'main';
+  };
+  
+  const [currentView, setCurrentView] = useState<PageView>(getCurrentView());
+  
+  // Update currentView when URL changes
+  useEffect(() => {
+    setCurrentView(getCurrentView());
+  }, [location.pathname]);
   const [availableBalance, setAvailableBalance] = useState(0);
   const [freezeBalance, setFreezeBalance] = useState(0);
   const [isFrozen, setIsFrozen] = useState(false);
@@ -152,7 +173,14 @@ export function MyPage() {
   const vipSubtitle = useMemo(() => t(`my:vip.subtitles.${normalizedVipKey}`), [t, normalizedVipKey]);
 
   const handleMenuClick = (id: PageView) => {
+    // Navigate to URL instead of just changing state
+    navigate(`/my/${id}`);
     setCurrentView(id);
+  };
+
+  const handleBackToMain = () => {
+    navigate('/my');
+    setCurrentView('main');
   };
 
   const handleLogout = () => {
@@ -175,22 +203,22 @@ export function MyPage() {
 
   // Render different pages based on currentView
   if (currentView === 'address') {
-    return <Suspense fallback={<PageLoader />}><ShippingAddressPage onBack={() => setCurrentView('main')} /></Suspense>;
+    return <Suspense fallback={<PageLoader />}><ShippingAddressPage onBack={handleBackToMain} /></Suspense>;
   }
   if (currentView === 'topup') {
-    return <Suspense fallback={<PageLoader />}><TopUpPage onBack={() => setCurrentView('main')} /></Suspense>;
+    return <Suspense fallback={<PageLoader />}><TopUpPage onBack={handleBackToMain} /></Suspense>;
   }
   if (currentView === 'withdrawal') {
-    return <Suspense fallback={<PageLoader />}><WithdrawalPage onBack={() => setCurrentView('main')} onNavigateToBankCards={() => setCurrentView('withdrawal-methods')} /></Suspense>;
+    return <Suspense fallback={<PageLoader />}><WithdrawalPage onBack={handleBackToMain} onNavigateToBankCards={() => { navigate('/my/withdrawal-methods'); setCurrentView('withdrawal-methods'); }} /></Suspense>;
   }
   if (currentView === 'history') {
-    return <Suspense fallback={<PageLoader />}><TransactionHistoryPage onBack={() => setCurrentView('main')} /></Suspense>;
+    return <Suspense fallback={<PageLoader />}><TransactionHistoryPage onBack={handleBackToMain} /></Suspense>;
   }
   if (currentView === 'withdrawal-methods') {
-    return <Suspense fallback={<PageLoader />}><WithdrawalMethodsPage onBack={() => setCurrentView('main')} /></Suspense>;
+    return <Suspense fallback={<PageLoader />}><WithdrawalMethodsPage onBack={handleBackToMain} /></Suspense>;
   }
   if (currentView === 'security') {
-    return <Suspense fallback={<PageLoader />}><SecurityCenterPage onBack={() => setCurrentView('main')} /></Suspense>;
+    return <Suspense fallback={<PageLoader />}><SecurityCenterPage onBack={handleBackToMain} /></Suspense>;
   }
 
   return (
