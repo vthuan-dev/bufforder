@@ -194,7 +194,7 @@ function ClientApp() {
             <Route path="/orders" element={<OrdersPage />} />
             <Route path="/record" element={<RecordPage />} />
             <Route path="/help" element={<HelpPage />} />
-            <Route path="/my" element={<MyPage />} />
+            <Route path="/my/*" element={<MyPage />} />
             <Route path="/" element={<Navigate to="/home" replace />} />
           </Routes>
         </Suspense>
