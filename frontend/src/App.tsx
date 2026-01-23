@@ -224,7 +224,7 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
     navigate('/home');
   }, [navigate]);
 
-  // Validate token on mount
+  // Validate token on mount - ONLY if explicitly unauthorized
   useEffect(() => {
     const validateSession = async () => {
       const token = localStorage.getItem('token');
@@ -233,28 +233,34 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      // ✅ Token exists - assume valid until proven otherwise
+      // This prevents unnecessary logouts on slow networks
+      setIsAuthenticated(true);
+
       try {
         const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
         const res = await fetch(`${API_BASE}/api/orders/stats`, {
           headers: { 'Authorization': `Bearer ${token}` },
-          signal: AbortSignal.timeout(5000) // 5 second timeout
+          signal: AbortSignal.timeout(15000) // ⚡ Increased to 15 seconds for slow networks
         });
 
-        // Only logout if explicitly unauthorized
+        // Only logout if explicitly unauthorized (401/403)
         if (res.status === 401 || res.status === 403) {
-          console.log('[Auth] Token invalid, logging out');
+          console.log('[Auth] Token invalid (401/403), logging out');
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           setIsAuthenticated(false);
         } else if (res.ok) {
-          console.log('[Auth] Token valid');
+          console.log('[Auth] Token validated successfully');
           setIsAuthenticated(true);
+        } else {
+          // Other errors (500, 502, etc.) - keep user logged in
+          console.log('[Auth] Server error, keeping session:', res.status);
         }
-        // If other errors (500, network, etc.), keep user logged in
       } catch (error: any) {
-        // Network errors, timeouts, etc. - keep user logged in
+        // Network errors, timeouts, etc. - KEEP user logged in
         console.log('[Auth] Validation error (keeping session):', error.message);
-        // Don't logout on network errors - user stays authenticated
+        // User stays authenticated - they can retry later
       }
     };
     validateSession();

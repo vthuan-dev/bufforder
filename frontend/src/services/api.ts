@@ -52,7 +52,7 @@ async function request(endpoint: string, options: RequestOptions = {}) {
 
   // Create an abort controller for timeouts
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // ⚡ Increased to 30s for slow networks/servers
 
   const headers: Record<string, string> = {
     ...(options.headers || {}),
@@ -95,17 +95,9 @@ async function request(endpoint: string, options: RequestOptions = {}) {
           throw new Error('This feature is not available yet. Please update your backend.');
         }
 
-        // Session expired - clear ALL tokens, data and cache
-        if (typeof localStorage !== 'undefined') {
-          localStorage.removeItem('token');
-          localStorage.removeItem('adminToken');
-          localStorage.removeItem('adminData');
-        }
-
-        // Clear response cache to prevent stale data
-        responseCache.clear();
-        pendingRequests.clear();
-
+        // ⚠️ Session expired - but be careful not to logout too aggressively
+        console.warn('[API] 401 Unauthorized:', endpoint);
+        
         // Check if we are in admin mode or regular mode
         const isAdmin = window.location.pathname.startsWith('/admin');
 
@@ -115,12 +107,30 @@ async function request(endpoint: string, options: RequestOptions = {}) {
           window.location.pathname === '/admin';
 
         if (!isLoginPage) {
-          // Use replace to prevent back button issues
-          if (isAdmin) {
-            window.location.replace('/admin/login');
-          } else {
-            window.location.replace('/login');
-          }
+          // ⚡ Add a small delay before clearing storage and redirecting
+          // This prevents race conditions where multiple 401s cause multiple redirects
+          setTimeout(() => {
+            // Clear ALL tokens, data and cache
+            if (typeof localStorage !== 'undefined') {
+              localStorage.removeItem('token');
+              localStorage.removeItem('tokenTimestamp');
+              localStorage.removeItem('adminToken');
+              localStorage.removeItem('adminData');
+              localStorage.removeItem('user');
+            }
+
+            // Clear response cache to prevent stale data
+            responseCache.clear();
+            pendingRequests.clear();
+
+            // Use replace to prevent back button issues
+            if (isAdmin) {
+              window.location.replace('/admin/login');
+            } else {
+              window.location.replace('/login');
+            }
+          }, 100); // Small delay to prevent race conditions
+
           // Return early to prevent further execution
           return { success: false, message: 'Session expired' };
         }
@@ -169,6 +179,32 @@ export default {
   clearCache() {
     responseCache.clear();
     console.log('[Cache] Cleared all cache');
+  },
+
+  // ⚡ Utility: Check if token is about to expire (within 1 day)
+  isTokenExpiringSoon(): boolean {
+    if (typeof localStorage === 'undefined') return false;
+    
+    const tokenTimestamp = localStorage.getItem('tokenTimestamp');
+    if (!tokenTimestamp) return false;
+
+    const tokenAge = Date.now() - parseInt(tokenTimestamp, 10);
+    const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
+    const oneDayInMs = 24 * 60 * 60 * 1000;
+
+    // Token expires in 7 days, warn if less than 1 day remaining
+    return tokenAge > (sevenDaysInMs - oneDayInMs);
+  },
+
+  // ⚡ Utility: Get token age in days
+  getTokenAgeDays(): number {
+    if (typeof localStorage === 'undefined') return 0;
+    
+    const tokenTimestamp = localStorage.getItem('tokenTimestamp');
+    if (!tokenTimestamp) return 0;
+
+    const tokenAge = Date.now() - parseInt(tokenTimestamp, 10);
+    return Math.floor(tokenAge / (24 * 60 * 60 * 1000));
   },
 
   // ----- Admin -----
@@ -244,12 +280,30 @@ export default {
     return request('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ phoneNumber, password }),
+    }).then((response) => {
+      // ✅ Save token timestamp for expiry tracking
+      if (response.success && response.data?.token) {
+        const tokenTimestamp = Date.now();
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('tokenTimestamp', String(tokenTimestamp));
+        }
+      }
+      return response;
     });
   },
   register({ phoneNumber, password, fullName, inviteCode }: { phoneNumber: string; password: string; fullName: string; inviteCode: string; }) {
     return request('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ phoneNumber, password, fullName, inviteCode }),
+    }).then((response) => {
+      // ✅ Save token timestamp for expiry tracking
+      if (response.success && response.data?.token) {
+        const tokenTimestamp = Date.now();
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('tokenTimestamp', String(tokenTimestamp));
+        }
+      }
+      return response;
     });
   },
   profile(token?: string) {
