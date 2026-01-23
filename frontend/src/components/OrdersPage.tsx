@@ -309,17 +309,22 @@ export function OrdersPage() {
         freshFreezeThreshold = freshStats.data?.freezeThreshold || null;
         freshFreezeTargetProductId = freshStats.data?.freezeTargetProductId || null;
 
-        // 🔧 FIX: Update ALL state immediately to ensure sync
-        // This ensures the next check uses the latest values
+        // 🔧 FIX: Update state but use Math.max to prevent going backwards
+        // This handles race conditions where API hasn't updated yet
         setAvailableBalance(freshBalance);
         setFreezeThreshold(freshFreezeThreshold);
         setFreezeTargetProductId(freshFreezeTargetProductId);
-        // Also update ordersReceived to ensure it's in sync with API
-        setOrdersReceived(freshOrdersReceived);
-        ordersReceivedRef.current = freshOrdersReceived;
+        
+        // Use Math.max to ensure we never decrease the counter
+        setOrdersReceived(prev => {
+          const newValue = Math.max(prev, freshOrdersReceived);
+          ordersReceivedRef.current = newValue;
+          return newValue;
+        });
 
         console.log('[Orders] 🔄 Fetched fresh stats and updated state:', {
           ordersReceived: freshOrdersReceived,
+          currentState: ordersReceived,
           balance: freshBalance,
           freezeThreshold: freshFreezeThreshold,
           freezeTargetProductId: freshFreezeTargetProductId
@@ -346,8 +351,12 @@ export function OrdersPage() {
         // Use FRESH data from API, not stale local state
         // currentCount = số đơn đã hoàn thành
         // nextOrderNumber = đơn hàng đang lấy (đơn tiếp theo user sẽ nhận)
-        const currentCount = Number(freshOrdersReceived);
+        
+        // 🔧 FIX: Use the MAXIMUM between fresh API data and current state
+        // This handles race conditions where state was updated but API hasn't caught up yet
+        const currentCount = Math.max(Number(freshOrdersReceived), ordersReceived);
         const nextOrderNumber = currentCount + 1;
+        
         // Kiểm tra: đơn đang lấy >= threshold thì trigger freeze
         // VD: threshold=2, đã hoàn thành 1 đơn -> nextOrderNumber=2 -> trigger
         const isAtFreezeThreshold = freshFreezeThreshold != null && nextOrderNumber >= freshFreezeThreshold;
