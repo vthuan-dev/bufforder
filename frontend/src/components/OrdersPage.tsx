@@ -610,12 +610,10 @@ export function OrdersPage() {
       // notify other pages (Record) to refresh
       try { window.dispatchEvent(new Event('orderUpdated')); } catch { }
 
-      // 🔄 AUTO REFRESH: Reload page after successful order to ensure 100% sync
-      // This prevents any state mismatch and ensures freeze threshold works correctly
-      console.log('[Orders] ✅ Order completed successfully. Refreshing page in 1.5s...');
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500); // Small delay to let user see success toast
+      // 🔄 AUTO REFRESH: Reload page immediately after successful order
+      // This ensures 100% sync with database and prevents freeze threshold issues
+      console.log('[Orders] ✅ Order completed successfully. Refreshing page now...');
+      window.location.reload();
     } catch (e: any) {
       console.error('[Orders] Submit error:', e);
       // Close popup first so user can see the toast error message
