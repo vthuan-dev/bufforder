@@ -194,7 +194,8 @@ export function MyPage() {
   }
 
   return (
-    <div className="pb-44 bg-white min-h-screen relative">
+    <div className="bg-white min-h-screen relative">
+      <div className="pb-32 overflow-y-auto">
       {/* Header with Premium Gradient */}
       <div className="relative overflow-hidden z-0">
         {/* Animated Background Pattern */}
@@ -626,6 +627,7 @@ export function MyPage() {
           </div>
         )}
       </AnimatePresence>
+      </div>
     </div>
   );
 }
