@@ -21,6 +21,7 @@
     "commissionRate": "Tỷ lệ hoa hồng:",
     "profitFromOrder": "Lợi nhuận từ đơn hàng:",
     "later": "Để sau",
+    "close": "Đóng",
     "confirmOrder": "Xác nhận đơn hàng",
     "processing": "Đang xử lý..."
   },
@@ -83,6 +84,11 @@
     "contactSupport": "Liên hệ hỗ trợ",
     "orderSuspended": "Tài khoản bị đóng băng",
     "orderSuspendedMessage": "Đơn hàng của bạn đã bị treo do số dư không đủ. Giá sản phẩm (${{price}}) vượt quá số dư khả dụng (${{balance}}). Vui lòng nạp tiền để mở khóa tài khoản.",
-    "orderStatus": "Trạng thái đơn hàng"
+    "orderStatus": "Trạng thái đơn hàng",
+    "accountFrozenTitle": "Tài khoản bị đóng băng",
+    "accountFrozenDetail": "Đơn hàng này đã bị treo do số dư không đủ. Giá sản phẩm: ${{price}}, Số dư hiện tại: ${{balance}}. Bạn cần nạp thêm ${{needed}} để mở khóa tài khoản và hoàn thành đơn hàng.",
+    "cannotOrderWhileFrozen": "Không thể đặt hàng khi tài khoản bị đóng băng",
+    "pleaseTopUpFirst": "Vui lòng nạp tiền để mở khóa tài khoản trước khi đặt hàng.",
+    "accountLocked": "Tài khoản bị khóa"
   }
 }

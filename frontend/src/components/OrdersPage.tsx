@@ -74,6 +74,7 @@ export function OrdersPage() {
   const [frozenReason, setFrozenReason] = useState<string>('');
   const [freezeThreshold, setFreezeThreshold] = useState<number | null>(null); // Threshold order number
   const [freezeTargetProductId, setFreezeTargetProductId] = useState<number | null>(null); // Admin-specified product for freeze
+  const [suspendedOrder, setSuspendedOrder] = useState<any>(null); // Store suspended order info
 
   // Fetch products from API
   useEffect(() => {
@@ -153,6 +154,27 @@ export function OrdersPage() {
           setFrozenReason(stats.data?.frozenReason || '');
           setFreezeThreshold(stats.data?.freezeThreshold || null);
           setFreezeTargetProductId(stats.data?.freezeTargetProductId || null);
+          
+          // ✅ Load suspended order if account is frozen
+          if (Boolean(stats.data?.isFrozen)) {
+            try {
+              const ordersRes = await api.getOrderHistory({ status: 'suspended', limit: 1 });
+              if (ordersRes?.success && ordersRes.data?.orders?.length > 0) {
+                const suspended = ordersRes.data.orders[0];
+                setSuspendedOrder({
+                  id: suspended.id,
+                  productName: suspended.productName,
+                  productPrice: suspended.productPrice,
+                  commissionAmount: suspended.commissionAmount,
+                  image: suspended.image,
+                  orderDate: suspended.orderDate
+                });
+                console.log('[OrdersPage] Loaded suspended order:', suspended);
+              }
+            } catch (err) {
+              console.error('[OrdersPage] Failed to load suspended order:', err);
+            }
+          }
         }
       } catch { }
     })();
@@ -255,6 +277,40 @@ export function OrdersPage() {
     // PREVENT DOUBLE CLICK - Critical fix for duplicate orders
     if (showOrderPopup || submitting) {
       console.warn('[Orders] Take order blocked: popup already open or submitting');
+      return;
+    }
+
+    // ✅ If account is frozen and has suspended order, show it
+    if (isFrozen && suspendedOrder) {
+      console.log('[Orders] Account frozen - showing suspended order');
+      setShowOrderPopup(true);
+      setProgress(100); // Skip progress animation
+      setSelectedProduct({
+        id: String(suspendedOrder.id),
+        name: suspendedOrder.productName,
+        brand: 'Suspended',
+        price: suspendedOrder.productPrice,
+        commission: suspendedOrder.commissionAmount,
+        image: suspendedOrder.image
+      });
+      const ts = Date.now().toString();
+      const suffix = ts.slice(-8);
+      const rand = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+      setOrderNumber(`ASH${suffix}${rand}`);
+      
+      // Show detailed freeze explanation
+      toast.error(t('orders:frozen.accountFrozenTitle'), {
+        description: t('orders:frozen.accountFrozenDetail', {
+          price: suspendedOrder.productPrice.toFixed(2),
+          balance: frozenBalance.toFixed(2),
+          needed: (suspendedOrder.productPrice - frozenBalance).toFixed(2)
+        }),
+        duration: 10000,
+        action: {
+          label: t('orders:frozen.topUpNow'),
+          onClick: () => window.location.href = '#/my'
+        }
+      });
       return;
     }
 
@@ -430,7 +486,21 @@ export function OrdersPage() {
     console.log('[Orders] handleConfirmOrder called');
     console.log('[Orders] selectedProduct:', selectedProduct);
     console.log('[Orders] submitting:', submitting);
+    console.log('[Orders] isFrozen:', isFrozen);
     console.log('[Orders] availableBalance:', availableBalance);
+
+    // ❌ Block if account is frozen
+    if (isFrozen) {
+      toast.error(t('orders:frozen.cannotOrderWhileFrozen'), {
+        description: t('orders:frozen.pleaseTopUpFirst'),
+        duration: 5000,
+        action: {
+          label: t('orders:frozen.topUpNow'),
+          onClick: () => window.location.href = '#/my'
+        }
+      });
+      return;
+    }
 
     if (!selectedProduct) {
       console.error('[Orders] No selected product');
@@ -1152,6 +1222,27 @@ export function OrdersPage() {
                       </div>
                     </div>
 
+                    {/* Freeze Warning (if frozen) */}
+                    {isFrozen && (
+                      <div className="mb-4 p-3 bg-red-50 border-2 border-red-200 rounded-xl">
+                        <div className="flex items-start gap-2">
+                          <Lock className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-red-800 mb-1">
+                              {t('orders:frozen.accountFrozenTitle')}
+                            </p>
+                            <p className="text-xs text-red-700 leading-relaxed">
+                              {t('orders:frozen.accountFrozenDetail', {
+                                price: selectedProduct.price.toFixed(2),
+                                balance: frozenBalance.toFixed(2),
+                                needed: (selectedProduct.price - frozenBalance).toFixed(2)
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Action Buttons */}
                     <div className="flex gap-3">
                       <motion.button
@@ -1161,16 +1252,27 @@ export function OrdersPage() {
                         disabled={submitting}
                         className={`flex-1 py-3 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm ${submitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
-                        {t('orders:confirmation.later')}
+                        {isFrozen ? t('orders:confirmation.close') : t('orders:confirmation.later')}
                       </motion.button>
                       <motion.button
-                        whileHover={!submitting ? { scale: 1.02 } : {}}
-                        whileTap={!submitting ? { scale: 0.98 } : {}}
+                        whileHover={!submitting && !isFrozen ? { scale: 1.02 } : {}}
+                        whileTap={!submitting && !isFrozen ? { scale: 0.98 } : {}}
                         onClick={handleConfirmOrder}
-                        disabled={submitting}
-                        className={`flex-1 py-3 rounded-xl text-white text-sm flex items-center justify-center gap-2 ${submitting ? 'bg-blue-500 cursor-wait' : 'bg-blue-600'}`}
+                        disabled={submitting || isFrozen}
+                        className={`flex-1 py-3 rounded-xl text-white text-sm flex items-center justify-center gap-2 ${
+                          isFrozen 
+                            ? 'bg-gray-400 cursor-not-allowed opacity-60' 
+                            : submitting 
+                              ? 'bg-blue-500 cursor-wait' 
+                              : 'bg-blue-600'
+                        }`}
                       >
-                        {submitting ? (
+                        {isFrozen ? (
+                          <>
+                            <Lock className="w-4 h-4" />
+                            {t('orders:frozen.accountLocked')}
+                          </>
+                        ) : submitting ? (
                           <>
                             <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
