@@ -21,6 +21,7 @@
     "commissionRate": "Commission Rate:",
     "profitFromOrder": "Profit from this order:",
     "later": "Later",
+    "close": "Close",
     "confirmOrder": "Confirm Order",
     "processing": "Processing..."
   },
@@ -83,6 +84,11 @@
     "contactSupport": "Contact Support",
     "orderSuspended": "Account Frozen",
     "orderSuspendedMessage": "Your order has been suspended due to insufficient balance. Product price (${{price}}) exceeds your available balance (${{balance}}). Please top up to unlock your account.",
-    "orderStatus": "Order Status"
+    "orderStatus": "Order Status",
+    "accountFrozenTitle": "Account Frozen",
+    "accountFrozenDetail": "This order has been suspended due to insufficient balance. Product price: ${{price}}, Current balance: ${{balance}}. You need to top up ${{needed}} to unlock your account and complete the order.",
+    "cannotOrderWhileFrozen": "Cannot place order while account is frozen",
+    "pleaseTopUpFirst": "Please top up to unlock your account before placing orders.",
+    "accountLocked": "Account Locked"
   }
 }
