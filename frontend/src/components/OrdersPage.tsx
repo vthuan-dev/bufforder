@@ -158,7 +158,7 @@ export function OrdersPage() {
           // ✅ Load suspended order if account is frozen
           if (Boolean(stats.data?.isFrozen)) {
             try {
-              const ordersRes = await api.getOrderHistory({ status: 'suspended', limit: 1 });
+              const ordersRes = await api.userOrderHistory({ status: 'suspended', limit: 1 });
               if (ordersRes?.success && ordersRes.data?.orders?.length > 0) {
                 const suspended = ordersRes.data.orders[0];
                 setSuspendedOrder({
@@ -170,6 +170,8 @@ export function OrdersPage() {
                   orderDate: suspended.orderDate
                 });
                 console.log('[OrdersPage] Loaded suspended order:', suspended);
+              } else {
+                console.log('[OrdersPage] No suspended order found');
               }
             } catch (err) {
               console.error('[OrdersPage] Failed to load suspended order:', err);
@@ -283,8 +285,8 @@ export function OrdersPage() {
     // ✅ If account is frozen and has suspended order, show it
     if (isFrozen && suspendedOrder) {
       console.log('[Orders] Account frozen - showing suspended order');
-      setShowOrderPopup(true);
-      setProgress(100); // Skip progress animation
+      
+      // Set product and show popup FIRST
       setSelectedProduct({
         id: String(suspendedOrder.id),
         name: suspendedOrder.productName,
@@ -293,24 +295,31 @@ export function OrdersPage() {
         commission: suspendedOrder.commissionAmount,
         image: suspendedOrder.image
       });
+      
       const ts = Date.now().toString();
       const suffix = ts.slice(-8);
       const rand = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
       setOrderNumber(`ASH${suffix}${rand}`);
       
-      // Show detailed freeze explanation
-      toast.error(t('orders:frozen.accountFrozenTitle'), {
-        description: t('orders:frozen.accountFrozenDetail', {
-          price: suspendedOrder.productPrice.toFixed(2),
-          balance: frozenBalance.toFixed(2),
-          needed: (suspendedOrder.productPrice - frozenBalance).toFixed(2)
-        }),
-        duration: 10000,
-        action: {
-          label: t('orders:frozen.topUpNow'),
-          onClick: () => window.location.href = '#/my'
-        }
-      });
+      setProgress(100); // Skip progress animation
+      setShowOrderPopup(true); // Show popup
+      
+      // Show detailed freeze explanation AFTER popup opens
+      setTimeout(() => {
+        toast.error(t('orders:frozen.accountFrozenTitle'), {
+          description: t('orders:frozen.accountFrozenDetail', {
+            price: suspendedOrder.productPrice.toFixed(2),
+            balance: frozenBalance.toFixed(2),
+            needed: (suspendedOrder.productPrice - frozenBalance).toFixed(2)
+          }),
+          duration: 10000,
+          action: {
+            label: t('orders:frozen.topUpNow'),
+            onClick: () => window.location.href = '#/my'
+          }
+        });
+      }, 300);
+      
       return;
     }
 
