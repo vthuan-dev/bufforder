@@ -15,10 +15,11 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
   const [amount, setAmount] = useState("");
   const [password, setPassword] = useState("");
   const [availableBalance, setAvailableBalance] = useState(0);
+  const [actualAvailableBalance, setActualAvailableBalance] = useState(0); // Balance minus pending withdrawals
   const [pendingWithdrawals, setPendingWithdrawals] = useState<any[]>([]);
   const [dailyTasks, setDailyTasks] = useState(0);
   const [completedToday, setCompletedToday] = useState(0);
-  const [hasWithdrawToday, setHasWithdrawToday] = useState(false);
+  const [lastWithdrawalTime, setLastWithdrawalTime] = useState<Date | null>(null);
   const [bankCards, setBankCards] = useState<{ id: string; bankName: string; cardNumber: string; accountName: string; isDefault?: boolean; }[]>([]);
   const [selectedCardId, setSelectedCardId] = useState<string>("");
 
@@ -67,19 +68,28 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
         const all = (list?.data?.requests || []);
         const items = all.filter((w: any) => (w.status === 'pending'));
         setPendingWithdrawals(items);
-        // Determine if user already withdrew today (pending or approved today)
-        const isSameDay = (d: any) => {
-          const dt = new Date(d);
-          const now = new Date();
-          return dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth() && dt.getDate() === now.getDate();
-        };
-        const withdrew = all.some((w: any) => {
-          const date = w.requestDate || w.createdAt || w.updatedAt;
-          const today = date && isSameDay(date);
-          const processed = String(w.status).toLowerCase() === 'approved' || String(w.status).toLowerCase() === 'pending';
-          return processed && today;
-        });
-        setHasWithdrawToday(withdrew);
+        
+        // Calculate actual available balance (balance - pending withdrawals)
+        const totalPending = items.reduce((sum: number, w: any) => sum + Number(w.amount || 0), 0);
+        const actualBalance = Math.max(0, availableBalance - totalPending);
+        setActualAvailableBalance(actualBalance);
+        
+        // Find last withdrawal time (most recent pending or approved)
+        const recentWithdrawals = all.filter((w: any) => 
+          w.status === 'pending' || w.status === 'approved'
+        );
+        if (recentWithdrawals.length > 0) {
+          // Sort by date descending
+          recentWithdrawals.sort((a: any, b: any) => {
+            const dateA = new Date(a.requestDate || a.createdAt || 0);
+            const dateB = new Date(b.requestDate || b.createdAt || 0);
+            return dateB.getTime() - dateA.getTime();
+          });
+          const lastDate = recentWithdrawals[0].requestDate || recentWithdrawals[0].createdAt;
+          if (lastDate) {
+            setLastWithdrawalTime(new Date(lastDate));
+          }
+        }
       } catch { }
     })();
   }, []);
@@ -90,13 +100,23 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
       toast.error(t('withdrawal:warnings.completeTasks', { completed: completedToday, total: dailyTasks }));
       return;
     }
-    // Guard: only one withdrawal per day
-    if (hasWithdrawToday) {
-      toast.warning(t('withdrawal:warnings.alreadyWithdrawn'), {
-        duration: 5000,
-      });
-      return;
+    
+    // Guard: 5-minute cooldown between withdrawals
+    if (lastWithdrawalTime) {
+      const now = new Date();
+      const timeDiff = now.getTime() - lastWithdrawalTime.getTime();
+      const minutesPassed = Math.floor(timeDiff / 1000 / 60);
+      const cooldownMinutes = 5;
+      
+      if (minutesPassed < cooldownMinutes) {
+        const remainingMinutes = cooldownMinutes - minutesPassed;
+        toast.warning(t('withdrawal:warnings.cooldown', { minutes: remainingMinutes }), {
+          duration: 5000,
+        });
+        return;
+      }
     }
+    
     const withdrawAmount = parseFloat(amount);
 
     if (!amount || withdrawAmount <= 0) {
@@ -104,8 +124,12 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
       return;
     }
 
-    if (withdrawAmount > availableBalance) {
-      toast.error(t('withdrawal:toasts.insufficientBalance'));
+    // Check against actual available balance (minus pending withdrawals)
+    if (withdrawAmount > actualAvailableBalance) {
+      toast.error(t('withdrawal:toasts.insufficientBalanceWithPending', { 
+        available: actualAvailableBalance.toFixed(2),
+        pending: (availableBalance - actualAvailableBalance).toFixed(2)
+      }));
       return;
     }
 
@@ -166,7 +190,7 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
   };
 
   const handleWithdrawAll = () => {
-    setAmount(availableBalance.toString());
+    setAmount(actualAvailableBalance.toString());
   };
 
   return (
@@ -194,6 +218,15 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
         >
           <p className="text-sm opacity-90 mb-2">{t('withdrawal:availableBalance')}</p>
           <p className="text-3xl">${availableBalance.toFixed(2)}</p>
+          {actualAvailableBalance < availableBalance && (
+            <div className="mt-3 pt-3 border-t border-white/20">
+              <p className="text-xs opacity-75">{t('withdrawal:actualAvailable')}</p>
+              <p className="text-xl font-semibold">${actualAvailableBalance.toFixed(2)}</p>
+              <p className="text-xs opacity-75 mt-1">
+                {t('withdrawal:pendingAmount')}: ${(availableBalance - actualAvailableBalance).toFixed(2)}
+              </p>
+            </div>
+          )}
         </motion.div>
 
         {/* Withdrawal Form */}
@@ -205,11 +238,6 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
               <span>
                 {t('withdrawal:warnings.completeTasks', { completed: completedToday, total: dailyTasks })}
               </span>
-            </div>
-          )}
-          {hasWithdrawToday && (
-            <div className="mb-3 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
-              {t('withdrawal:warnings.alreadyWithdrawn')}
             </div>
           )}
 

@@ -1,6 +1,8 @@
 {
   "title": "Rút tiền",
   "availableBalance": "Số dư khả dụng",
+  "actualAvailable": "Có thể rút",
+  "pendingAmount": "Đang chờ duyệt",
   "withdrawalAmount": "Số tiền rút",
   "paymentPassword": "Mật khẩu thanh toán",
   "selectBankCard": "Chọn thẻ ngân hàng",
@@ -16,7 +18,7 @@
   },
   "warnings": {
     "completeTasks": "Vui lòng hoàn thành tất cả nhiệm vụ hôm nay ({{completed}}/{{total}} đơn hàng) trước khi rút tiền.",
-    "alreadyWithdrawn": "Bạn đã gửi yêu cầu rút tiền hôm nay. Chỉ được rút 1 lần mỗi ngày.",
+    "cooldown": "Vui lòng đợi {{minutes}} phút nữa trước khi rút tiền tiếp theo.",
     "insufficientBalance": "Số dư không đủ! Bạn cần thêm ${{amount}}.",
     "noBankCard": "Không tìm thấy thẻ ngân hàng. Vui lòng thêm thẻ trước.",
     "noUsdtWallet": "Không tìm thấy ví USDT. Vui lòng thêm ví trước."
@@ -32,11 +34,12 @@
   "toasts": {
     "enterAmount": "Vui lòng nhập số tiền hợp lệ",
     "insufficientBalance": "Số dư không đủ",
+    "insufficientBalanceWithPending": "Số dư khả dụng không đủ! Có thể rút: ${{available}} (Đang chờ duyệt: ${{pending}})",
     "enterPassword": "Vui lòng nhập mật khẩu thanh toán",
     "selectWallet": "Vui lòng chọn ví USDT",
     "selectCard": "Vui lòng chọn thẻ ngân hàng",
     "success": "Đã gửi yêu cầu rút tiền! Vui lòng chờ admin phê duyệt.",
-    "successNote": "Lưu ý: Chỉ được rút 1 lần mỗi ngày.",
+    "successNote": "Bạn có thể gửi thêm yêu cầu rút tiền sau 5 phút.",
     "error": "Không thể gửi yêu cầu rút tiền"
   }
 }
