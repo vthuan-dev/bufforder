@@ -103,22 +103,21 @@ router.get('/stats', authenticateToken, async (req, res) => {
       : numberOfOrders;
 
     // Calculate freeze threshold for frontend
+    // ✅ Send threshold if admin configured freeze (with or without target product)
     let freezeThreshold = null;
     let freezeTargetProductId = null;
 
     if (user.vipLevel !== 'vip-0' && !user.isFrozen && effectiveNumberOfOrders > 0) {
-      const customThreshold = resolveAutoFreezeThreshold(user);
       const commissionConfig = parseJsonField(user.commissionConfig, {});
+      const customThreshold = resolveAutoFreezeThreshold(user);
 
+      // Send threshold if admin explicitly configured it
+      // Target product is optional - if not set, system will use random product
       if (customThreshold != null && customThreshold > 0) {
         freezeThreshold = customThreshold;
-      } else {
-        // Use 85% as average for display (actual is random 80-90%)
-        freezeThreshold = Math.floor(effectiveNumberOfOrders * 0.85);
+        // Get target product ID if admin specified one (optional)
+        freezeTargetProductId = commissionConfig.freezeTargetProductId || null;
       }
-
-      // Get target product ID if admin specified one
-      freezeTargetProductId = commissionConfig.freezeTargetProductId || null;
     }
 
     res.json({

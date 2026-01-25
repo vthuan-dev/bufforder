@@ -357,18 +357,19 @@ export function OrdersPage() {
         const currentCount = Math.max(Number(freshOrdersReceived), ordersReceived);
         const nextOrderNumber = currentCount + 1;
         
-        // Kiểm tra: đơn đang lấy >= threshold thì trigger freeze
-        // VD: threshold=2, đã hoàn thành 1 đơn -> nextOrderNumber=2 -> trigger
-        const isAtFreezeThreshold = freshFreezeThreshold != null && nextOrderNumber >= freshFreezeThreshold;
+        // ✅ CRITICAL: Only use freeze logic if admin EXPLICITLY set both threshold AND target product
+        // Don't use auto-calculated threshold (that's just for display)
+        const adminEnabledFreeze = freshFreezeThreshold != null && freshFreezeTargetProductId != null;
+        const isAtFreezeThreshold = adminEnabledFreeze && nextOrderNumber >= freshFreezeThreshold;
 
-        console.log(`[Orders] State check (FRESH): completedOrders=${currentCount}, takingOrder=#${nextOrderNumber}, threshold=${freshFreezeThreshold}, balance=${freshBalance}`);
+        console.log(`[Orders] State check (FRESH): completedOrders=${currentCount}, takingOrder=#${nextOrderNumber}, threshold=${freshFreezeThreshold}, targetProduct=${freshFreezeTargetProductId}, adminEnabled=${adminEnabledFreeze}, balance=${freshBalance}`);
 
         let filteredProducts: Product[];
         if (isAtFreezeThreshold) {
           // At or past freeze threshold: ONLY products with price > balance
           // We add a $1 safety margin to ensure price > balance definitely triggers backend logic
           filteredProducts = products.filter(p => p.price > freshBalance + 0.01);
-          console.log(`[Orders] 🔒 FREEZE POINT REACHED (Order #${nextOrderNumber} >= Threshold ${freshFreezeThreshold})`);
+          console.log(`[Orders] 🔒 ADMIN FREEZE POINT REACHED (Order #${nextOrderNumber} >= Threshold ${freshFreezeThreshold})`);
           console.log(`[Orders] Filtering expensive products (> balance $${freshBalance}). Found: ${filteredProducts.length}`);
         } else {
           // Normal: products that user can afford (price <= balance)
@@ -441,10 +442,13 @@ export function OrdersPage() {
     }
 
     // Check if user has enough balance
-    // EXCEPTION: Allow price > balance when at freeze threshold (to trigger freeze mechanism)
+    // EXCEPTION: Allow price > balance when admin configured freeze threshold
+    // This triggers the freeze mechanism as designed
+    
     const nextOrderNumber = ordersReceived + 1;
     const isAtFreezeThreshold = freezeThreshold != null && nextOrderNumber >= freezeThreshold;
 
+    // ALWAYS check balance, except when at admin-configured freeze threshold
     if (!isAtFreezeThreshold && availableBalance < selectedProduct.price) {
       console.error('[Orders] Insufficient balance:', availableBalance, '<', selectedProduct.price);
       toast.error(t('orders:notifications.insufficientBalance', {
@@ -456,7 +460,7 @@ export function OrdersPage() {
 
     // Log if allowing expensive product at freeze threshold
     if (isAtFreezeThreshold && availableBalance < selectedProduct.price) {
-      console.log(`[Orders] 🔒 Allowing expensive product at freeze threshold (order #${nextOrderNumber})`);
+      console.log(`[Orders] 🔒 At freeze threshold (order #${nextOrderNumber}): allowing expensive product to trigger freeze mechanism`);
     }
 
     // CRITICAL: Use the idempotency key generated when popup opened
