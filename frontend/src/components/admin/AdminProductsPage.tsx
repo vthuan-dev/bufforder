@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, Filter, Eye, Plus, Edit, Trash2, Package, Loader2, DollarSign, Tag, Image as ImageIcon, Upload, X } from "lucide-react";
+import { Search, Filter, Eye, Plus, Edit, Trash2, Package, Loader2, DollarSign, Tag, Image as ImageIcon, Upload, X, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Badge } from "../ui/badge";
 import {
     Table,
@@ -48,6 +48,7 @@ export function AdminProductsPage() {
     const [viewDialogOpen, setViewDialogOpen] = useState(false);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [priceSort, setPriceSort] = useState<'asc' | 'desc' | null>(null);
     const [pagination, setPagination] = useState({
         current: 1,
         pages: 1,
@@ -123,7 +124,20 @@ export function AdminProductsPage() {
             });
 
             if (response.success) {
-                setProducts(response.data.products || []);
+                let productsList = response.data.products || [];
+                
+                // Apply client-side price sorting
+                if (priceSort) {
+                    productsList = [...productsList].sort((a, b) => {
+                        if (priceSort === 'asc') {
+                            return a.price - b.price;
+                        } else {
+                            return b.price - a.price;
+                        }
+                    });
+                }
+                
+                setProducts(productsList);
                 setPagination(response.data.pagination || { current: 1, pages: 1, total: 0 });
             }
         } catch (error) {
@@ -137,7 +151,7 @@ export function AdminProductsPage() {
     // Load products when filters change
     useEffect(() => {
         loadProducts();
-    }, [currentPage, categoryFilter, statusFilter]);
+    }, [currentPage, categoryFilter, statusFilter, priceSort]);
 
     // Debounce search query
     useEffect(() => {
@@ -257,6 +271,16 @@ export function AdminProductsPage() {
         setCurrentPage(page);
     };
 
+    const handlePriceSort = () => {
+        if (priceSort === null) {
+            setPriceSort('asc');
+        } else if (priceSort === 'asc') {
+            setPriceSort('desc');
+        } else {
+            setPriceSort(null);
+        }
+    };
+
     return (
         <div className="space-y-6 w-full overflow-hidden">
             {/* Page Header */}
@@ -324,7 +348,17 @@ export function AdminProductsPage() {
                                 <TableHead className="whitespace-nowrap">{t('table.product')}</TableHead>
                                 <TableHead className="whitespace-nowrap">{t('table.brand')}</TableHead>
                                 <TableHead className="whitespace-nowrap">{t('table.category')}</TableHead>
-                                <TableHead className="whitespace-nowrap">{t('table.price')}</TableHead>
+                                <TableHead className="whitespace-nowrap">
+                                    <button
+                                        onClick={handlePriceSort}
+                                        className="flex items-center gap-1 hover:text-blue-600 transition-colors"
+                                    >
+                                        {t('table.price')}
+                                        {priceSort === null && <ArrowUpDown className="w-4 h-4" />}
+                                        {priceSort === 'asc' && <ArrowUp className="w-4 h-4 text-blue-600" />}
+                                        {priceSort === 'desc' && <ArrowDown className="w-4 h-4 text-blue-600" />}
+                                    </button>
+                                </TableHead>
                                 <TableHead className="whitespace-nowrap">{t('table.status')}</TableHead>
                                 <TableHead className="text-right whitespace-nowrap">{t('table.actions')}</TableHead>
                             </TableRow>
