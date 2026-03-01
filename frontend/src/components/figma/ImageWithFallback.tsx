@@ -4,7 +4,7 @@ const ERROR_IMG_SRC =
   'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODgiIGhlaWdodD0iODgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgc3Ryb2tlPSIjMDAwIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBvcGFjaXR5PSIuMyIgZmlsbD0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIzLjciPjxyZWN0IHg9IjE2IiB5PSIxNiIgd2lkdGg9IjU2IiBoZWlnaHQ9IjU2IiByeD0iNiIvPjxwYXRoIGQ9Im0xNiA1OCAxNi0xOCAzMiAzMiIvPjxjaXJjbGUgY3g9IjUzIiBjeT0iMzUiIHI9IjciLz48L3N2Zz4KCg=='
 
 // API base URL for image proxy
-const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
+const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5000';
 
 // Check if URL needs proxy (external domain that might have CORS issues)
 const needsProxy = (url: string): boolean => {
@@ -13,6 +13,8 @@ const needsProxy = (url: string): boolean => {
   if (url.startsWith('data:') || url.startsWith('/') || url.startsWith('blob:')) return false;
   try {
     const urlObj = new URL(url);
+    // ALWAYS proxy Amazon CDN images (they have strict referrer policy)
+    if (urlObj.hostname.includes('media-amazon.com')) return true;
     // Allow images from unsplash, common CDNs that support CORS
     const corsWhitelist = ['images.unsplash.com', 'i.imgur.com', 'cdn.jsdelivr.net'];
     if (corsWhitelist.some(domain => urlObj.hostname.includes(domain))) return false;
