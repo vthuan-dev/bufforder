@@ -43,7 +43,7 @@ function parseCSV(filePath) {
 
 // Extract brand from product name
 function extractBrand(name) {
-  const brands = ['SAMSUNG', 'Apple', 'Google', 'Motorola', 'Moto', 'Bold', 'Tracfone', 'Samsung'];
+  const brands = ['SAMSUNG', 'Apple', 'Google', 'Motorola', 'Moto', 'Bold', 'Tracfone'];
   for (const brand of brands) {
     if (name.toUpperCase().includes(brand.toUpperCase())) {
       return brand;
