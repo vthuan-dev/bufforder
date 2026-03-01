@@ -734,9 +734,14 @@ export default {
     });
   },
 
-  // Products API (public)
+  // Products API (requires authentication for price filtering)
   getProducts() {
+    const token = localStorage.getItem('token');
+    const headers: Record<string, string> = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+    
     return request('/products', {
+      headers,
       useCache: true,
       cacheTTL: 60000 // Cache 1 minute
     });
