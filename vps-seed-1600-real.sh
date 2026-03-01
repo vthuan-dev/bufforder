@@ -7,7 +7,12 @@ echo ""
 
 cd /var/www/greeting-message/backend
 
-# Run the seed script
+# Install axios if not exists
+echo "📦 Checking dependencies..."
+npm list axios > /dev/null 2>&1 || npm install axios
+
+echo ""
+echo "🚀 Running seed script..."
 node seed-1600-real-products.js
 
 echo ""
