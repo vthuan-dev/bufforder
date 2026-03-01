@@ -67,6 +67,7 @@
     "auto": "Auto",
     "todayPerformance": "Today's Performance",
     "earned": "Earned",
+    "commissionEarned": "Commission Earned",
     "orders": "Orders",
     "saveChanges": "Save Changes",
     "saving": "Saving..."

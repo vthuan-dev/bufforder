@@ -1020,18 +1020,38 @@ export function AdminUsersPage() {
 
                   {/* Today Stats Card */}
                   <div className="mt-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
-                    <p className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-1">
+                    <p className="text-xs font-semibold text-green-700 mb-3 flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
                       {t('editDialog.todayPerformance')}
                     </p>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-xs text-green-600">{t('editDialog.earned')}</p>
-                        <p className="text-lg font-bold text-green-700">${dailyEarnedSoFar || '0'}</p>
+                    <div className="space-y-3">
+                      {/* Commission Earned */}
+                      <div className="bg-white/60 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-xs text-green-600 font-medium">{t('editDialog.commissionEarned')}</p>
+                          <span className="text-xs text-gray-400" title="This is commission only, not total order value">ℹ️</span>
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                          <p className="text-xl font-bold text-green-700">${dailyEarnedSoFar || '0'}</p>
+                          {commissionDailyTarget && Number(commissionDailyTarget) > 0 && (
+                            <span className="text-xs text-gray-500">
+                              / ${commissionDailyTarget} ({Math.round((Number(dailyEarnedSoFar || 0) / Number(commissionDailyTarget)) * 100)}%)
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs text-green-600">{t('editDialog.orders')}</p>
-                        <p className="text-lg font-bold text-green-700">{dailyOrdersCount || '0'}</p>
+                      
+                      {/* Orders Count */}
+                      <div className="bg-white/60 rounded-lg p-3">
+                        <p className="text-xs text-green-600 font-medium mb-1">{t('editDialog.orders')}</p>
+                        <div className="flex items-baseline gap-2">
+                          <p className="text-xl font-bold text-green-700">{dailyOrdersCount || '0'}</p>
+                          {commissionNumberOfOrders && Number(commissionNumberOfOrders) > 0 && (
+                            <span className="text-xs text-gray-500">
+                              / {commissionNumberOfOrders} ({Math.round((Number(dailyOrdersCount || 0) / Number(commissionNumberOfOrders)) * 100)}%)
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
