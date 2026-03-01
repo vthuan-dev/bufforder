@@ -100,32 +100,89 @@ async function fetchFromAPI(source) {
   }
 }
 
-// Generate additional products by creating variations
+// Generate additional products by creating variations with DIVERSE PRICES
 function generateVariations(baseProducts, targetCount) {
   console.log(`\n🔄 Generating variations to reach ${targetCount} products...`);
   const variations = [...baseProducts];
   
-  const colors = ['Black', 'White', 'Red', 'Blue', 'Green', 'Gray', 'Silver', 'Gold', 'Pink', 'Purple'];
-  const adjectives = ['Premium', 'Deluxe', 'Pro', 'Elite', 'Classic', 'Modern', 'Vintage', 'Sport', 'Casual', 'Formal'];
+  const colors = ['Black', 'White', 'Red', 'Blue', 'Green', 'Gray', 'Silver', 'Gold', 'Pink', 'Purple', 'Rose Gold', 'Titanium'];
+  const adjectives = ['Premium', 'Deluxe', 'Pro', 'Elite', 'Classic', 'Modern', 'Vintage', 'Sport', 'Casual', 'Formal', 'Luxury', 'Limited Edition'];
+  const editions = ['', '2024', '2025', 'Ultra', 'Max', 'Plus', 'Special Edition', 'Anniversary Edition'];
+  
+  // Price multipliers for diversity: $10 - $30,000
+  const priceMultipliers = [
+    { range: '10-100', multiplier: () => 10 + Math.random() * 90, weight: 0.3 },      // 30% products: $10-$100
+    { range: '100-500', multiplier: () => 100 + Math.random() * 400, weight: 0.25 },  // 25% products: $100-$500
+    { range: '500-1000', multiplier: () => 500 + Math.random() * 500, weight: 0.15 }, // 15% products: $500-$1000
+    { range: '1k-3k', multiplier: () => 1000 + Math.random() * 2000, weight: 0.15 },  // 15% products: $1k-$3k
+    { range: '3k-10k', multiplier: () => 3000 + Math.random() * 7000, weight: 0.10 }, // 10% products: $3k-$10k
+    { range: '10k-30k', multiplier: () => 10000 + Math.random() * 20000, weight: 0.05 } // 5% products: $10k-$30k
+  ];
   
   let index = 0;
+  let priceDistIndex = 0;
+  
   while (variations.length < targetCount && baseProducts.length > 0) {
     const base = baseProducts[index % baseProducts.length];
     const color = colors[Math.floor(Math.random() * colors.length)];
     const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const edition = editions[Math.floor(Math.random() * editions.length)];
     
-    // Create variation
+    // Select price range based on distribution
+    const rand = Math.random();
+    let cumulativeWeight = 0;
+    let selectedMultiplier = priceMultipliers[0].multiplier;
+    
+    for (const pm of priceMultipliers) {
+      cumulativeWeight += pm.weight;
+      if (rand <= cumulativeWeight) {
+        selectedMultiplier = pm.multiplier;
+        break;
+      }
+    }
+    
+    // Create variation with diverse pricing
+    const newPrice = selectedMultiplier();
+    const nameParts = [adjective, base.name, color];
+    if (edition) nameParts.push(edition);
+    
     const variation = {
       ...base,
-      name: `${adjective} ${base.name} - ${color}`,
-      price: base.price * (0.9 + Math.random() * 0.3), // ±20% price variation
+      name: nameParts.join(' '),
+      price: Math.round(newPrice * 100) / 100, // Round to 2 decimals
     };
     
     variations.push(variation);
     index++;
+    priceDistIndex++;
   }
   
   console.log(`✅ Generated ${variations.length} total products`);
+  
+  // Show price distribution
+  const priceRanges = {
+    '$10-$100': 0,
+    '$100-$500': 0,
+    '$500-$1k': 0,
+    '$1k-$3k': 0,
+    '$3k-$10k': 0,
+    '$10k-$30k': 0
+  };
+  
+  variations.forEach(p => {
+    if (p.price < 100) priceRanges['$10-$100']++;
+    else if (p.price < 500) priceRanges['$100-$500']++;
+    else if (p.price < 1000) priceRanges['$500-$1k']++;
+    else if (p.price < 3000) priceRanges['$1k-$3k']++;
+    else if (p.price < 10000) priceRanges['$3k-$10k']++;
+    else priceRanges['$10k-$30k']++;
+  });
+  
+  console.log('\n💰 Price distribution:');
+  Object.entries(priceRanges).forEach(([range, count]) => {
+    console.log(`  ${range}: ${count} products (${Math.round(count/variations.length*100)}%)`);
+  });
+  
   return variations.slice(0, targetCount);
 }
 
