@@ -501,6 +501,9 @@ export function MyPage() {
           </motion.div>
         </div>
 
+        {/* Spacer to ensure content is scrollable above bottom nav */}
+        <div className="h-32"></div>
+
         <BottomNav activeTab="my" onTabChange={() => { }} />
 
         {/* Notifications Side Drawer / Modal */}
