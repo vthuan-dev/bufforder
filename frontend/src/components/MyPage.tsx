@@ -467,7 +467,7 @@ export function MyPage() {
         </div>
 
         {/* Menu Items with Modern Design */}
-        <div className="px-6 -mt-6 relative z-0">
+        <div className="px-6 -mt-6 mb-8 relative z-0">
           <motion.div
             initial={{ y: 10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
