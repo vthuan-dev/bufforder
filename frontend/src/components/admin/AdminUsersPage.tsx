@@ -336,12 +336,28 @@ export function AdminUsersPage() {
       };
 
       // Run API calls in parallel with minimum 3s delay
+      
+      // Calculate target product price if both orders and target are set
+      let targetProductPrice = null;
+      if (commissionNumberOfOrders && commissionDailyTarget && selectedUser) {
+        const orders = Number(commissionNumberOfOrders);
+        const target = Number(commissionDailyTarget);
+        const commissionRate = VIP_COMMISSION_RATES[selectedUser.vipLevel] || 0;
+        
+        if (orders > 0 && target > 0 && commissionRate > 0) {
+          // Calculate: target / (orders × commissionRate)
+          targetProductPrice = target / (orders * commissionRate);
+          targetProductPrice = Math.round(targetProductPrice * 100) / 100; // Round to 2 decimals
+        }
+      }
+      
       const [, ,] = await Promise.all([
         api.adminUpdateUser(selectedUser.id, payload),
         api.adminUpdateUserCommissionConfig(selectedUser.id, {
           perOrderAmount: commissionPerOrder !== '' ? Number(commissionPerOrder) : null,
           dailyTarget: commissionDailyTarget !== '' ? Number(commissionDailyTarget) : null,
           numberOfOrders: commissionNumberOfOrders !== '' ? Number(commissionNumberOfOrders) : null,
+          targetProductPrice: targetProductPrice, // Add calculated target price
         }),
         new Promise(resolve => setTimeout(resolve, 3000)) // Minimum 3s delay
       ]);
