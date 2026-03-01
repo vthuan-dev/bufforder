@@ -64,6 +64,20 @@ const VIP_MAX_ORDERS: Record<string, number> = {
   'royal-vip': 330,
 };
 
+// VIP Level commission rates (after 10% deduction)
+const VIP_COMMISSION_RATES: Record<string, number> = {
+  'vip-0': 0,
+  'vip-1': 0.005 * 0.9, // 0.5% * 0.9 = 0.45%
+  'vip-2': 0.006 * 0.9, // 0.6% * 0.9 = 0.54%
+  'vip-3': 0.007 * 0.9, // 0.7% * 0.9 = 0.63%
+  'vip-4': 0.009 * 0.9, // 0.9% * 0.9 = 0.81%
+  'vip-5': 0.012 * 0.9, // 1.2% * 0.9 = 1.08%
+  'vip-6': 0.015 * 0.9, // 1.5% * 0.9 = 1.35%
+  'vip-7': 0.018 * 0.9, // 1.8% * 0.9 = 1.62%
+  'svip': 0.02 * 0.9,   // 2.0% * 0.9 = 1.80%
+  'royal-vip': 0.025 * 0.9, // 2.5% * 0.9 = 2.25%
+};
+
 export function AdminUsersPage() {
   const { t } = useTranslation('adminUsers');
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -120,6 +134,9 @@ export function AdminUsersPage() {
   const [showAddBalanceInput, setShowAddBalanceInput] = useState(false);
   const [addBalanceAmount, setAddBalanceAmount] = useState<string>("");
   const [balanceOperation, setBalanceOperation] = useState<'add' | 'set' | 'subtract'>('add');
+  
+  // Auto-calculate suggested target
+  const [suggestedTarget, setSuggestedTarget] = useState<number | null>(null);
 
   // Reset Password Dialog
   const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
@@ -182,6 +199,53 @@ export function AdminUsersPage() {
     }, 500);
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  // Auto-calculate suggested target based on orders and VIP level
+  // OR calculate required average price based on target
+  useEffect(() => {
+    if (!selectedUser || !commissionNumberOfOrders) {
+      setSuggestedTarget(null);
+      return;
+    }
+
+    const orders = Number(commissionNumberOfOrders);
+    if (isNaN(orders) || orders <= 0) {
+      setSuggestedTarget(null);
+      return;
+    }
+
+    // Get commission rate for user's VIP level
+    const commissionRate = VIP_COMMISSION_RATES[selectedUser.vipLevel] || 0;
+    
+    if (commissionRate === 0) {
+      setSuggestedTarget(null);
+      return;
+    }
+
+    // If user has entered a target, calculate required average price
+    // Otherwise, suggest target based on default average price
+    if (commissionDailyTarget && Number(commissionDailyTarget) > 0) {
+      const target = Number(commissionDailyTarget);
+      // Calculate required average price: target / (orders × commissionRate)
+      const requiredAvgPrice = target / (orders * commissionRate);
+      setSuggestedTarget(Math.round(requiredAvgPrice * 100) / 100);
+    } else {
+      // Default: suggest target based on $2,500 average price
+      const avgProductPrice = 2500;
+      const calculated = orders * avgProductPrice * commissionRate;
+      setSuggestedTarget(Math.round(calculated * 100) / 100);
+    }
+  }, [commissionNumberOfOrders, commissionDailyTarget, selectedUser]);
+
+  // Handler to auto-fill the daily target with suggested value
+  const handleAutoCalculateTarget = () => {
+    if (suggestedTarget !== null) {
+      setCommissionDailyTarget(String(suggestedTarget));
+      toast.success(`Đã tự động tính mục tiêu: $${suggestedTarget}`, {
+        description: `Dựa trên ${commissionNumberOfOrders} đơn × $2,500 × ${((VIP_COMMISSION_RATES[selectedUser?.vipLevel || 'vip-0'] || 0) * 100).toFixed(2)}%`,
+      });
+    }
+  };
 
   // No frontend filtering needed anymore as we do it on server
   const filteredUsers = users;
@@ -989,7 +1053,9 @@ export function AdminUsersPage() {
                       </div>
                     </div>
                     <div>
-                      <Label className="text-xs text-gray-500 mb-1 block">{t('editDialog.dailyTarget')}</Label>
+                      <Label className="text-xs text-gray-500 mb-1 flex items-center justify-between">
+                        <span>{t('editDialog.dailyTarget')}</span>
+                      </Label>
                       <div className="relative">
                         <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <Input
@@ -1000,6 +1066,29 @@ export function AdminUsersPage() {
                           className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
                         />
                       </div>
+                      {/* Show required average price when target is entered */}
+                      {suggestedTarget !== null && commissionDailyTarget && Number(commissionDailyTarget) > 0 && (
+                        <div className="mt-1">
+                          <p className="text-xs text-blue-600 flex items-center gap-1">
+                            💡 {t('editDialog.requiredAvgPrice')}: ${suggestedTarget.toLocaleString()}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {t('editDialog.priceHint', { 
+                              orders: commissionNumberOfOrders, 
+                              target: commissionDailyTarget,
+                              price: suggestedTarget.toLocaleString()
+                            })}
+                          </p>
+                        </div>
+                      )}
+                      {/* Show suggested target when only orders entered */}
+                      {suggestedTarget !== null && (!commissionDailyTarget || Number(commissionDailyTarget) === 0) && (
+                        <div className="mt-1">
+                          <p className="text-xs text-blue-600 flex items-center gap-1">
+                            💡 {t('editDialog.suggested')}: ${suggestedTarget}
+                          </p>
+                        </div>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-gray-500 mb-1 block">{t('editDialog.perOrder')}</Label>

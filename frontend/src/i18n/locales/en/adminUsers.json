@@ -69,6 +69,9 @@
     "earned": "Earned",
     "commissionEarned": "Commission Earned",
     "orders": "Orders",
+    "requiredAvgPrice": "Required Avg Product Price",
+    "priceHint": "With {{orders}} orders at avg ${{price}}, user will earn ${{target}}",
+    "suggested": "Suggested target",
     "saveChanges": "Save Changes",
     "saving": "Saving..."
   },

@@ -69,6 +69,9 @@
     "earned": "Đã kiếm",
     "commissionEarned": "Hoa hồng kiếm được",
     "orders": "Đơn hàng",
+    "requiredAvgPrice": "Giá sản phẩm TB cần",
+    "priceHint": "Với {{orders}} đơn giá TB ${{price}}, user sẽ kiếm ${{target}}",
+    "suggested": "Mục tiêu gợi ý",
     "saveChanges": "Lưu thay đổi",
     "saving": "Đang lưu..."
   },
