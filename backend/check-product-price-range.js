@@ -52,10 +52,8 @@ async function checkProductPriceRange() {
       { min: 10000, max: 999999, label: '$10,000+' }
     ];
 
-    console.log('\nPrice Range          | Count    | Percentage | Bar');
-    console.log('-'.repeat(80));
-
     const totalProducts = Number(stat.total_products);
+    const rangeData = [];
     
     for (const range of ranges) {
       const result = await prisma.$queryRaw`
@@ -67,14 +65,54 @@ async function checkProductPriceRange() {
       `;
       
       const count = Number(result[0].count);
-      const percentage = ((count / totalProducts) * 100).toFixed(1);
-      const barLength = Math.round((count / totalProducts) * 40);
+      rangeData.push({ ...range, count });
+    }
+
+    // Find max count for scaling
+    const maxCount = Math.max(...rangeData.map(r => r.count));
+    
+    console.log('\n');
+    console.log('┌─────────────────────────────────────────────────────────────────────────────┐');
+    console.log('│                     PRODUCT PRICE DISTRIBUTION CHART                        │');
+    console.log('├─────────────────────────────────────────────────────────────────────────────┤');
+    console.log('│                                                                             │');
+    
+    // Print chart from top to bottom
+    const chartHeight = 15;
+    for (let h = chartHeight; h > 0; h--) {
+      let line = '│ ';
+      for (const range of rangeData) {
+        const barHeight = Math.round((range.count / maxCount) * chartHeight);
+        if (barHeight >= h) {
+          line += '████ ';
+        } else {
+          line += '     ';
+        }
+      }
+      line += ' │';
+      console.log(line);
+    }
+    
+    // Print x-axis
+    console.log('│ ' + '─────'.repeat(9) + ' │');
+    console.log('│ $0-50 $50  $100 $200 $500 $1K  $2K  $5K  $10K+│');
+    console.log('│       $100 $200 $500 $1K  $2K  $5K  $10K      │');
+    console.log('│                                                                             │');
+    console.log('├─────────────────────────────────────────────────────────────────────────────┤');
+    console.log('│ Price Range          │ Count    │ Percentage │ Products                    │');
+    console.log('├─────────────────────────────────────────────────────────────────────────────┤');
+    
+    for (const range of rangeData) {
+      const percentage = ((range.count / totalProducts) * 100).toFixed(1);
+      const barLength = Math.round((range.count / totalProducts) * 30);
       const bar = '█'.repeat(barLength);
       
       console.log(
-        `${range.label.padEnd(20)} | ${count.toString().padStart(8)} | ${percentage.padStart(6)}%   | ${bar}`
+        `│ ${range.label.padEnd(20)} │ ${range.count.toString().padStart(8)} │ ${percentage.padStart(6)}%   │ ${bar.padEnd(28)}│`
       );
     }
+    
+    console.log('└─────────────────────────────────────────────────────────────────────────────┘');
 
     // 3. Price Distribution by Category
     console.log('\n\n📦 3. PRICE STATISTICS BY CATEGORY');
