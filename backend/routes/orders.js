@@ -181,9 +181,19 @@ router.post('/take', authenticateToken, async (req, res) => {
 
     // Get dynamic order limit from user snapshot or VIP level
     const effectiveOrdersLimit = dailyEarnings.numberOfOrders || resolveNumberOfOrders(user, vipLevel);
+    
+    // Get daily target
+    const dailyTarget = dailyEarnings.targetTotal || resolveDailyTarget(user, vipLevel);
+    
+    // Calculate today's total commission
+    const todayTotalCommission = todayOrders.reduce((sum, order) => sum + order.commissionAmount, 0);
 
+    // STRICT: Stop when reaching order limit (no exceeding)
     if (todayOrders.length >= effectiveOrdersLimit) {
-      return res.status(400).json({ success: false, message: `Daily order limit reached (${effectiveOrdersLimit} orders)` });
+      return res.status(400).json({ 
+        success: false, 
+        message: `Daily order limit reached (${effectiveOrdersLimit} orders)` 
+      });
     }
 
     // Get commission rate
@@ -283,11 +293,44 @@ router.post('/take', authenticateToken, async (req, res) => {
       };
     }
 
+    // ============================================
+    // 🎯 SMART PRODUCT SELECTION ALGORITHM
+    // ============================================
+    // Goal: Select products to reach BOTH targets (orders + commission) optimally
+    // Strategy: Adjust commission based on remaining orders and commission gap
+    
+    const ordersRemaining = effectiveOrdersLimit - todayOrders.length;
+    const commissionRemaining = dailyTarget - todayTotalCommission;
+    const avgCommissionNeeded = commissionRemaining / ordersRemaining;
+    
+    console.log(`[Orders/take] Smart Selection - Orders: ${todayOrders.length}/${effectiveOrdersLimit}, Commission: $${todayTotalCommission.toFixed(2)}/$${dailyTarget}`);
+    console.log(`[Orders/take] Remaining: ${ordersRemaining} orders, $${commissionRemaining.toFixed(2)} commission`);
+    console.log(`[Orders/take] Average needed per order: $${avgCommissionNeeded.toFixed(2)}`);
 
     // Calculate commission based on product price and VIP rate
     // This ensures profit is proportional to the item value
     const productPrice = randomProduct.price;
-    const commissionAmount = Math.round(productPrice * commissionRate * 0.9 * 100) / 100;
+    let commissionAmount = Math.round(productPrice * commissionRate * 0.9 * 100) / 100;
+    
+    // 🎯 SMART ADJUSTMENT: Adjust commission to meet target
+    // If we're close to the end, adjust commission to reach target exactly
+    if (ordersRemaining <= 10) {
+      // Last 10 orders: adjust commission more aggressively
+      const targetCommission = avgCommissionNeeded;
+      const adjustmentFactor = targetCommission / commissionAmount;
+      
+      // Allow adjustment within reasonable range (0.8x to 1.2x)
+      if (adjustmentFactor >= 0.8 && adjustmentFactor <= 1.2) {
+        commissionAmount = Math.round(targetCommission * 100) / 100;
+        console.log(`[Orders/take] 🎯 Smart adjustment applied: $${commissionAmount.toFixed(2)} (factor: ${adjustmentFactor.toFixed(2)})`);
+      }
+    }
+    
+    // Final check: Don't exceed remaining commission
+    if (commissionAmount > commissionRemaining) {
+      commissionAmount = Math.round(commissionRemaining * 100) / 100;
+      console.log(`[Orders/take] ⚠️ Capped commission to remaining: $${commissionAmount.toFixed(2)}`);
+    }
 
     // ============================================
     // DUPLICATE DETECTION - BEFORE TRANSACTION
