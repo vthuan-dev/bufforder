@@ -31,7 +31,9 @@ const STATIC_ALLOWED = new Set([
   'https://ashford.click',
   'https://www.ashford.click',
   'https://ashfordorder.com',
-  'https://www.ashfordorder.com'
+  'https://www.ashfordorder.com',
+  'https://ashfsdorder.com',
+  'https://www.ashfsdorder.com'
 ]);
 
 const isAllowedOrigin = (origin) => {
