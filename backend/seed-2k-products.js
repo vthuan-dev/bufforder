@@ -24,7 +24,7 @@ function generateProductVariations(baseProduct, count) {
       name: `${baseProduct.name} - ${color} ${size}`,
       price: Math.max(baseProduct.price + priceVariation, 10),
     });
-  }
+  }che
   
   return variations;
 }
