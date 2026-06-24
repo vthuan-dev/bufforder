@@ -75,12 +75,14 @@ export function RegisterPage({ onRegister, onSwitchToLogin }: RegisterPageProps)
   };
 
   return (
-    <div className="min-h-screen bg-slate-300 flex items-center justify-center">
+    <div className="min-h-screen bg-slate-300 flex justify-center">
       <div
-        className="relative w-full max-w-[430px] min-h-screen bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center p-4"
-        style={{ backgroundImage: `url(${authBg})` }}
+        className="relative w-full min-h-screen overflow-hidden flex flex-col items-center justify-center p-4"
+        style={{ maxWidth: '430px' }}
       >
-      <div className="w-full max-w-sm">
+        {/* Background clipped inside the 430px container */}
+        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${authBg})` }} />
+      <div className="relative z-10 w-full max-w-sm">
         {/* Logo */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
