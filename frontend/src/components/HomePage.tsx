@@ -83,7 +83,7 @@ export function HomePage({ }: HomePageProps) {
     <div className="pb-96">
       {/* Logo */}
       <div className="bg-gray-100 py-4 px-6 text-center">
-        <img src={logoImage} alt="Ashford" className="inline-block h-10 object-contain" />
+        <img src={logoImage} alt="Ashford" className="inline-block h-14 object-contain" />
       </div>
 
       {/* Video Advertisement */}
