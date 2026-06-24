@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Eye, EyeOff, Phone, Lock, Ticket, ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
 import api from "../services/api";
+import authBg from '../assets/auth-bg.png';
 const logo = new URL("../assets/image.png", import.meta.url).toString();
 
 interface RegisterPageProps {
@@ -74,7 +75,10 @@ export function RegisterPage({ onRegister, onSwitchToLogin }: RegisterPageProps)
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+    <div
+      className="min-h-screen bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center p-4"
+      style={{ backgroundImage: `url(${authBg})` }}
+    >
       <div className="w-full max-w-sm">
         {/* Logo */}
         <motion.div
