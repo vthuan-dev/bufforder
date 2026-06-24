@@ -109,6 +109,7 @@ export function RegisterPage({ onRegister, onSwitchToLogin }: RegisterPageProps)
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
+                autoComplete="off"
                 placeholder="Enter your full name"
                 className="w-full px-4 py-3 bg-gray-50 border border-blue-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all"
               />
@@ -124,6 +125,7 @@ export function RegisterPage({ onRegister, onSwitchToLogin }: RegisterPageProps)
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+                autoComplete="off"
                 placeholder="Enter your phone number"
                 className="w-full pl-10 pr-3 py-3 bg-gray-50 border border-blue-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all"
               />
@@ -139,6 +141,7 @@ export function RegisterPage({ onRegister, onSwitchToLogin }: RegisterPageProps)
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
                 placeholder="6-20 characters, include letters and numbers"
                 className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-blue-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all"
               />
@@ -161,6 +164,7 @@ export function RegisterPage({ onRegister, onSwitchToLogin }: RegisterPageProps)
                 type={showConfirmPassword ? "text" : "password"}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
                 placeholder="Re-enter your password"
                 className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-blue-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all"
               />
