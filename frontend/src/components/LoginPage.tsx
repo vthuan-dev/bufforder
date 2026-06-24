@@ -48,7 +48,7 @@ export function LoginPage({ onLogin, onSwitchToRegister, onSwitchToAdmin }: Logi
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-8"
         >
-          <img src={logoImage} alt="Ashford" className="h-10 md:h-12 inline-block mb-2" style={{ mixBlendMode: 'multiply' }} />
+          <img src={logoImage} alt="Ashford" className="h-16 md:h-20 inline-block mb-2" style={{ mixBlendMode: 'multiply' }} />
           {/* <p className="text-gray-500 text-sm">Welcome Back</p> */}
         </motion.div>
 
