@@ -56,7 +56,7 @@ export function LoginPage({ onLogin, onSwitchToRegister, onSwitchToAdmin }: Logi
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl p-6 shadow-md"
+          className="bg-white rounded-2xl p-6 shadow-md border border-blue-200"
         >
           <h2 className="text-lg text-gray-800 mb-5">Login</h2>
 
@@ -70,7 +70,7 @@ export function LoginPage({ onLogin, onSwitchToRegister, onSwitchToAdmin }: Logi
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="Enter your phone number"
-                className="w-full pl-10 pr-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                className="w-full pl-10 pr-3 py-3 bg-gray-50 border border-blue-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all"
               />
             </div>
           </div>
@@ -85,7 +85,7 @@ export function LoginPage({ onLogin, onSwitchToRegister, onSwitchToAdmin }: Logi
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
-                className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-blue-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all"
               />
               <button
                 type="button"
