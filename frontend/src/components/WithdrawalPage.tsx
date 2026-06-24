@@ -28,6 +28,7 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
   const [usdtWallets, setUsdtWallets] = useState<{ id: string; walletName: string; walletAddress: string; network: string; isDefault?: boolean; }[]>([]);
   const [selectedWalletId, setSelectedWalletId] = useState<string>("");
   const [network, setNetwork] = useState<string>("TRC20");
+  const [hasWithdrawToday, setHasWithdrawToday] = useState(false);
 
   useEffect(() => {
     (async () => {
