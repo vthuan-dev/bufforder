@@ -2,7 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const prisma = require('../lib/prisma');
-const { getVipLevelByAmount } = require('../config/vipLevels');
+const { getVipLevelByAmount, VIP_LEVELS } = require('../config/vipLevels');
 const config = require('../config');
 const { hashPassword, comparePassword, excludeFromUser, parseJsonField, getDateKey, getTodayRange } = require('../lib/utils');
 const { getDashboardStats } = require('../lib/optimized-queries'); // ⚡ Optimized queries
@@ -963,6 +963,23 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
     const currentUser = await prisma.user.findUnique({ where: { id: req.params.id } });
     if (!currentUser) return res.status(404).json({ success: false, message: 'User not found' });
 
+    // Check if it's a VIP upgrade (from low to high)
+    let isVipUpgrade = false;
+    let vipUpgradeMessage = '';
+    let vipUpgradeTitle = '';
+    if (vipLevel !== undefined && vipLevel !== currentUser.vipLevel) {
+      const getVipWeight = (levelId) => {
+        const lvl = VIP_LEVELS.find(v => v.id === levelId);
+        return lvl ? lvl.amountRequired : -1;
+      };
+      if (getVipWeight(vipLevel) > getVipWeight(currentUser.vipLevel)) {
+        isVipUpgrade = true;
+        const newVip = VIP_LEVELS.find(v => v.id === vipLevel) || { name: vipLevel };
+        vipUpgradeTitle = 'VIP Level Upgraded!';
+        vipUpgradeMessage = `Congratulations! Your account has been upgraded to ${newVip.name}. (Chúc mừng! Tài khoản của bạn đã được nâng cấp lên ${newVip.name}.)`;
+      }
+    }
+
     const data = {};
     if (fullName !== undefined) data.fullName = fullName;
     if (email !== undefined) data.email = email;
@@ -1019,7 +1036,7 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
 
     if (balanceChangeType === 'add') {
       // Balance increased - create deposit request
-      const result = await prisma.$transaction([
+      const txs = [
         prisma.user.update({
           where: { id: req.params.id },
           data,
@@ -1044,7 +1061,20 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
             type: 'success'
           }
         })
-      ]);
+      ];
+
+      if (isVipUpgrade) {
+        txs.push(prisma.notification.create({
+          data: {
+            userId: req.params.id,
+            title: vipUpgradeTitle,
+            message: vipUpgradeMessage,
+            type: 'success'
+          }
+        }));
+      }
+
+      const result = await prisma.$transaction(txs);
       user = result[0];
       notification = result[2];
 
@@ -1059,6 +1089,15 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
             type: 'success',
             createdAt: notification.createdAt
           });
+          if (isVipUpgrade && result[3]) {
+            io.to(`user:${req.params.id}`).emit('notification:new', {
+              id: result[3].id,
+              title: vipUpgradeTitle,
+              message: vipUpgradeMessage,
+              type: 'success',
+              createdAt: result[3].createdAt
+            });
+          }
           io.to(`user:${req.params.id}`).emit('balance:updated', {
             balance: user.balance,
             commission: user.commission || 0
@@ -1067,7 +1106,7 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
       } catch (e) { console.error('[Socket] Balance update notify error:', e); }
     } else if (balanceChangeType === 'subtract') {
       // Balance decreased - create notification only
-      const result = await prisma.$transaction([
+      const txs = [
         prisma.user.update({
           where: { id: req.params.id },
           data,
@@ -1081,7 +1120,20 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
             type: 'info'
           }
         })
-      ]);
+      ];
+
+      if (isVipUpgrade) {
+        txs.push(prisma.notification.create({
+          data: {
+            userId: req.params.id,
+            title: vipUpgradeTitle,
+            message: vipUpgradeMessage,
+            type: 'success'
+          }
+        }));
+      }
+
+      const result = await prisma.$transaction(txs);
       user = result[0];
       notification = result[1];
 
@@ -1096,6 +1148,15 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
             type: 'info',
             createdAt: notification.createdAt
           });
+          if (isVipUpgrade && result[2]) {
+            io.to(`user:${req.params.id}`).emit('notification:new', {
+              id: result[2].id,
+              title: vipUpgradeTitle,
+              message: vipUpgradeMessage,
+              type: 'success',
+              createdAt: result[2].createdAt
+            });
+          }
           io.to(`user:${req.params.id}`).emit('balance:updated', {
             balance: user.balance,
             commission: user.commission || 0
@@ -1104,11 +1165,45 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
       } catch (e) { console.error('[Socket] Balance update notify error:', e); }
     } else {
       // No balance change or other updates only
-      user = await prisma.user.update({
-        where: { id: req.params.id },
-        data,
-        include: { addresses: true, bankCards: true }
-      });
+      if (isVipUpgrade) {
+        const result = await prisma.$transaction([
+          prisma.user.update({
+            where: { id: req.params.id },
+            data,
+            include: { addresses: true, bankCards: true }
+          }),
+          prisma.notification.create({
+            data: {
+              userId: req.params.id,
+              title: vipUpgradeTitle,
+              message: vipUpgradeMessage,
+              type: 'success'
+            }
+          })
+        ]);
+        user = result[0];
+        const vipNotif = result[1];
+
+        // Emit socket notification
+        try {
+          const io = req.app.get('io');
+          if (io) {
+            io.to(`user:${req.params.id}`).emit('notification:new', {
+              id: vipNotif.id,
+              title: vipUpgradeTitle,
+              message: vipUpgradeMessage,
+              type: 'success',
+              createdAt: vipNotif.createdAt
+            });
+          }
+        } catch (e) { console.error('[Socket] VIP upgrade notify error:', e); }
+      } else {
+        user = await prisma.user.update({
+          where: { id: req.params.id },
+          data,
+          include: { addresses: true, bankCards: true }
+        });
+      }
     }
 
     res.json({ success: true, data: { user: excludeFromUser(user) } });
