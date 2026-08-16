@@ -283,7 +283,7 @@ router.delete('/bank-cards/:id', verifyToken, async (req, res) => {
       if (card.isDefault) {
         const firstCard = await tx.bankCard.findFirst({
           where: { userId: req.userId },
-          orderBy: { createdAt: 'asc' }
+          orderBy: { id: 'asc' }
         });
 
         if (firstCard) {
