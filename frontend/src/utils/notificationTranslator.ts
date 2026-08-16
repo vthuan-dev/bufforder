@@ -23,9 +23,17 @@ export function translateNotification(notification: Notification): Notification 
     translatedTitle = t('my:notifications.types.orderCompleted');
   } else if (notification.title === 'Commission Earned') {
     translatedTitle = t('my:notifications.types.commissionEarned');
+  } else if (notification.title === 'VIP Level Upgraded!') {
+    translatedTitle = t('my:notifications.types.vipUpgraded');
   }
 
   // Translate message based on patterns
+  // Pattern: "Congratulations! Your account has been upgraded to X."
+  const vipMatch = notification.message.match(/Congratulations! Your account has been upgraded to ([^\.]+)\./);
+  if (vipMatch) {
+    translatedMessage = t('my:notifications.messages.vipUpgraded', { level: vipMatch[1] });
+  }
+
   // Pattern: "Admin has deducted X from your account."
   const deductedMatch = notification.message.match(/Admin has deducted ([\d,.$]+) from your account\./);
   if (deductedMatch) {

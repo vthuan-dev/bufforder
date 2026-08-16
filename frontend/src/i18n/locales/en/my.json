@@ -45,14 +45,16 @@
       "withdrawalApproved": "Withdrawal Approved",
       "withdrawalRejected": "Withdrawal Rejected",
       "orderCompleted": "Order Completed",
-      "commissionEarned": "Commission Earned"
+      "commissionEarned": "Commission Earned",
+      "vipUpgraded": "VIP Level Upgraded"
     },
     "messages": {
       "adminDeducted": "Admin has deducted {{amount}} from your account.",
       "adminAdded": "Admin has added {{amount}} to your account.",
       "depositApproved": "Your deposit of {{amount}} has been approved.",
       "withdrawalApproved": "Your withdrawal of {{amount}} has been approved.",
-      "withdrawalRejected": "Your withdrawal of {{amount}} has been rejected."
+      "withdrawalRejected": "Your withdrawal of {{amount}} has been rejected.",
+      "vipUpgraded": "Congratulations! Your account has been upgraded to {{level}}."
     }
   }
 }

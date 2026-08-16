@@ -966,7 +966,7 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
     // Check if it's a VIP upgrade (from low to high)
     let isVipUpgrade = false;
     let vipUpgradeMessage = '';
-    let vipUpgradeTitle = '';
+    let vipUpgradeTitle = 'VIP Level Upgraded!';
     if (vipLevel !== undefined && vipLevel !== currentUser.vipLevel) {
       const getVipWeight = (levelId) => {
         const lvl = VIP_LEVELS.find(v => v.id === levelId);
@@ -975,8 +975,7 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
       if (getVipWeight(vipLevel) > getVipWeight(currentUser.vipLevel)) {
         isVipUpgrade = true;
         const newVip = VIP_LEVELS.find(v => v.id === vipLevel) || { name: vipLevel };
-        vipUpgradeTitle = 'VIP Level Upgraded!';
-        vipUpgradeMessage = `Congratulations! Your account has been upgraded to ${newVip.name}. (Chúc mừng! Tài khoản của bạn đã được nâng cấp lên ${newVip.name}.)`;
+        vipUpgradeMessage = `Congratulations! Your account has been upgraded to ${newVip.name}.`;
       }
     }
 

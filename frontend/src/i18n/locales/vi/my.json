@@ -45,14 +45,16 @@
       "withdrawalApproved": "Rút tiền đã được duyệt",
       "withdrawalRejected": "Rút tiền bị từ chối",
       "orderCompleted": "Đơn hàng hoàn thành",
-      "commissionEarned": "Hoa hồng đã nhận"
+      "commissionEarned": "Hoa hồng đã nhận",
+      "vipUpgraded": "Nâng cấp VIP"
     },
     "messages": {
       "adminDeducted": "Quản trị viên đã trừ {{amount}} từ tài khoản của bạn.",
       "adminAdded": "Quản trị viên đã thêm {{amount}} vào tài khoản của bạn.",
       "depositApproved": "Khoản nạp tiền {{amount}} của bạn đã được duyệt.",
       "withdrawalApproved": "Khoản rút tiền {{amount}} của bạn đã được duyệt.",
-      "withdrawalRejected": "Khoản rút tiền {{amount}} của bạn đã bị từ chối."
+      "withdrawalRejected": "Khoản rút tiền {{amount}} của bạn đã bị từ chối.",
+      "vipUpgraded": "Chúc mừng! Tài khoản của bạn đã được nâng cấp lên {{level}}."
     }
   }
 }

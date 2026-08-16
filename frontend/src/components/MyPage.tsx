@@ -509,7 +509,7 @@ export function MyPage() {
         {/* Notifications Side Drawer / Modal */}
         <AnimatePresence>
           {showNotifications && (
-            <div className="fixed inset-0 z-[1000] flex items-end justify-center px-0 sm:px-4 pb-32">
+            <div className="fixed inset-0 z-[1000] flex items-end justify-center px-0 sm:px-4 pb-0">
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -522,7 +522,7 @@ export function MyPage() {
                 animate={{ y: 0 }}
                 exit={{ y: "100%" }}
                 transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                className="relative w-full max-w-md bg-white rounded-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.2)] max-h-[70vh] h-auto flex flex-col mb-20"
+                className="relative w-full max-w-md bg-white rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.2)] max-h-[80vh] h-auto flex flex-col mb-0 pb-6"
               >
                 {/* Drawer Handle */}
                 <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto my-4 flex-shrink-0" />
@@ -567,7 +567,7 @@ export function MyPage() {
                   </div>
                 </div>
 
-                <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 space-y-3 custom-scrollbar" style={{ maxHeight: 'calc(70vh - 180px)' }}>
+                <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 space-y-3 custom-scrollbar" style={{ maxHeight: 'calc(80vh - 120px)' }}>
                   {notifications.length === 0 ? (
                     <div className="py-20 flex flex-col items-center justify-center text-center">
                       <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6">

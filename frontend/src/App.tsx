@@ -189,16 +189,18 @@ function ClientApp() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-md mx-auto bg-white min-h-screen shadow-2xl relative pb-28">
         <audio ref={clientAudioRef} src={new URL('./assets/sound/noti.mp3', import.meta.url).toString()} preload="auto" />
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/home" element={<HomePage bannerImage={bannerImage} />} />
-            <Route path="/orders" element={<OrdersPage />} />
-            <Route path="/record" element={<RecordPage />} />
-            <Route path="/help" element={<HelpPage />} />
-            <Route path="/my/*" element={<MyPage />} />
-            <Route path="/" element={<Navigate to="/home" replace />} />
-          </Routes>
-        </Suspense>
+        <div className="relative z-20">
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/home" element={<HomePage bannerImage={bannerImage} />} />
+              <Route path="/orders" element={<OrdersPage />} />
+              <Route path="/record" element={<RecordPage />} />
+              <Route path="/help" element={<HelpPage />} />
+              <Route path="/my/*" element={<MyPage />} />
+              <Route path="/" element={<Navigate to="/home" replace />} />
+            </Routes>
+          </Suspense>
+        </div>
         <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
       </div>
       <Toaster position="top-center" style={{ zIndex: 9999 }} />
