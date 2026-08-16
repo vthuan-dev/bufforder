@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from
 import { BottomNav } from './components/BottomNav';
 import { Toaster } from './components/ui/sonner';
 import { io, Socket } from 'socket.io-client';
+import { useTranslation } from 'react-i18next';
 import './i18n'; // Initialize i18n
 
 // Lazy load components for better performance
@@ -315,9 +316,25 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function LanguageSync() {
+  const location = useLocation();
+  const { i18n } = useTranslation();
+
+  useEffect(() => {
+    const isAdmin = location.pathname.startsWith('/admin');
+    const targetLang = localStorage.getItem(isAdmin ? 'admin_language' : 'language') || 'en';
+    if (i18n.language !== targetLang) {
+      i18n.changeLanguage(targetLang);
+    }
+  }, [location.pathname, i18n]);
+
+  return null;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
+      <LanguageSync />
       <ErrorBoundary name="App">
         <Routes>
           {/* Admin routes */}

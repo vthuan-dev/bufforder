@@ -111,20 +111,28 @@ const resources = {
   }
 };
 
+// Synchronously determine initial language on boot
+const isClient = typeof window !== 'undefined';
+let initialLanguage = 'en';
+if (isClient) {
+  const path = window.location.pathname;
+  if (path.startsWith('/admin')) {
+    initialLanguage = localStorage.getItem('admin_language') || 'en';
+  } else {
+    initialLanguage = localStorage.getItem('language') || 'en';
+  }
+}
+
 i18n
-  .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources,
+    lng: initialLanguage,
     fallbackLng: 'en',
     defaultNS: 'common',
     ns: ['common', 'home', 'orders', 'my', 'auth', 'withdrawal', 'withdrawalMethods', 'record', 'help', 'shippingAddress', 'topUp', 'transactionHistory', 'security', 'admin', 'adminLogin', 'adminDashboard', 'adminUsers', 'adminProducts', 'adminDeposits', 'adminWithdrawals', 'adminOrders', 'adminChat', 'adminSettings', 'adminAccountMenu', 'adminSidebar'],
     interpolation: {
       escapeValue: false
-    },
-    detection: {
-      order: ['localStorage', 'navigator'],
-      caches: ['localStorage']
     }
   });
 
