@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, Plus, MoreHorizontal, Edit, Trash2, Filter, User, Phone, Mail, DollarSign, Shield, Target, TrendingUp, Calendar, Lock, CheckCircle2, XCircle, Loader2, X } from "lucide-react";
+import { Search, Plus, MoreHorizontal, Edit, Trash2, Filter, User, Phone, Mail, DollarSign, Shield, Target, TrendingUp, Calendar, Lock, CheckCircle2, XCircle, Loader2, X, ArrowUp, ArrowDown } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { toast } from "sonner";
 import {
@@ -84,6 +84,11 @@ export function AdminUsersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [dateSort, setDateSort] = useState<'asc' | 'desc'>('desc');
+
+  const handleDateSort = () => {
+    setDateSort(prev => prev === 'desc' ? 'asc' : 'desc');
+  };
 
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
   const [formFullName, setFormFullName] = useState("");
@@ -159,14 +164,22 @@ export function AdminUsersPage() {
     frozenReason: u.frozenReason || '',
   });
 
-  const loadUsers = async (p: number = page, query: string = searchQuery, status: string = statusFilter) => {
+  const loadUsers = async (
+    p: number = page,
+    query: string = searchQuery,
+    status: string = statusFilter,
+    sortBy: string = 'createdAt',
+    sortOrder: 'asc' | 'desc' = 'desc'
+  ) => {
     try {
       setLoading(true);
       const res = await api.adminListUsers({
         page: p,
         limit: 20,
         q: query,
-        status: status
+        status: status,
+        sortBy,
+        sortOrder
       });
 
       const resData = res?.data || {};
@@ -189,13 +202,13 @@ export function AdminUsersPage() {
   };
 
   useEffect(() => {
-    loadUsers(1, searchQuery, statusFilter);
-  }, [statusFilter]); // Reload on status change
+    loadUsers(1, searchQuery, statusFilter, 'createdAt', dateSort);
+  }, [statusFilter, dateSort]); // Reload on status or dateSort change
 
   // Debounced search effect
   useEffect(() => {
     const timer = setTimeout(() => {
-      loadUsers(1, searchQuery, statusFilter);
+      loadUsers(1, searchQuery, statusFilter, 'createdAt', dateSort);
     }, 500);
     return () => clearTimeout(timer);
   }, [searchQuery]);
@@ -718,7 +731,19 @@ export function AdminUsersPage() {
                 <TableHead>{t('table.vipLevel')}</TableHead>
                 <TableHead>{t('table.balance')}</TableHead>
                 <TableHead>{t('table.status')}</TableHead>
-                <TableHead>{t('table.joinDate')}</TableHead>
+                <TableHead className="cursor-pointer select-none hover:text-blue-600 transition-colors">
+                  <button
+                    onClick={handleDateSort}
+                    className="flex items-center gap-1 font-medium"
+                  >
+                    {t('table.joinDate')}
+                    {dateSort === 'asc' ? (
+                      <ArrowUp className="w-4 h-4 text-blue-600" />
+                    ) : (
+                      <ArrowDown className="w-4 h-4 text-blue-600" />
+                    )}
+                  </button>
+                </TableHead>
                 <TableHead className="text-right">{t('table.actions')}</TableHead>
               </TableRow>
             </TableHeader>
