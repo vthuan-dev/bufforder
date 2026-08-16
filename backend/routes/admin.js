@@ -525,7 +525,7 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
       data: {
         requestId,
         amount,
-        user: { id: user.id, newBalance: updateData.balance, newTotalDeposited, newVipLevel: newVipLevel?.id },
+        user: { id: user.id, newBalance: updateData.balance, newTotalDeposited, newVipLevel: user.vipLevel },
         suspendedOrderProcessed // Include info if suspended order was processed
       }
     });
