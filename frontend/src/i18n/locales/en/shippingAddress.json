@@ -23,5 +23,6 @@
     "setDefault": "Set as default"
   },
   "default": "Default",
-  "confirmDelete": "Are you sure you want to delete this address?"
+  "confirmDelete": "Are you sure you want to delete this address?",
+  "deleteSuccess": "Address deleted successfully!"
 }

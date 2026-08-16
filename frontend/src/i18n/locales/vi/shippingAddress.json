@@ -23,5 +23,6 @@
     "setDefault": "Đặt làm mặc định"
   },
   "default": "Mặc định",
-  "confirmDelete": "Bạn có chắc chắn muốn xóa địa chỉ này?"
+  "confirmDelete": "Bạn có chắc chắn muốn xóa địa chỉ này?",
+  "deleteSuccess": "Xóa địa chỉ thành công!"
 }

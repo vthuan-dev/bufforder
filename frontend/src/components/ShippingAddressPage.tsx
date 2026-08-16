@@ -3,6 +3,7 @@ import { ArrowLeft, Plus, MapPin, Trash2, Edit } from "lucide-react";
 import { motion } from "motion/react";
 import { useTranslation } from "react-i18next";
 import api from "../services/api";
+import { toast } from "sonner";
 
 interface Address {
   id: string;
@@ -71,10 +72,12 @@ export function ShippingAddressPage({ onBack }: ShippingAddressPageProps) {
     if (!confirm(t('shippingAddress:confirmDelete'))) return;
     try {
       await api.deleteAddress(id);
-      // Refresh addresses list after deleting
-      await fetchAddresses();
+      toast.success(t('shippingAddress:deleteSuccess'));
+      setTimeout(() => {
+        window.location.reload();
+      }, 1200);
     } catch (e: any) {
-      alert(e?.message || t('common:error.failed'));
+      toast.error(e?.message || t('common:error.failed'));
     }
   };
 
