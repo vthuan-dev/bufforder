@@ -389,7 +389,7 @@ router.delete('/address/:addressId', async (req, res) => {
       if (address.isDefault) {
         const firstAddress = await tx.address.findFirst({
           where: { userId: decoded.userId },
-          orderBy: { createdAt: 'asc' }
+          orderBy: { id: 'asc' }
         });
 
         if (firstAddress) {
