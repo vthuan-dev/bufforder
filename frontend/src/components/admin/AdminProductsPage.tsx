@@ -402,7 +402,7 @@ export function AdminProductsPage() {
                                         <TableCell className="text-gray-600 text-sm">{product.brand}</TableCell>
                                         <TableCell>
                                             <Badge variant="secondary" className="bg-purple-100 text-purple-700">
-                                                {t(`categories.${product.category}`)}
+                                                {t(`categories.${product.category}`) === `categories.${product.category}` ? product.category : t(`categories.${product.category}`)}
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-gray-900 font-medium">${product.price.toFixed(2)}</TableCell>
@@ -510,8 +510,8 @@ export function AdminProductsPage() {
                                 <div>
                                     <p className="text-sm text-gray-500">{t('viewDialog.category')}</p>
                                     <Badge variant="secondary" className="bg-purple-100 text-purple-700 mt-1">
-                                        {t(`categories.${selectedProduct.category}`)}
-                                    </Badge>
+                                         {t(`categories.${selectedProduct.category}`) === `categories.${selectedProduct.category}` ? selectedProduct.category : t(`categories.${selectedProduct.category}`)}
+                                     </Badge>
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-500">{t('viewDialog.price')}</p>

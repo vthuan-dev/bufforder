@@ -89,7 +89,8 @@
     "Luxury": "Luxury",
     "Beauty": "Beauty",
     "Jewelry": "Jewelry",
-    "Accessories": "Accessories"
+    "Accessories": "Accessories",
+    "Home Appliances": "Home Appliances"
   },
   "notifications": {
     "imageTooLarge": "Image size must be less than 5MB",
