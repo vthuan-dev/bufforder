@@ -392,7 +392,9 @@ export function AdminProductsPage() {
                                                     )}
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <p className="text-gray-900 text-sm font-medium truncate max-w-[200px]">{product.name}</p>
+                                                    <p className="text-gray-900 text-sm font-medium truncate max-w-[200px]" title={product.name}>
+                                                        {product.name.split(' ').slice(0, 6).join(' ') + (product.name.split(' ').length > 6 ? '...' : '')}
+                                                    </p>
                                                     <p className="text-xs text-gray-500">ID: {product.id}</p>
                                                 </div>
                                             </div>
