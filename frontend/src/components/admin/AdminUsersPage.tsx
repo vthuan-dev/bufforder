@@ -1073,7 +1073,7 @@ export function AdminUsersPage() {
                       </Select>
                     </div>
                     <div>
-                      <Label className="text-xs text-gray-500 mb-1 block">{t('vipLevel')}</Label>
+                      <Label className="text-xs text-gray-500 mb-1 block">{t('editDialog.vipLevel')}</Label>
                       <Select value={formVipLevel} onValueChange={(v: any) => setFormVipLevel(v)}>
                         <SelectTrigger className="h-11 bg-gray-50 border-gray-200">
                           <SelectValue />

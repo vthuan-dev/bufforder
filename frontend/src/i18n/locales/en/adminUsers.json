@@ -59,6 +59,7 @@
     "set": "Set",
     "subtract": "Subtract",
     "status": "Status",
+    "vipLevel": "VIP Level",
     "commissionSettings": "Commission Settings",
     "commissionHint": "Leave empty to use VIP level defaults",
     "numberOfOrders": "Number of Orders",
