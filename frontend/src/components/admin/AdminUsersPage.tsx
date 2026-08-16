@@ -95,6 +95,7 @@ export function AdminUsersPage() {
   const [formPhone, setFormPhone] = useState("");
   const [formBalance, setFormBalance] = useState<string>("0");
   const [formStatus, setFormStatus] = useState<"Active" | "Suspended" | "Pending">("Active");
+  const [formVipLevel, setFormVipLevel] = useState<string>("vip-0");
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -284,6 +285,7 @@ export function AdminUsersPage() {
     setFormPhone(user.phone || "");
     setFormBalance(String(user.balance ?? 0));
     setFormStatus(user.status);
+    setFormVipLevel(user.vipLevel || "vip-0");
     setEditDialogOpen(true);
     setShowAddBalanceInput(false);
     setAddBalanceAmount("");
@@ -346,6 +348,7 @@ export function AdminUsersPage() {
         phoneNumber: formPhone,
         balance: Number(formBalance),
         isActive: formStatus === "Active",
+        vipLevel: formVipLevel,
       };
 
       // Run API calls in parallel with minimum 3s delay
@@ -1066,6 +1069,26 @@ export function AdminUsersPage() {
                               {t('suspended')}
                             </span>
                           </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-500 mb-1 block">{t('vipLevel')}</Label>
+                      <Select value={formVipLevel} onValueChange={(v: any) => setFormVipLevel(v)}>
+                        <SelectTrigger className="h-11 bg-gray-50 border-gray-200">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="vip-0">VIP 0</SelectItem>
+                          <SelectItem value="vip-1">VIP 1</SelectItem>
+                          <SelectItem value="vip-2">VIP 2</SelectItem>
+                          <SelectItem value="vip-3">VIP 3</SelectItem>
+                          <SelectItem value="vip-4">VIP 4</SelectItem>
+                          <SelectItem value="vip-5">VIP 5</SelectItem>
+                          <SelectItem value="vip-6">VIP 6</SelectItem>
+                          <SelectItem value="vip-7">VIP 7</SelectItem>
+                          <SelectItem value="svip">SVIP</SelectItem>
+                          <SelectItem value="royal-vip">Royal VIP</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
