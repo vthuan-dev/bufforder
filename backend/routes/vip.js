@@ -68,7 +68,7 @@ router.get('/status', verifyToken, async (req, res) => {
       });
     }
 
-    const currentLevel = getVipLevelByAmount(user.totalDeposited);
+    const currentLevel = VIP_LEVELS.find(level => level.id === user.vipLevel) || VIP_LEVELS.find(level => level.id === 'vip-0');
     let nextLevel = null;
     let progress = { progress: 0, remaining: 0 };
 
@@ -365,7 +365,7 @@ router.post('/withdrawal', verifyToken, async (req, res) => {
       });
 
       // Get user's daily task limit (numberOfOrders)
-      const vipLevel = getVipLevelByAmount(user.totalDeposited);
+      const vipLevel = VIP_LEVELS.find(level => level.id === user.vipLevel) || VIP_LEVELS.find(level => level.id === 'vip-0');
 
       // Use snapshotted value if exists (user already started grabbing today), otherwise use current config
       const dailyEarnings = parseJsonField(user.dailyEarnings, {});

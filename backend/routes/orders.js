@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../lib/prisma');
-const { getVipLevelByAmount } = require('../config/vipLevels');
+const { getVipLevelByAmount, VIP_LEVELS } = require('../config/vipLevels');
 const { authenticateToken } = require('../middleware/auth');
 const {
   parseJsonField,
@@ -79,7 +79,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
     const totalCommission = completedOrders.reduce((sum, order) => sum + order.commissionAmount, 0);
 
     // Get VIP level info
-    const vipLevel = getVipLevelByAmount(user.totalDeposited);
+    const vipLevel = VIP_LEVELS.find(level => level.id === user.vipLevel) || VIP_LEVELS.find(level => level.id === 'vip-0');
     const commissionRate = resolveCommissionRate(user, vipLevel);
     const dailyTarget = resolveDailyTarget(user, vipLevel);
     const numberOfOrders = resolveNumberOfOrders(user, vipLevel);
@@ -176,7 +176,7 @@ router.post('/take', authenticateToken, async (req, res) => {
     });
 
     // Get VIP level
-    const vipLevel = getVipLevelByAmount(user.totalDeposited);
+    const vipLevel = VIP_LEVELS.find(level => level.id === user.vipLevel) || VIP_LEVELS.find(level => level.id === 'vip-0');
     const dailyEarnings = parseJsonField(user.dailyEarnings, {});
 
     // Get dynamic order limit from user snapshot or VIP level

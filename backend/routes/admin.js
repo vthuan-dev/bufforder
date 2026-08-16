@@ -346,14 +346,13 @@ router.post('/deposit-requests/:requestId/approve', verifyAdminToken, async (req
     const user = depositRequest.user;
     const amount = depositRequest.amount;
     const newTotalDeposited = user.totalDeposited + amount;
-    const newVipLevel = getVipLevelByAmount(newTotalDeposited);
 
     // ============================================
     // 🔓 AUTO-UNLOCK if account is frozen
     // ============================================
     const updateData = {
-      totalDeposited: newTotalDeposited,
-      vipLevel: newVipLevel?.id || user.vipLevel
+      totalDeposited: newTotalDeposited
+      // VIP level is NOT automatically upgraded on deposit approval
     };
 
     let suspendedOrderProcessed = null;
@@ -1009,8 +1008,7 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
       // Only update totalDeposited if balance increased (add operation)
       if (balanceChangeType === 'add') {
         data.totalDeposited = currentUser.totalDeposited + balanceDelta;
-        const newVipLevel = getVipLevelByAmount(data.totalDeposited);
-        if (newVipLevel) data.vipLevel = newVipLevel.id;
+        // VIP level is NOT automatically upgraded when balance is added
       }
       // For subtract/set operations, don't change totalDeposited or VIP level
     }
@@ -1145,15 +1143,14 @@ router.post('/users/:id/topup', verifyAdminToken, async (req, res) => {
     }
 
     const newTotalDeposited = user.totalDeposited + add;
-    const newVipLevel = getVipLevelByAmount(newTotalDeposited);
 
     const [updatedUser, depositRequest, notification] = await prisma.$transaction([
       prisma.user.update({
         where: { id: user.id },
         data: {
           balance: { increment: add },
-          totalDeposited: newTotalDeposited,
-          vipLevel: newVipLevel?.id || user.vipLevel
+          totalDeposited: newTotalDeposited
+          // VIP level is NOT automatically upgraded on Admin top up
         }
       }),
       prisma.depositRequest.create({
