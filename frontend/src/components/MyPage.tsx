@@ -509,7 +509,7 @@ export function MyPage() {
         {/* Notifications Side Drawer / Modal */}
         <AnimatePresence>
           {showNotifications && (
-            <div className="fixed inset-0 z-[1000] flex items-end justify-center px-0 sm:px-4 pb-0">
+            <div className="fixed inset-0 z-[1000] flex items-start justify-center px-0 sm:px-4 pb-0">
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -518,14 +518,12 @@ export function MyPage() {
                 className="absolute inset-0 bg-black/70 backdrop-blur-md"
               />
               <motion.div
-                initial={{ y: "100%" }}
+                initial={{ y: "-100%" }}
                 animate={{ y: 0 }}
-                exit={{ y: "100%" }}
+                exit={{ y: "-100%" }}
                 transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                className="relative w-full max-w-md bg-white rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.2)] max-h-[80vh] h-auto flex flex-col mb-0 pb-6"
+                className="relative w-full max-w-md bg-white rounded-b-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] max-h-[85vh] h-auto flex flex-col mt-0 pb-2"
               >
-                {/* Drawer Handle */}
-                <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto my-4 flex-shrink-0" />
 
                 <div className="px-6 pb-4 flex items-center justify-between border-b border-gray-100 flex-shrink-0">
                   <div className="flex items-center gap-3">
@@ -567,7 +565,7 @@ export function MyPage() {
                   </div>
                 </div>
 
-                <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 space-y-3 custom-scrollbar" style={{ maxHeight: 'calc(80vh - 120px)' }}>
+                <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 space-y-3 custom-scrollbar" style={{ maxHeight: 'calc(85vh - 120px)' }}>
                   {notifications.length === 0 ? (
                     <div className="py-20 flex flex-col items-center justify-center text-center">
                       <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6">
@@ -659,6 +657,9 @@ export function MyPage() {
                     })
                   )}
                 </div>
+                
+                {/* Drawer Handle at Bottom */}
+                <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto my-3 flex-shrink-0" />
 
               </motion.div>
             </div>
