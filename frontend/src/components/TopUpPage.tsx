@@ -172,7 +172,7 @@ export function TopUpPage({ onBack }: TopUpPageProps) {
             <h3 className="text-sm text-gray-700 mb-2">{t('topUp:pending.title')}</h3>
             <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-2">
               {pendingDeposits.map((r: any) => (
-                <div key={r._id} className="flex items-center justify-between text-sm">
+                <div key={r.id || r._id} className="flex items-center justify-between text-sm">
                   <span className="text-gray-700">${r.amount.toFixed(2)}</span>
                   <span className="text-orange-600">{t('topUp:pending.status')}</span>
                 </div>

@@ -425,7 +425,7 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
           <h3 className="text-sm text-gray-700 mb-2">{t('withdrawal:pending.title')}</h3>
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-2">
             {pendingWithdrawals.map((w: any) => (
-              <div key={w._id} className="flex items-center justify-between text-sm">
+              <div key={w.id || w._id} className="flex items-center justify-between text-sm">
                 <span className="text-gray-700">${w.amount.toFixed(2)}</span>
                 <span className="text-orange-600">{t('topUp:pending.status')}</span>
               </div>

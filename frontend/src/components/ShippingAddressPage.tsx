@@ -26,7 +26,7 @@ export function ShippingAddressPage({ onBack }: ShippingAddressPageProps) {
     try {
       const res = await api.getAddresses();
       const list = (res?.data?.addresses || []).map((a: any) => ({
-        id: a._id,
+        id: a.id || a._id,
         name: a.fullName,
         phone: a.phoneNumber,
         address: `${a.addressLine1}, ${a.city}, ${a.postalCode}`,
