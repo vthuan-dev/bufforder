@@ -282,7 +282,7 @@ export function HelpPage() {
         try {
           const list = await api.chatListMessages(threadIdRef.current);
           const arr: Message[] = (list?.data?.messages || []).map((m: any) => ({
-            id: m._id,
+            id: m.id || m._id,
             text: m.text || '',
             imageUrl: m.imageUrl ? (String(m.imageUrl).startsWith('/') ? `${API_BASE}${m.imageUrl}` : m.imageUrl) : undefined,
             isUser: m.senderType === 'user',
@@ -444,13 +444,14 @@ export function HelpPage() {
     try {
       console.log('[HelpPage] � Calling API chatSendMessage...');
       const result = await api.chatSendMessage(threadId, messageText);
-      console.log('[HelpPage] ✅ API Response:', result?.data?.message?._id);
+      const serverId = result?.data?.message?.id || result?.data?.message?._id;
+      console.log('[HelpPage] ✅ API Response:', serverId);
 
       // Update optimistic message with real ID from server
-      if (result?.data?.message?._id) {
+      if (serverId) {
         setMessages(prev => prev.map(m =>
           m.id === tempId
-            ? { ...m, id: result.data.message._id }
+            ? { ...m, id: serverId }
             : m
         ));
       }
