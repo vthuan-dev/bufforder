@@ -883,27 +883,27 @@ export function AdminUsersPage() {
 
       {/* Edit User Dialog - Redesigned */}
       <Dialog open={editDialogOpen} onOpenChange={handleCloseEditDialog}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] p-0 overflow-hidden [&>button]:text-white [&>button]:hover:text-white">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] p-0 overflow-hidden [&>button]:text-gray-400 [&>button]:hover:text-gray-600">
           <DialogTitle className="sr-only">{t('editDialog.title')}</DialogTitle>
           {selectedUser && (
             <>
               {/* Header */}
-              <div className="bg-blue-600 px-6 py-5">
+              <div className="bg-white border-b border-gray-100 px-6 py-5">
                 <div className="flex items-center gap-4">
-                  <Avatar className="w-16 h-16 border-3 border-white/30 shadow-lg">
+                  <Avatar className="w-16 h-16 border border-gray-100 shadow-sm flex-shrink-0">
                     <AvatarImage src="" />
-                    <AvatarFallback className="bg-white/20 text-white text-xl font-semibold">
+                    <AvatarFallback className="bg-blue-50 text-blue-600 text-xl font-bold">
                       {selectedUser.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
-                    <h2 className="text-white text-lg font-semibold">{selectedUser.name}</h2>
-                    <p className="text-white/80 text-sm">{selectedUser.email}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge className="bg-white/20 text-white text-xs border-0">
+                    <h2 className="text-gray-900 text-lg font-bold leading-tight">{selectedUser.name}</h2>
+                    <p className="text-gray-500 text-sm mt-0.5">{selectedUser.email}</p>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <Badge className="bg-blue-50 text-blue-700 border border-blue-100 font-semibold hover:bg-blue-50 text-[10px] px-2 py-0.5 shadow-none rounded-full">
                         {selectedUser.vipLevel.toUpperCase()}
                       </Badge>
-                      <Badge className={`text-xs border-0 ${selectedUser.status === 'Active' ? 'bg-green-400/30 text-green-100' : 'bg-red-400/30 text-red-100'}`}>
+                      <Badge className={`text-[10px] px-2 py-0.5 font-semibold border shadow-none rounded-full ${selectedUser.status === 'Active' ? 'bg-green-50 text-green-700 border-green-100 hover:bg-green-50' : 'bg-red-50 text-red-700 border-red-100 hover:bg-red-50'}`}>
                         {selectedUser.status}
                       </Badge>
                     </div>
@@ -1246,17 +1246,17 @@ export function AdminUsersPage() {
 
       {/* Create User Dialog - Redesigned */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] p-0 overflow-hidden [&>button]:text-white [&>button]:hover:text-white">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] p-0 overflow-hidden [&>button]:text-gray-400 [&>button]:hover:text-gray-600">
           <DialogTitle className="sr-only">{t('createDialog.title')}</DialogTitle>
           {/* Header */}
-          <div className="bg-blue-600 px-6 py-5">
+          <div className="bg-white border-b border-gray-100 px-6 py-5">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
-                <Plus className="w-7 h-7 text-white" />
+              <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <Plus className="w-7 h-7 text-blue-600" />
               </div>
               <div>
-                <h2 className="text-white text-lg font-semibold">{t('createDialog.title')}</h2>
-                <p className="text-white/80 text-sm">{t('createDialog.subtitle')}</p>
+                <h2 className="text-gray-900 text-lg font-bold leading-tight">{t('createDialog.title')}</h2>
+                <p className="text-gray-500 text-sm mt-0.5">{t('createDialog.subtitle')}</p>
               </div>
             </div>
           </div>
@@ -1698,19 +1698,19 @@ export function AdminUsersPage() {
 
       {/* Reset Password Dialog */}
       <Dialog open={resetPasswordDialogOpen} onOpenChange={setResetPasswordDialogOpen}>
-        <DialogContent className="sm:max-w-md max-h-[90vh] p-0 overflow-hidden [&>button]:text-white [&>button]:hover:text-white">
+        <DialogContent className="sm:max-w-md max-h-[90vh] p-0 overflow-hidden [&>button]:text-gray-400 [&>button]:hover:text-gray-600">
           <DialogTitle className="sr-only">{t('resetPasswordDialog.title')}</DialogTitle>
           {resetPasswordUser && (
             <>
               {/* Header */}
-              <div className="bg-blue-600 px-6 py-5">
+              <div className="bg-white border-b border-gray-100 px-6 py-5">
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
-                    <Lock className="w-7 h-7 text-white" />
+                  <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center flex-shrink-0">
+                    <Lock className="w-7 h-7 text-blue-600" />
                   </div>
                   <div>
-                    <h2 className="text-white text-lg font-semibold">{t('resetPasswordDialog.title')}</h2>
-                    <p className="text-white/80 text-sm">{t('resetPasswordDialog.subtitle')}</p>
+                    <h2 className="text-gray-900 text-lg font-bold leading-tight">{t('resetPasswordDialog.title')}</h2>
+                    <p className="text-gray-500 text-sm mt-0.5">{t('resetPasswordDialog.subtitle')}</p>
                   </div>
                 </div>
               </div>
