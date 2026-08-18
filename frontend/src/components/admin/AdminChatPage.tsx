@@ -82,6 +82,16 @@ export function AdminChatPage() {
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [mobileShowChat, setMobileShowChat] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState('');
+
+  const handleCancelImage = () => {
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+    setSelectedImage(null);
+    setImagePreviewUrl('');
+  };
 
   // Fetch location from IP via backend proxy
   const fetchLocationFromIp = async (ip: string) => {
@@ -423,14 +433,32 @@ export function AdminChatPage() {
   ), [threads, searchQuery]);
 
   const handleSendMessage = async () => {
-    if (!messageInput.trim()) return;
-    const threadId = selectedThread?.id;
+    const threadId = selectedThreadIdRef.current || selectedThread?.id;
     if (!threadId) return;
-    // send via socket for realtime (UI updates from socket event).
-    // IMPORTANT: avoid REST call here to prevent duplicate messages
-    socketRef.current?.emit('chat:send', { threadId, text: messageInput });
-    setMessageInput("");
-    try { socketRef.current?.emit('chat:typing', { threadId, typing: false }); } catch { }
+
+    if (!messageInput.trim() && !selectedImage) return;
+
+    // 1. If there's an image, upload it first
+    if (selectedImage) {
+      try {
+        await api.adminChatSendImage(threadId, selectedImage);
+      } catch (err) {
+        console.error("Admin upload image error:", err);
+      } finally {
+        if (imagePreviewUrl) {
+          URL.revokeObjectURL(imagePreviewUrl);
+        }
+        setSelectedImage(null);
+        setImagePreviewUrl('');
+      }
+    }
+
+    // 2. If there's text, send it
+    if (messageInput.trim()) {
+      socketRef.current?.emit('chat:send', { threadId, text: messageInput });
+      setMessageInput("");
+      try { socketRef.current?.emit('chat:typing', { threadId, typing: false }); } catch { }
+    }
   };
 
   const handlePickImage = () => {
@@ -440,17 +468,12 @@ export function AdminChatPage() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    try {
-      const threadId = selectedThreadIdRef.current || selectedThread?.id;
-      if (!threadId) return;
-      // use admin upload endpoint so senderType=admin
-      await api.adminChatSendImage(threadId, file as any);
-      // message will appear through socket 'chat:message'
-    } catch (err) {
-      // optional: toast can be added
-    } finally {
-      e.target.value = '';
-    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setSelectedImage(file);
+    setImagePreviewUrl(previewUrl);
+    
+    e.target.value = '';
   };
 
   const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -462,14 +485,9 @@ export function AdminChatPage() {
         const file = items[i].getAsFile();
         if (file) {
           e.preventDefault();
-          try {
-            const threadId = selectedThreadIdRef.current || selectedThread?.id;
-            if (!threadId) return;
-            // upload immediately
-            await api.adminChatSendImage(threadId, file as any);
-          } catch (err) {
-            console.error("Paste image upload failed:", err);
-          }
+          const previewUrl = URL.createObjectURL(file);
+          setSelectedImage(file);
+          setImagePreviewUrl(previewUrl);
           break;
         }
       }
@@ -813,6 +831,23 @@ export function AdminChatPage() {
 
             {/* Input Area */}
             <div className="p-4 border-t border-gray-100 sticky bottom-0 bg-white z-10 flex-shrink-0">
+              {/* Image Preview */}
+              {selectedImage && (
+                <div className="relative rounded-xl overflow-hidden border border-gray-200 aspect-video max-h-32 mb-3 bg-gray-50 flex items-center justify-center">
+                  <img
+                    src={imagePreviewUrl}
+                    alt="Upload Preview"
+                    className="max-h-full max-w-full object-contain"
+                  />
+                  <button
+                    onClick={handleCancelImage}
+                    className="absolute top-2 right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-colors"
+                  >
+                    <span className="text-sm font-bold">×</span>
+                  </button>
+                </div>
+              )}
+
               <div className="flex items-end gap-3">
                 {/* Paperclip button */}
                 <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg" onClick={handlePickImage} disabled={!selectedThread}>
