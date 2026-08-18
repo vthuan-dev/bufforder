@@ -833,7 +833,7 @@ export function AdminChatPage() {
             <div className="p-4 border-t border-gray-100 sticky bottom-0 bg-white z-10 flex-shrink-0">
               {/* Image Preview */}
               {selectedImage && (
-                <div className="relative rounded-xl overflow-hidden border border-gray-200 aspect-video max-h-32 mb-3 bg-gray-50 flex items-center justify-center">
+                <div className="relative rounded-lg overflow-hidden border border-gray-200 w-20 h-20 mb-3 bg-gray-50 flex items-center justify-center shadow-sm">
                   <img
                     src={imagePreviewUrl}
                     alt="Upload Preview"
@@ -841,9 +841,9 @@ export function AdminChatPage() {
                   />
                   <button
                     onClick={handleCancelImage}
-                    className="absolute top-2 right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-colors"
+                    className="absolute top-1 right-1 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow transition-colors"
                   >
-                    <span className="text-sm font-bold">×</span>
+                    <span className="text-xs font-bold">×</span>
                   </button>
                 </div>
               )}
