@@ -241,7 +241,7 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
       setIsAuthenticated(true);
 
       try {
-        const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
+        const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
         const res = await fetch(`${API_BASE}/api/orders/stats`, {
           headers: { 'Authorization': `Bearer ${token}` },
           signal: AbortSignal.timeout(15000) // ⚡ Increased to 15 seconds for slow networks
