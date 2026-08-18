@@ -74,7 +74,18 @@
     "priceHint": "With {{orders}} orders at avg ${{price}}, user will earn ${{target}}",
     "suggested": "Suggested target",
     "saveChanges": "Save Changes",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "paymentInfo": "Payment Information",
+    "bankCards": "Bank Cards",
+    "usdtWallets": "USDT Wallets",
+    "noBankCards": "No bank cards linked",
+    "noUsdtWallets": "No USDT wallets linked",
+    "addressLabel": "Wallet Address",
+    "networkLabel": "Network",
+    "accountNameLabel": "Account Name",
+    "cardNumberLabel": "Account / Card Number",
+    "bankNameLabel": "Bank Name",
+    "defaultBadge": "Default"
   },
   "createDialog": {
     "title": "Create New User",

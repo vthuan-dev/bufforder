@@ -803,7 +803,7 @@ router.get('/users/:id', verifyAdminToken, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.params.id },
-      include: { addresses: true, bankCards: true }
+      include: { addresses: true, bankCards: true, usdtWallets: true }
     });
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     res.json({ success: true, data: { user: excludeFromUser(user) } });

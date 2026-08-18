@@ -74,7 +74,18 @@
     "priceHint": "Với {{orders}} đơn giá TB ${{price}}, user sẽ kiếm ${{target}}",
     "suggested": "Mục tiêu gợi ý",
     "saveChanges": "Lưu thay đổi",
-    "saving": "Đang lưu..."
+    "saving": "Đang lưu...",
+    "paymentInfo": "Thông tin thanh toán",
+    "bankCards": "Thẻ ngân hàng",
+    "usdtWallets": "Ví USDT",
+    "noBankCards": "Chưa liên kết thẻ ngân hàng nào",
+    "noUsdtWallets": "Chưa liên kết ví USDT nào",
+    "addressLabel": "Địa chỉ ví",
+    "networkLabel": "Mạng lưới",
+    "accountNameLabel": "Chủ thẻ",
+    "cardNumberLabel": "Số tài khoản / Số thẻ",
+    "bankNameLabel": "Ngân hàng",
+    "defaultBadge": "Mặc định"
   },
   "createDialog": {
     "title": "Tạo người dùng mới",
