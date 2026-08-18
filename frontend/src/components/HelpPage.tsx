@@ -531,6 +531,25 @@ export function HelpPage() {
     setImagePreviewUrl('');
   };
 
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf("image") !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          e.preventDefault();
+          // Create preview URL
+          const previewUrl = URL.createObjectURL(file);
+          setSelectedImage(file);
+          setImagePreviewUrl(previewUrl);
+          break;
+        }
+      }
+    }
+  };
+
   // Emoji picker handlers
   const handleEmojiClick = (emojiData: EmojiClickData) => {
     setInputMessage(prev => prev + emojiData.emoji);
@@ -776,6 +795,7 @@ export function HelpPage() {
               value={inputMessage}
               onChange={(e) => handleInputChange(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+              onPaste={handlePaste}
               placeholder={t('help:inputPlaceholder')}
               className="w-full bg-gray-100 rounded-full px-5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:bg-white transition-all"
             />

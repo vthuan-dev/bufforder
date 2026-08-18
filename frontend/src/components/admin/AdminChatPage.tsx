@@ -453,6 +453,29 @@ export function AdminChatPage() {
     }
   };
 
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf("image") !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          e.preventDefault();
+          try {
+            const threadId = selectedThreadIdRef.current || selectedThread?.id;
+            if (!threadId) return;
+            // upload immediately
+            await api.adminChatSendImage(threadId, file as any);
+          } catch (err) {
+            console.error("Paste image upload failed:", err);
+          }
+          break;
+        }
+      }
+    }
+  };
+
   // Delete thread handler
   const handleDeleteThread = async () => {
     if (!selectedThread) return;
@@ -854,6 +877,7 @@ export function AdminChatPage() {
                         handleSendMessage();
                       }
                     }}
+                    onPaste={handlePaste}
                     placeholder={t('typeMessage')}
                     rows={1}
                     className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
