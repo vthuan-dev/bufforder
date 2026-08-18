@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const config = require('../config');
 
 // Middleware to verify user token
 function authMiddleware(req, res, next) {
@@ -12,7 +13,7 @@ function authMiddleware(req, res, next) {
   const token = authHeader.substring(7);
   const jwt = require('jsonwebtoken');
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const decoded = jwt.verify(token, config.JWT_SECRET);
     req.userId = decoded.userId;
     next();
   } catch (err) {
