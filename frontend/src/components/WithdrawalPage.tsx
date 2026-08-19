@@ -15,8 +15,13 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
   const [amount, setAmount] = useState("");
   const [password, setPassword] = useState("");
   const [availableBalance, setAvailableBalance] = useState(0);
-  const [actualAvailableBalance, setActualAvailableBalance] = useState(0); // Balance minus pending withdrawals
   const [pendingWithdrawals, setPendingWithdrawals] = useState<any[]>([]);
+
+  // Computed state: actual available balance (balance minus pending withdrawals)
+  const actualAvailableBalance = Math.max(
+    0,
+    availableBalance - pendingWithdrawals.reduce((sum: number, w: any) => sum + Number(w.amount || 0), 0)
+  );
   const [dailyTasks, setDailyTasks] = useState(0);
   const [completedToday, setCompletedToday] = useState(0);
   const [lastWithdrawalTime, setLastWithdrawalTime] = useState<Date | null>(null);
@@ -69,11 +74,6 @@ export function WithdrawalPage({ onBack, onNavigateToBankCards }: WithdrawalPage
         const all = (list?.data?.requests || []);
         const items = all.filter((w: any) => (w.status === 'pending'));
         setPendingWithdrawals(items);
-        
-        // Calculate actual available balance (balance - pending withdrawals)
-        const totalPending = items.reduce((sum: number, w: any) => sum + Number(w.amount || 0), 0);
-        const actualBalance = Math.max(0, availableBalance - totalPending);
-        setActualAvailableBalance(actualBalance);
         
         // Find last withdrawal time (most recent pending or approved)
         const recentWithdrawals = all.filter((w: any) => 
