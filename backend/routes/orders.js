@@ -385,7 +385,7 @@ router.post('/take', authenticateToken, async (req, res) => {
             clientRequestId, // ✅ Store the key directly (not undefined)
             orderNumber: generateOrderNumber(),
             productId: parseInt(randomProduct.id),
-            productName: randomProduct.name,
+            productName: randomProduct.name ? randomProduct.name.slice(0, 191) : '',
             productPrice: randomProduct.price,
             commissionRate: commissionRate,
             commissionAmount,
