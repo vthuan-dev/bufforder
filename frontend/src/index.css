@@ -4725,7 +4725,7 @@ html {
   overflow: hidden;
   user-select: none;
   gap: 0;
-  max-height: 24px;
+  max-height: 48px;
 }
 
 .partner-marquee-content {
@@ -4740,8 +4740,8 @@ html {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 65px;
-  height: 34px;
+  min-width: 70px;
+  height: 40px;
   background: transparent;
   padding: 0 4px;
   transition: all 0.3s ease;
@@ -4752,8 +4752,8 @@ html {
 }
 
 .partner-logo {
-  max-width: 70px;
-  max-height: 30px;
+  max-width: 80px;
+  max-height: 36px;
   width: auto;
   height: auto;
   object-fit: contain;
