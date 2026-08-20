@@ -76,11 +76,11 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
 
       {/* Partner Brands Marquee - Hidden on help and orders tabs */}
       {activeTab !== 'help' && activeTab !== 'orders' && (
-        <div className="px-3 pt-1 pb-0.5 border-b border-gray-100">
-          <p className="text-center text-[9px] text-gray-500 mb-0.5 font-medium">
+        <div className="px-3 pt-2 pb-1.5 border-b border-gray-100">
+          <p className="text-center text-[10px] text-gray-500 mb-1 font-medium">
             {t('common:sponsors')}
           </p>
-          <div className="relative overflow-hidden bg-gradient-to-r from-purple-50 via-pink-50 to-blue-50 py-1 rounded-md" style={{ maxHeight: '48px' }}>
+          <div className="relative overflow-hidden bg-gradient-to-r from-purple-50 via-pink-50 to-blue-50 py-1.5 rounded-md" style={{ minHeight: '44px', maxHeight: '54px' }}>
             <div className="partner-marquee">
               <div className="partner-marquee-content">
                 {partnerBrands.map((brand, index) => (
