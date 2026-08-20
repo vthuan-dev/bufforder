@@ -66,7 +66,7 @@ export function RecordPage() {
   useEffect(() => { loadOrders(); }, [activeTab]);
 
   return (
-    <div className="pb-32 bg-white min-h-screen">
+    <div className="pb-48 bg-white min-h-screen">
       {/* Header - Synced with VIP Theme */}
       <div 
         className={`${vipTheme.gradient} px-6 py-8 relative overflow-hidden`}

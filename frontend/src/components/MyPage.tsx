@@ -223,7 +223,7 @@ export function MyPage() {
 
   return (
     <div className="bg-white min-h-screen relative">
-      <div className="pb-40 overflow-y-auto">
+      <div className="pb-48 overflow-y-auto">
         {/* Header with Premium Gradient */}
         <div className="relative overflow-hidden z-0">
           {/* Animated Background Pattern */}
