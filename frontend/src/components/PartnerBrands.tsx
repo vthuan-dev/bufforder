@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 // Partner brands data - Only reliable CDN sources
 const partnerBrands = [
+  { name: 'Overstock', logo: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTIlCIfFGzy0VjSHixjtECQzN_I0AMsS-_ZMugdJiHxuw&s=10' },
   { name: 'Starbucks', logo: 'https://cdn.simpleicons.org/starbucks/00704A' },
   { name: 'Amazon', logo: 'https://thumbs.dreamstime.com/b/humpolec-czech-republic-january-amazon-company-logo-technology-delivery-shop-store-global-vector-274656518.jpg' },
   { name: 'Target', logo: 'https://cdn.simpleicons.org/target/CC0000' },

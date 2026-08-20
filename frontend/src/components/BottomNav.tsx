@@ -5,6 +5,7 @@ import { TABS_CONFIG, getEnabledTabs } from "../config/tabs.config";
 
 // Partner brands data - Only verified working logos from simpleicons.org
 const partnerBrands = [
+  { name: 'Overstock', logo: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTIlCIfFGzy0VjSHixjtECQzN_I0AMsS-_ZMugdJiHxuw&s=10' },
   { name: 'Starbucks', logo: 'https://cdn.simpleicons.org/starbucks/00704A' },
   { name: 'Target', logo: 'https://cdn.simpleicons.org/target/CC0000' },
   { name: 'Apple', logo: 'https://cdn.simpleicons.org/apple/000000' },
@@ -79,7 +80,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
           <p className="text-center text-[9px] text-gray-500 mb-0.5 font-medium">
             {t('common:sponsors')}
           </p>
-          <div className="relative overflow-hidden bg-gradient-to-r from-purple-50 via-pink-50 to-blue-50 py-0.5 rounded-md" style={{ maxHeight: '24px' }}>
+          <div className="relative overflow-hidden bg-gradient-to-r from-purple-50 via-pink-50 to-blue-50 py-1 rounded-md" style={{ maxHeight: '48px' }}>
             <div className="partner-marquee">
               <div className="partner-marquee-content">
                 {partnerBrands.map((brand, index) => (

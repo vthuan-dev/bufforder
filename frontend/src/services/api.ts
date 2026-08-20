@@ -78,12 +78,13 @@ async function request(endpoint: string, options: RequestOptions = {}) {
       const data = await res.json().catch(() => ({}));
 
       if (res.status === 401) {
-        // Check if this is a login attempt (has error message from backend like "Invalid credentials")
+        // Check if this is a login attempt or password confirmation (which shouldn't trigger global logout)
         const backendMessage = data?.message || data?.error;
         const isLoginEndpoint = endpoint.includes('/login');
+        const isWithdrawalEndpoint = endpoint.includes('/vip/withdrawal');
 
-        if (isLoginEndpoint && backendMessage) {
-          // This is a failed login attempt, show backend message
+        if ((isLoginEndpoint || isWithdrawalEndpoint || backendMessage === 'Incorrect password') && backendMessage) {
+          // This is a validation failure, not an expired token. Show the backend message.
           throw new Error(backendMessage);
         }
 
