@@ -128,7 +128,7 @@ export function HomePage({ }: HomePageProps) {
           {t('home:membershipLevel')}
         </h2>
 
-        <div className="space-y-3" style={{ marginBottom: '180px' }}>
+        <div className="space-y-3" style={{ marginBottom: '230px' }}>
           {vipLevels.map((level, index) => {
             const theme = level.theme;
             const hasBadge = Boolean(theme.badgeImage);

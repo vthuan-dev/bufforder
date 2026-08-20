@@ -80,7 +80,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
           <p className="text-center text-[10px] text-gray-500 mb-1 font-medium">
             {t('common:sponsors')}
           </p>
-          <div className="relative overflow-hidden bg-gradient-to-r from-purple-50 via-pink-50 to-blue-50 py-1.5 rounded-md" style={{ minHeight: '44px', maxHeight: '54px' }}>
+          <div className="relative overflow-hidden bg-gradient-to-r from-purple-50 via-pink-50 to-blue-50 py-1.5 rounded-md" style={{ minHeight: '52px', maxHeight: '66px' }}>
             <div className="partner-marquee">
               <div className="partner-marquee-content">
                 {partnerBrands.map((brand, index) => (

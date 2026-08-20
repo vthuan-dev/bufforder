@@ -4725,13 +4725,13 @@ html {
   overflow: hidden;
   user-select: none;
   gap: 0;
-  max-height: 48px;
+  max-height: 58px;
 }
 
 .partner-marquee-content {
   display: flex;
   animation: scroll-left 60s linear infinite;
-  gap: 0.5rem;
+  gap: 0.6rem;
   padding: 0 0.25rem;
 }
 
@@ -4740,8 +4740,8 @@ html {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 70px;
-  height: 40px;
+  min-width: 84px;
+  height: 48px;
   background: transparent;
   padding: 0 4px;
   transition: all 0.3s ease;
@@ -4752,8 +4752,8 @@ html {
 }
 
 .partner-logo {
-  max-width: 80px;
-  max-height: 36px;
+  max-width: 96px;
+  max-height: 44px;
   width: auto;
   height: auto;
   object-fit: contain;
