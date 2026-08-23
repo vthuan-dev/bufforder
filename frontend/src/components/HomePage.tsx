@@ -80,7 +80,7 @@ export function HomePage({ }: HomePageProps) {
   }, []);
 
   return (
-    <div className="pb-96">
+    <div className="bottom-nav-safe-pad">
       {/* Logo */}
       <div className="bg-gray-100 py-4 px-6 text-center">
         <img src={logoImage} alt="Ashford" className="inline-block h-10 object-contain" />

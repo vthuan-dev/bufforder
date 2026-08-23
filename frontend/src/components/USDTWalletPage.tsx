@@ -112,7 +112,7 @@ export function USDTWalletPage({ onBack }: USDTWalletPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-56">
+    <div className="min-h-screen bg-gray-50 bottom-nav-safe-pad">
       <AnimatePresence>
         {toast && (
           <Toast

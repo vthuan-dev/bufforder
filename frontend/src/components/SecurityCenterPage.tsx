@@ -84,7 +84,7 @@ export function SecurityCenterPage({ onBack }: SecurityCenterPageProps) {
   const passwordsMatch = confirmPassword && newPassword === confirmPassword;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 pb-56">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 bottom-nav-safe-pad">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 text-white px-6 py-6 sticky top-0 z-10 shadow-lg">
         <div className="flex items-center gap-3">

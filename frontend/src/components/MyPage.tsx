@@ -223,7 +223,7 @@ export function MyPage() {
 
   return (
     <div className="bg-white min-h-screen relative">
-      <div className="pb-56 overflow-y-auto">
+      <div className="bottom-nav-safe-pad overflow-y-auto">
         {/* Header with Premium Gradient */}
         <div className="relative overflow-hidden z-0">
           {/* Animated Background Pattern */}
@@ -500,9 +500,6 @@ export function MyPage() {
             })}
           </motion.div>
         </div>
-
-        {/* Spacer to ensure content is scrollable above bottom nav */}
-        <div className="h-32"></div>
 
         <BottomNav activeTab="my" onTabChange={() => { }} />
 

@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { TABS_CONFIG, getEnabledTabs } from "../config/tabs.config";
 
@@ -33,6 +33,34 @@ interface BottomNavProps {
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   const { t } = useTranslation(['common']);
   const [helpUnread, setHelpUnread] = useState<number>(0);
+  const navRef = useRef<HTMLDivElement | null>(null);
+
+  // Publish the real rendered height of the nav (tab bar + partner marquee) as
+  // a CSS variable. Pages use it via .bottom-nav-safe-pad to reserve scroll
+  // clearance, so nothing stays hidden behind the nav. The height changes
+  // between tabs because the marquee is conditionally rendered.
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+
+    const publish = () => {
+      const h = Math.ceil(el.getBoundingClientRect().height);
+      if (h > 0) {
+        document.documentElement.style.setProperty('--bottom-nav-h', `${h}px`);
+      }
+    };
+
+    publish();
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', publish);
+      return () => window.removeEventListener('resize', publish);
+    }
+
+    const ro = new ResizeObserver(publish);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [activeTab]);
 
   useEffect(() => {
     // Load initial unread count from localStorage
@@ -70,7 +98,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   const tabs = getEnabledTabs(TABS_CONFIG);
 
   return (
-    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 z-10">
+    <div ref={navRef} className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 z-10">
       {/* Shadow overlay for depth */}
       <div className="absolute inset-x-0 -top-2 h-2 bg-gradient-to-b from-transparent to-black/5 pointer-events-none" />
 

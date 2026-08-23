@@ -4821,3 +4821,42 @@ input[type="number"] {
 .custom-scrollbar {
   overscroll-behavior: contain;
 }
+
+/* ============================================
+   BOTTOM NAV CLEARANCE
+   ============================================
+   index.css is a pre-compiled Tailwind v4 output and this project has no
+   Tailwind build step, so utilities that are not already present above never
+   get generated. The classes below are written by components but were missing,
+   which left pages with padding-bottom: 0 and their last elements trapped
+   underneath the fixed BottomNav (partner marquee + tab bar).
+   --bottom-nav-h is measured at runtime by BottomNav. */
+:root {
+  --bottom-nav-h: 150px;
+}
+
+/* Reserves room for the fixed bottom nav plus a comfortable scroll overshoot,
+   so every element of a page can be scrolled clear of the nav. */
+.bottom-nav-safe-pad {
+  padding-bottom: calc(var(--bottom-nav-h) + 3rem);
+}
+
+.pb-56 {
+  padding-bottom: calc(var(--spacing) * 56);
+}
+
+.pb-1\.5 {
+  padding-bottom: calc(var(--spacing) * 1.5);
+}
+
+.pt-3 {
+  padding-top: calc(var(--spacing) * 3);
+}
+
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+.h-safe-area-inset-bottom {
+  height: env(safe-area-inset-bottom, 0px);
+}

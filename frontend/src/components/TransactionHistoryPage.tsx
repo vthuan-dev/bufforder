@@ -87,7 +87,7 @@ export function TransactionHistoryPage({ onBack }: TransactionHistoryPageProps) 
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-56">
+    <div className="min-h-screen bg-gray-50 bottom-nav-safe-pad">
       {/* Header */}
       <div className="bg-blue-600 text-white px-5 py-4 sticky top-0 z-10">
         <div className="max-w-md mx-auto flex items-center gap-3">
