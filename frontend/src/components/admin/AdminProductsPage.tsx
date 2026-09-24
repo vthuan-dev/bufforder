@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, Filter, Eye, Plus, Edit, Trash2, Package, Loader2, DollarSign, Tag, Image as ImageIcon, Upload, X, ArrowUpDown, ArrowUp, ArrowDown, ExternalLink } from "lucide-react";
+import { Search, Filter, Eye, Plus, Edit, Trash2, Package, Loader2, DollarSign, Tag, Image as ImageIcon, Upload, X, ArrowUpDown, ArrowUp, ArrowDown, ExternalLink, Copy, Check, Globe, Layers } from "lucide-react";
 import { Badge } from "../ui/badge";
 import {
     Table,
@@ -55,6 +55,14 @@ export function AdminProductsPage() {
         total: 0
     });
     const [currentPage, setCurrentPage] = useState(1);
+    const [copiedId, setCopiedId] = useState(false);
+
+    const copyProductId = (id: number) => {
+        navigator.clipboard.writeText(String(id));
+        setCopiedId(true);
+        toast.success(`Đã sao chép mã sản phẩm #${id}`);
+        setTimeout(() => setCopiedId(false), 2000);
+    };
 
     // Form state
     const [formName, setFormName] = useState("");
@@ -499,123 +507,193 @@ export function AdminProductsPage() {
                 </div>
             </div>
 
-            {/* View Product Dialog */}
+            {/* View Product Dialog - Redesigned & Beautiful */}
             <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-                <DialogContent className="sm:max-w-lg p-0 overflow-hidden">
-                    <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-100 bg-gray-50/70">
-                        <div className="flex items-center justify-between">
-                            <DialogTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                                <Package className="w-5 h-5 text-blue-600" />
-                                {t('viewDialog.title')}
-                            </DialogTitle>
-                            <Badge variant="secondary" className={selectedProduct?.isActive ? "bg-emerald-100 text-emerald-700 font-medium" : "bg-red-100 text-red-700 font-medium"}>
-                                <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${selectedProduct?.isActive ? "bg-emerald-500" : "bg-red-500"}`}></span>
-                                {selectedProduct?.isActive ? t('active') : t('inactive')}
-                            </Badge>
+                <DialogContent className="sm:max-w-2xl p-0 overflow-hidden rounded-2xl border border-gray-200/80 shadow-2xl bg-white gap-0 block">
+                    {/* Header */}
+                    <div className="px-6 py-4 border-b border-gray-100 bg-white flex items-center justify-between pr-12">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100 shadow-xs">
+                                <Package className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h2 className="text-base font-bold text-gray-900 leading-tight">
+                                    {t('viewDialog.title')}
+                                </h2>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                    {selectedProduct && `#${selectedProduct.id} • ${selectedProduct.brand || 'Unbranded'}`}
+                                </p>
+                            </div>
                         </div>
-                    </DialogHeader>
 
+                        {selectedProduct && (
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                                selectedProduct.isActive 
+                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200/80" 
+                                    : "bg-red-50 text-red-700 border border-red-200/80"
+                            }`}>
+                                <span className={`w-2 h-2 rounded-full ${selectedProduct.isActive ? "bg-emerald-500 animate-pulse" : "bg-red-500"}`}></span>
+                                {selectedProduct.isActive ? t('active') : t('inactive')}
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Scrollable Body */}
                     {selectedProduct && (
-                        <div className="p-6 space-y-4">
-                            {/* Product Header Card: Image + Title + Price */}
-                            <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100 items-start">
+                        <div className="max-h-[calc(85vh-130px)] overflow-y-auto px-6 py-5 space-y-4 bg-gray-50/60">
+                            {/* Showcase Card: Image + Title + Price */}
+                            <div className="p-4 bg-white rounded-2xl border border-gray-200/80 shadow-xs flex flex-col sm:flex-row gap-5 items-center sm:items-start">
+                                {/* Image Frame */}
                                 <div 
-                                    className="w-24 h-24 sm:w-28 sm:h-28 bg-white rounded-lg p-1.5 border border-gray-200 flex-shrink-0 flex items-center justify-center shadow-sm overflow-hidden mx-auto sm:mx-0"
-                                    style={{ width: '100px', height: '100px', minWidth: '100px', minHeight: '100px', maxWidth: '100px', maxHeight: '100px' }}
+                                    className="rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center p-2 flex-shrink-0 relative group/img overflow-hidden"
+                                    style={{ width: '130px', height: '130px', minWidth: '130px', minHeight: '130px' }}
                                 >
                                     {selectedProduct.image ? (
                                         <img 
                                             src={selectedProduct.image} 
                                             alt={selectedProduct.name} 
-                                            className="w-full h-full object-contain rounded-md"
+                                            className="w-full h-full object-contain rounded-lg transition-transform duration-300 group-hover/img:scale-105"
                                             style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                                         />
                                     ) : (
-                                        <Package className="w-10 h-10 text-gray-400" />
+                                        <Package className="w-12 h-12 text-gray-300" />
+                                    )}
+                                    {selectedProduct.image && (
+                                        <a 
+                                            href={selectedProduct.image} 
+                                            target="_blank" 
+                                            rel="noreferrer" 
+                                            title="Xem ảnh gốc"
+                                            className="absolute bottom-1.5 right-1.5 p-1 bg-white/90 backdrop-blur rounded-md text-gray-600 hover:text-blue-600 shadow-xs border border-gray-200 opacity-0 group-hover/img:opacity-100 transition-opacity"
+                                        >
+                                            <ExternalLink className="w-3.5 h-3.5" />
+                                        </a>
                                     )}
                                 </div>
-                                <div className="flex-1 flex flex-col justify-between text-left min-w-0 w-full">
+
+                                {/* Title, Tags & Price */}
+                                <div className="flex-1 flex flex-col justify-between self-stretch text-center sm:text-left min-w-0">
                                     <div>
-                                        <span className="inline-block px-2 py-0.5 text-xs font-semibold text-blue-700 bg-blue-50 rounded-md mb-1.5">
-                                            {selectedProduct.brand || 'No Brand'}
-                                        </span>
-                                        <h3 className="font-semibold text-gray-900 text-base leading-snug break-words">
+                                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 mb-2">
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200/60">
+                                                <Tag className="w-3 h-3" />
+                                                {selectedProduct.brand || 'No Brand'}
+                                            </span>
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200/60">
+                                                <Layers className="w-3 h-3" />
+                                                {t(`categories.${selectedProduct.category}`) === `categories.${selectedProduct.category}` ? selectedProduct.category : t(`categories.${selectedProduct.category}`)}
+                                            </span>
+                                        </div>
+
+                                        <h3 className="text-gray-900 font-bold text-base sm:text-lg leading-snug break-words">
                                             {selectedProduct.name}
                                         </h3>
                                     </div>
-                                    <div className="mt-3 flex items-baseline gap-2">
-                                        <span className="text-2xl font-bold text-blue-600">
+
+                                    {/* Price Card */}
+                                    <div className="mt-3.5 pt-3 border-t border-gray-100 flex items-baseline justify-center sm:justify-start gap-2">
+                                        <span className="text-xs uppercase tracking-wider text-gray-400 font-medium">Giá niêm yết:</span>
+                                        <span className="text-2xl sm:text-3xl font-black text-blue-600 tracking-tight">
                                             ${selectedProduct.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </span>
+                                        <span className="text-xs font-semibold text-gray-400">USD</span>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Details Grid */}
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="p-3 bg-gray-50/80 rounded-lg border border-gray-100">
-                                    <p className="text-xs text-gray-500 font-medium">{t('viewDialog.productId')}</p>
-                                    <p className="font-mono text-sm font-semibold text-gray-800 mt-0.5">#{selectedProduct.id}</p>
+                            {/* Details 3-Column Bento Grid */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                {/* Product ID tile with copy button */}
+                                <div className="p-3.5 bg-white rounded-xl border border-gray-200/80 shadow-xs flex flex-col justify-between">
+                                    <span className="text-xs text-gray-400 font-medium">{t('viewDialog.productId')}</span>
+                                    <div className="flex items-center justify-between mt-1">
+                                        <span className="font-mono text-sm font-bold text-gray-800">#{selectedProduct.id}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => copyProductId(selectedProduct.id)}
+                                            className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 bg-gray-50 hover:bg-blue-50 border border-gray-200 px-2 py-0.5 rounded transition-colors"
+                                            title="Sao chép ID"
+                                        >
+                                            {copiedId ? (
+                                                <>
+                                                    <Check className="w-3 h-3 text-emerald-600" />
+                                                    <span className="text-emerald-600 font-medium">Đã chép</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Copy className="w-3 h-3" />
+                                                    <span>Chép</span>
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="p-3 bg-gray-50/80 rounded-lg border border-gray-100">
-                                    <p className="text-xs text-gray-500 font-medium">{t('viewDialog.category')}</p>
-                                    <Badge variant="secondary" className="bg-purple-100 text-purple-700 mt-1">
+
+                                {/* Category tile */}
+                                <div className="p-3.5 bg-white rounded-xl border border-gray-200/80 shadow-xs flex flex-col justify-between">
+                                    <span className="text-xs text-gray-400 font-medium">{t('viewDialog.category')}</span>
+                                    <p className="text-sm font-bold text-gray-800 mt-1 truncate">
                                         {t(`categories.${selectedProduct.category}`) === `categories.${selectedProduct.category}` ? selectedProduct.category : t(`categories.${selectedProduct.category}`)}
-                                    </Badge>
+                                    </p>
                                 </div>
-                                <div className="p-3 bg-gray-50/80 rounded-lg border border-gray-100">
-                                    <p className="text-xs text-gray-500 font-medium">{t('viewDialog.brand')}</p>
-                                    <p className="text-sm font-medium text-gray-800 mt-0.5">{selectedProduct.brand || '—'}</p>
-                                </div>
-                                <div className="p-3 bg-gray-50/80 rounded-lg border border-gray-100">
-                                    <p className="text-xs text-gray-500 font-medium">{t('viewDialog.status')}</p>
-                                    <p className={`text-sm font-medium mt-0.5 ${selectedProduct.isActive ? 'text-emerald-600' : 'text-red-500'}`}>
-                                        {selectedProduct.isActive ? t('active') : t('inactive')}
+
+                                {/* Brand tile */}
+                                <div className="p-3.5 bg-white rounded-xl border border-gray-200/80 shadow-xs flex flex-col justify-between">
+                                    <span className="text-xs text-gray-400 font-medium">{t('viewDialog.brand')}</span>
+                                    <p className="text-sm font-bold text-gray-800 mt-1 truncate">
+                                        {selectedProduct.brand || '—'}
                                     </p>
                                 </div>
                             </div>
 
-                            {/* Product URL / Link if available */}
-                            {selectedProduct.productUrl && (
-                                <div className="p-3 bg-blue-50/50 rounded-lg border border-blue-100">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-xs text-gray-500 font-medium mb-0.5">{t('viewDialog.productUrl')}</p>
-                                            <p className="text-xs text-blue-600 font-mono truncate">{selectedProduct.productUrl}</p>
+                            {/* Product URL Tile */}
+                            {selectedProduct.productUrl ? (
+                                <div className="p-3.5 bg-blue-50/60 rounded-xl border border-blue-200/70 shadow-xs flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                        <div className="w-8 h-8 rounded-lg bg-white border border-blue-200 flex items-center justify-center text-blue-600 flex-shrink-0">
+                                            <Globe className="w-4 h-4" />
                                         </div>
-                                        <a
-                                            href={selectedProduct.productUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 bg-white hover:bg-blue-50 rounded-md border border-blue-200 transition-colors flex-shrink-0"
-                                        >
-                                            <span>{t('viewDialog.openUrl')}</span>
-                                            <ExternalLink className="w-3.5 h-3.5" />
-                                        </a>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-xs font-semibold text-gray-600">{t('viewDialog.productUrl')}</p>
+                                            <p className="text-xs text-blue-700 font-mono truncate select-all">{selectedProduct.productUrl}</p>
+                                        </div>
                                     </div>
+                                    <a
+                                        href={selectedProduct.productUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-xs transition-colors flex-shrink-0"
+                                    >
+                                        <span>{t('viewDialog.openUrl')}</span>
+                                        <ExternalLink className="w-3.5 h-3.5" />
+                                    </a>
                                 </div>
-                            )}
+                            ) : null}
+                        </div>
+                    )}
 
-                            {/* Dialog Actions */}
-                            <div className="flex items-center gap-3 pt-2">
-                                <Button 
-                                    onClick={() => { 
-                                        setViewDialogOpen(false); 
-                                        handleEdit(selectedProduct); 
-                                    }} 
-                                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                                >
-                                    <Edit className="w-4 h-4 mr-2" />
-                                    {t('viewDialog.editProduct')}
-                                </Button>
-                                <Button 
-                                    onClick={() => setViewDialogOpen(false)} 
-                                    variant="outline" 
-                                    className="flex-1 border-gray-200"
-                                >
-                                    {t('viewDialog.close')}
-                                </Button>
-                            </div>
+                    {/* Footer Actions */}
+                    {selectedProduct && (
+                        <div className="px-6 py-3.5 border-t border-gray-100 bg-white flex items-center justify-end gap-3">
+                            <Button 
+                                type="button"
+                                onClick={() => setViewDialogOpen(false)} 
+                                variant="outline" 
+                                className="border-gray-200 hover:bg-gray-100 text-gray-700 px-5 font-medium rounded-xl h-10"
+                            >
+                                {t('viewDialog.close')}
+                            </Button>
+                            <Button 
+                                type="button"
+                                onClick={() => { 
+                                    setViewDialogOpen(false); 
+                                    handleEdit(selectedProduct); 
+                                }} 
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-5 font-semibold rounded-xl shadow-sm transition-colors flex items-center gap-2 h-10"
+                            >
+                                <Edit className="w-4 h-4" />
+                                {t('viewDialog.editProduct')}
+                            </Button>
                         </div>
                     )}
                 </DialogContent>
