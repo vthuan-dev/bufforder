@@ -388,12 +388,16 @@ export function AdminProductsPage() {
                                                 className="flex items-center gap-3 cursor-pointer group select-none py-1"
                                                 title={product.name}
                                             >
-                                                <div className="w-11 h-11 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden border border-gray-200 group-hover:border-blue-500 group-hover:ring-2 group-hover:ring-blue-100 transition-all">
+                                                <div 
+                                                    className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden border border-gray-200 group-hover:border-blue-500 group-hover:ring-2 group-hover:ring-blue-100 transition-all bg-gray-50"
+                                                    style={{ width: '40px', height: '40px', minWidth: '40px', minHeight: '40px', maxWidth: '40px', maxHeight: '40px' }}
+                                                >
                                                     {product.image ? (
                                                         <img 
                                                             src={product.image} 
                                                             alt={product.name} 
                                                             className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform" 
+                                                            style={{ width: '40px', height: '40px', minWidth: '40px', minHeight: '40px', maxWidth: '40px', maxHeight: '40px', objectFit: 'cover' }}
                                                             onError={(e) => {
                                                                 (e.target as HTMLElement).style.display = 'none';
                                                             }}
@@ -403,13 +407,10 @@ export function AdminProductsPage() {
                                                     )}
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <p className="text-gray-900 text-sm font-medium truncate max-w-[220px] group-hover:text-blue-600 transition-colors cursor-pointer" title={product.name}>
-                                                        {product.name.split(' ').slice(0, 6).join(' ') + (product.name.split(' ').length > 6 ? '...' : '')}
+                                                    <p className="text-gray-900 text-sm font-medium truncate max-w-[200px] group-hover:text-blue-600 transition-colors" title={product.name}>
+                                                        {product.name}
                                                     </p>
-                                                    <div className="flex items-center gap-1.5 mt-0.5">
-                                                        <span className="text-xs text-gray-400 font-mono">ID: {product.id}</span>
-                                                        <span className="text-[11px] text-blue-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity">Xem &rarr;</span>
-                                                    </div>
+                                                    <p className="text-xs text-gray-500">ID: {product.id}</p>
                                                 </div>
                                             </div>
                                         </TableCell>
@@ -518,12 +519,16 @@ export function AdminProductsPage() {
                         <div className="p-6 space-y-4">
                             {/* Product Header Card: Image + Title + Price */}
                             <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100 items-start">
-                                <div className="w-24 h-24 sm:w-28 sm:h-28 bg-white rounded-lg p-1.5 border border-gray-200 flex-shrink-0 flex items-center justify-center shadow-sm overflow-hidden mx-auto sm:mx-0">
+                                <div 
+                                    className="w-24 h-24 sm:w-28 sm:h-28 bg-white rounded-lg p-1.5 border border-gray-200 flex-shrink-0 flex items-center justify-center shadow-sm overflow-hidden mx-auto sm:mx-0"
+                                    style={{ width: '100px', height: '100px', minWidth: '100px', minHeight: '100px', maxWidth: '100px', maxHeight: '100px' }}
+                                >
                                     {selectedProduct.image ? (
                                         <img 
                                             src={selectedProduct.image} 
                                             alt={selectedProduct.name} 
                                             className="w-full h-full object-contain rounded-md"
+                                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                                         />
                                     ) : (
                                         <Package className="w-10 h-10 text-gray-400" />
