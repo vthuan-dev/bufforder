@@ -1870,9 +1870,9 @@ router.get('/products/find-by-price/:targetPrice', verifyAdminToken, async (req,
       return res.status(400).json({ success: false, message: 'Invalid price' });
     }
 
-    // Find products closest to target price (within ±20% range)
-    const minPrice = targetPrice * 0.8;
-    const maxPrice = targetPrice * 1.2;
+    // Find products closest to target price (within ±25% range)
+    const minPrice = targetPrice * 0.75;
+    const maxPrice = targetPrice * 1.25;
 
     const products = await prisma.product.findMany({
       where: {
@@ -1883,9 +1883,9 @@ router.get('/products/find-by-price/:targetPrice', verifyAdminToken, async (req,
         isActive: true
       },
       orderBy: {
-        price: 'asc'
+        id: 'desc'
       },
-      take: 10 // Return top 10 products
+      take: 60
     });
 
     if (products.length === 0) {
@@ -1896,13 +1896,26 @@ router.get('/products/find-by-price/:targetPrice', verifyAdminToken, async (req,
       });
     }
 
+    // Deduplicate by simplified product name so admin sees a diverse list
+    const seenNames = new Set();
+    const uniqueProducts = [];
+
+    for (const p of products) {
+      const simplified = (p.name || '').trim().toLowerCase().slice(0, 30);
+      if (!seenNames.has(simplified)) {
+        seenNames.add(simplified);
+        uniqueProducts.push(p);
+      }
+    }
+
     // Sort by closest to target price
-    const sortedProducts = products
+    const sortedProducts = uniqueProducts
       .map(p => ({
         ...p,
         priceDiff: Math.abs(p.price - targetPrice)
       }))
       .sort((a, b) => a.priceDiff - b.priceDiff)
+      .slice(0, 15)
       .map(({ priceDiff, ...product }) => product);
 
     res.json({

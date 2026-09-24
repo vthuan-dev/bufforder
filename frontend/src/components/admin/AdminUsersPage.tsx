@@ -1733,6 +1733,9 @@ export function AdminUsersPage() {
                               src={product.image}
                               alt={product.name}
                               className="w-10 h-10 object-cover rounded border border-gray-200"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80';
+                              }}
                             />
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
@@ -1766,6 +1769,9 @@ export function AdminUsersPage() {
                           src={targetProduct.image}
                           alt={targetProduct.name}
                           className="w-16 h-16 object-cover rounded border border-green-300"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80';
+                          }}
                         />
                         <div className="flex-1">
                           <p className="text-sm font-semibold text-gray-900">{targetProduct.name}</p>
