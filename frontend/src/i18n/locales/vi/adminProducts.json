@@ -35,13 +35,9 @@
   "viewDialog": {
     "title": "Chi tiết sản phẩm",
     "category": "Danh mục",
-    "brand": "Thương hiệu",
     "price": "Giá",
     "status": "Trạng thái",
-    "productId": "Mã sản phẩm (ID)",
-    "productUrl": "Link sản phẩm gốc",
-    "openUrl": "Mở link",
-    "createdAt": "Ngày tạo",
+    "productId": "Mã sản phẩm",
     "editProduct": "Chỉnh sửa sản phẩm",
     "close": "Đóng"
   },
