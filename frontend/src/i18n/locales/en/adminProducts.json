@@ -35,9 +35,13 @@
   "viewDialog": {
     "title": "Product Details",
     "category": "Category",
+    "brand": "Brand",
     "price": "Price",
     "status": "Status",
     "productId": "Product ID",
+    "productUrl": "Original Product Link",
+    "openUrl": "Open Link",
+    "createdAt": "Created At",
     "editProduct": "Edit Product",
     "close": "Close"
   },

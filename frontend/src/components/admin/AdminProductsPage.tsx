@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, Filter, Eye, Plus, Edit, Trash2, Package, Loader2, DollarSign, Tag, Image as ImageIcon, Upload, X, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, Filter, Eye, Plus, Edit, Trash2, Package, Loader2, DollarSign, Tag, Image as ImageIcon, Upload, X, ArrowUpDown, ArrowUp, ArrowDown, ExternalLink } from "lucide-react";
 import { Badge } from "../ui/badge";
 import {
     Table,
@@ -381,21 +381,35 @@ export function AdminProductsPage() {
                                 </TableRow>
                             ) : (
                                 products.map((product) => (
-                                    <TableRow key={product.id}>
+                                    <TableRow key={product.id} className="hover:bg-gray-50/70 transition-colors">
                                         <TableCell>
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                            <div 
+                                                onClick={() => handleView(product)}
+                                                className="flex items-center gap-3 cursor-pointer group select-none py-1"
+                                                title={product.name}
+                                            >
+                                                <div className="w-11 h-11 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden border border-gray-200 group-hover:border-blue-500 group-hover:ring-2 group-hover:ring-blue-100 transition-all">
                                                     {product.image ? (
-                                                        <img src={product.image} alt={product.name} className="w-full h-full object-cover rounded-lg" />
+                                                        <img 
+                                                            src={product.image} 
+                                                            alt={product.name} 
+                                                            className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform" 
+                                                            onError={(e) => {
+                                                                (e.target as HTMLElement).style.display = 'none';
+                                                            }}
+                                                        />
                                                     ) : (
-                                                        <Package className="w-5 h-5 text-gray-400" />
+                                                        <Package className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
                                                     )}
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <p className="text-gray-900 text-sm font-medium truncate max-w-[200px]" title={product.name}>
+                                                    <p className="text-gray-900 text-sm font-medium truncate max-w-[220px] group-hover:text-blue-600 transition-colors cursor-pointer" title={product.name}>
                                                         {product.name.split(' ').slice(0, 6).join(' ') + (product.name.split(' ').length > 6 ? '...' : '')}
                                                     </p>
-                                                    <p className="text-xs text-gray-500">ID: {product.id}</p>
+                                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                                        <span className="text-xs text-gray-400 font-mono">ID: {product.id}</span>
+                                                        <span className="text-[11px] text-blue-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity">Xem &rarr;</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </TableCell>
@@ -486,55 +500,114 @@ export function AdminProductsPage() {
 
             {/* View Product Dialog */}
             <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-                <DialogContent className="sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>{t('viewDialog.title')}</DialogTitle>
+                <DialogContent className="sm:max-w-lg p-0 overflow-hidden">
+                    <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-100 bg-gray-50/70">
+                        <div className="flex items-center justify-between">
+                            <DialogTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                <Package className="w-5 h-5 text-blue-600" />
+                                {t('viewDialog.title')}
+                            </DialogTitle>
+                            <Badge variant="secondary" className={selectedProduct?.isActive ? "bg-emerald-100 text-emerald-700 font-medium" : "bg-red-100 text-red-700 font-medium"}>
+                                <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${selectedProduct?.isActive ? "bg-emerald-500" : "bg-red-500"}`}></span>
+                                {selectedProduct?.isActive ? t('active') : t('inactive')}
+                            </Badge>
+                        </div>
                     </DialogHeader>
+
                     {selectedProduct && (
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-4">
-                                <div className="w-20 h-20 bg-gray-100 rounded-xl flex items-center justify-center">
+                        <div className="p-6 space-y-4">
+                            {/* Product Header Card: Image + Title + Price */}
+                            <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100 items-start">
+                                <div className="w-24 h-24 sm:w-28 sm:h-28 bg-white rounded-lg p-1.5 border border-gray-200 flex-shrink-0 flex items-center justify-center shadow-sm overflow-hidden mx-auto sm:mx-0">
                                     {selectedProduct.image ? (
-                                        <img src={selectedProduct.image} alt={selectedProduct.name} className="w-full h-full object-cover rounded-xl" />
+                                        <img 
+                                            src={selectedProduct.image} 
+                                            alt={selectedProduct.name} 
+                                            className="w-full h-full object-contain rounded-md"
+                                        />
                                     ) : (
-                                        <Package className="w-8 h-8 text-gray-400" />
+                                        <Package className="w-10 h-10 text-gray-400" />
                                     )}
                                 </div>
-                                <div>
-                                    <h3 className="font-semibold text-lg">{selectedProduct.name}</h3>
-                                    <p className="text-gray-600">{selectedProduct.brand}</p>
+                                <div className="flex-1 flex flex-col justify-between text-left min-w-0 w-full">
+                                    <div>
+                                        <span className="inline-block px-2 py-0.5 text-xs font-semibold text-blue-700 bg-blue-50 rounded-md mb-1.5">
+                                            {selectedProduct.brand || 'No Brand'}
+                                        </span>
+                                        <h3 className="font-semibold text-gray-900 text-base leading-snug break-words">
+                                            {selectedProduct.name}
+                                        </h3>
+                                    </div>
+                                    <div className="mt-3 flex items-baseline gap-2">
+                                        <span className="text-2xl font-bold text-blue-600">
+                                            ${selectedProduct.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-                                <div>
-                                    <p className="text-sm text-gray-500">{t('viewDialog.category')}</p>
+                            {/* Details Grid */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="p-3 bg-gray-50/80 rounded-lg border border-gray-100">
+                                    <p className="text-xs text-gray-500 font-medium">{t('viewDialog.productId')}</p>
+                                    <p className="font-mono text-sm font-semibold text-gray-800 mt-0.5">#{selectedProduct.id}</p>
+                                </div>
+                                <div className="p-3 bg-gray-50/80 rounded-lg border border-gray-100">
+                                    <p className="text-xs text-gray-500 font-medium">{t('viewDialog.category')}</p>
                                     <Badge variant="secondary" className="bg-purple-100 text-purple-700 mt-1">
-                                         {t(`categories.${selectedProduct.category}`) === `categories.${selectedProduct.category}` ? selectedProduct.category : t(`categories.${selectedProduct.category}`)}
-                                     </Badge>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">{t('viewDialog.price')}</p>
-                                    <p className="text-lg font-semibold text-blue-600">${selectedProduct.price.toFixed(2)}</p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">{t('viewDialog.status')}</p>
-                                    <Badge variant="secondary" className={selectedProduct.isActive ? "bg-green-100 text-green-700 mt-1" : "bg-red-100 text-red-700 mt-1"}>
-                                        {selectedProduct.isActive ? t('active') : t('inactive')}
+                                        {t(`categories.${selectedProduct.category}`) === `categories.${selectedProduct.category}` ? selectedProduct.category : t(`categories.${selectedProduct.category}`)}
                                     </Badge>
                                 </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">{t('viewDialog.productId')}</p>
-                                    <p className="font-mono text-sm">{selectedProduct.id}</p>
+                                <div className="p-3 bg-gray-50/80 rounded-lg border border-gray-100">
+                                    <p className="text-xs text-gray-500 font-medium">{t('viewDialog.brand')}</p>
+                                    <p className="text-sm font-medium text-gray-800 mt-0.5">{selectedProduct.brand || '—'}</p>
+                                </div>
+                                <div className="p-3 bg-gray-50/80 rounded-lg border border-gray-100">
+                                    <p className="text-xs text-gray-500 font-medium">{t('viewDialog.status')}</p>
+                                    <p className={`text-sm font-medium mt-0.5 ${selectedProduct.isActive ? 'text-emerald-600' : 'text-red-500'}`}>
+                                        {selectedProduct.isActive ? t('active') : t('inactive')}
+                                    </p>
                                 </div>
                             </div>
 
-                            <div className="flex gap-2 pt-4">
-                                <Button onClick={() => { setViewDialogOpen(false); handleEdit(selectedProduct); }} className="flex-1 bg-blue-600">
+                            {/* Product URL / Link if available */}
+                            {selectedProduct.productUrl && (
+                                <div className="p-3 bg-blue-50/50 rounded-lg border border-blue-100">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-xs text-gray-500 font-medium mb-0.5">{t('viewDialog.productUrl')}</p>
+                                            <p className="text-xs text-blue-600 font-mono truncate">{selectedProduct.productUrl}</p>
+                                        </div>
+                                        <a
+                                            href={selectedProduct.productUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 bg-white hover:bg-blue-50 rounded-md border border-blue-200 transition-colors flex-shrink-0"
+                                        >
+                                            <span>{t('viewDialog.openUrl')}</span>
+                                            <ExternalLink className="w-3.5 h-3.5" />
+                                        </a>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Dialog Actions */}
+                            <div className="flex items-center gap-3 pt-2">
+                                <Button 
+                                    onClick={() => { 
+                                        setViewDialogOpen(false); 
+                                        handleEdit(selectedProduct); 
+                                    }} 
+                                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                                >
                                     <Edit className="w-4 h-4 mr-2" />
                                     {t('viewDialog.editProduct')}
                                 </Button>
-                                <Button onClick={() => setViewDialogOpen(false)} variant="outline" className="flex-1">
+                                <Button 
+                                    onClick={() => setViewDialogOpen(false)} 
+                                    variant="outline" 
+                                    className="flex-1 border-gray-200"
+                                >
                                     {t('viewDialog.close')}
                                 </Button>
                             </div>
