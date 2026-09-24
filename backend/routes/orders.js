@@ -109,14 +109,26 @@ router.get('/stats', authenticateToken, async (req, res) => {
 
     if (user.vipLevel !== 'vip-0' && !user.isFrozen && effectiveNumberOfOrders > 0) {
       const commissionConfig = parseJsonField(user.commissionConfig, {});
-      const customThreshold = resolveAutoFreezeThreshold(user);
+      const freezeConfig = getFreezeConfig(user);
 
-      // Send threshold if admin explicitly configured it
-      // Target product is optional - if not set, system will use random product
-      if (customThreshold != null && customThreshold > 0) {
-        freezeThreshold = customThreshold;
-        // Get target product ID if admin specified one (optional)
-        freezeTargetProductId = commissionConfig.freezeTargetProductId || null;
+      if (freezeConfig.enabled) {
+        if (freezeConfig.mode === 'custom' && freezeConfig.threshold != null && freezeConfig.threshold > 0) {
+          freezeThreshold = freezeConfig.threshold;
+        } else if (freezeConfig.mode === 'random') {
+          if (commissionConfig.randomFreezeThreshold) {
+            freezeThreshold = commissionConfig.randomFreezeThreshold;
+          } else {
+            const min = Math.max(1, Math.floor(effectiveNumberOfOrders * 0.8));
+            const max = Math.max(min, Math.floor(effectiveNumberOfOrders * 0.9));
+            freezeThreshold = Math.floor(min + Math.random() * (max - min + 1));
+            commissionConfig.randomFreezeThreshold = freezeThreshold;
+            await prisma.user.update({
+              where: { id: userId },
+              data: { commissionConfig: JSON.stringify(commissionConfig) }
+            }).catch(e => console.error('Failed to save randomFreezeThreshold:', e));
+          }
+        }
+        freezeTargetProductId = freezeConfig.targetProductId || null;
       }
     }
 
@@ -231,11 +243,15 @@ router.post('/take', authenticateToken, async (req, res) => {
       if (freezeConfig.enabled) {
         if (freezeConfig.mode === 'random') {
           // Random 80-90% of max orders
-          const freezePercentMin = 0.80;
-          const freezePercentMax = 0.90;
-          const randomPercent = freezePercentMin + (Math.random() * (freezePercentMax - freezePercentMin));
-          freezeTrigger = Math.floor(effectiveOrdersLimit * randomPercent);
-          console.log(`[Orders/take] ${user.vipLevel.toUpperCase()} freeze check: ${todayOrders.length}/${freezeTrigger} orders (RANDOM ${Math.round(randomPercent * 100)}% mode)`);
+          const commissionConfig = parseJsonField(user.commissionConfig, {});
+          if (commissionConfig.randomFreezeThreshold) {
+            freezeTrigger = commissionConfig.randomFreezeThreshold;
+          } else {
+            const min = Math.max(1, Math.floor(effectiveOrdersLimit * 0.8));
+            const max = Math.max(min, Math.floor(effectiveOrdersLimit * 0.9));
+            freezeTrigger = Math.floor(min + Math.random() * (max - min + 1));
+          }
+          console.log(`[Orders/take] ${user.vipLevel.toUpperCase()} freeze check: ${todayOrders.length}/${freezeTrigger} orders (RANDOM mode)`);
         } else if (freezeConfig.mode === 'custom' && freezeConfig.threshold != null) {
           // Use admin's custom threshold
           freezeTrigger = freezeConfig.threshold;

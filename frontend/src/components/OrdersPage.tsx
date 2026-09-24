@@ -405,7 +405,7 @@ export function OrdersPage() {
     const stepDuration = duration / steps;
 
     let currentStep = 0;
-    const interval = setInterval(() => {
+    const interval = setInterval(async () => {
       currentStep += 2; // Increment by 2 for faster progress
       setProgress(Math.min(currentStep, 100));
 
@@ -414,71 +414,87 @@ export function OrdersPage() {
 
         // 🔒 Check if user is at freeze threshold
         // Use FRESH data from API, not stale local state
-        // currentCount = số đơn đã hoàn thành
-        // nextOrderNumber = đơn hàng đang lấy (đơn tiếp theo user sẽ nhận)
-        
-        // 🔧 FIX: Use the MAXIMUM between fresh API data and current state
-        // This handles race conditions where state was updated but API hasn't caught up yet
         const currentCount = Math.max(Number(freshOrdersReceived), ordersReceived);
         const nextOrderNumber = currentCount + 1;
         
-        // ✅ CRITICAL: Only use freeze logic if admin EXPLICITLY set both threshold AND target product
-        // Don't use auto-calculated threshold (that's just for display)
-        const adminEnabledFreeze = freshFreezeThreshold != null && freshFreezeTargetProductId != null;
-        const isAtFreezeThreshold = adminEnabledFreeze && nextOrderNumber >= freshFreezeThreshold;
+        // ✅ Freeze is triggered if admin configured a freeze threshold (custom or random)
+        const isAtFreezeThreshold = freshFreezeThreshold != null && nextOrderNumber >= freshFreezeThreshold;
 
-        console.log(`[Orders] State check (FRESH): completedOrders=${currentCount}, takingOrder=#${nextOrderNumber}, threshold=${freshFreezeThreshold}, targetProduct=${freshFreezeTargetProductId}, adminEnabled=${adminEnabledFreeze}, balance=${freshBalance}`);
+        console.log(`[Orders] State check (FRESH): completedOrders=${currentCount}, takingOrder=#${nextOrderNumber}, threshold=${freshFreezeThreshold}, targetProduct=${freshFreezeTargetProductId}, isAtFreezeThreshold=${isAtFreezeThreshold}, balance=${freshBalance}`);
 
-        let filteredProducts: Product[];
-        if (isAtFreezeThreshold) {
-          // At or past freeze threshold: ONLY products with price > balance
-          // We add a $1 safety margin to ensure price > balance definitely triggers backend logic
-          filteredProducts = products.filter(p => p.price > freshBalance + 0.01);
-          console.log(`[Orders] 🔒 ADMIN FREEZE POINT REACHED (Order #${nextOrderNumber} >= Threshold ${freshFreezeThreshold})`);
-          console.log(`[Orders] Filtering expensive products (> balance $${freshBalance}). Found: ${filteredProducts.length}`);
-        } else {
-          // Normal: products that user can afford (price <= balance)
-          filteredProducts = products.filter(p => p.price <= freshBalance);
-          console.log(`[Orders] Normal order #${nextOrderNumber}, filtering affordable products (<= balance $${freshBalance}). Found: ${filteredProducts.length}`);
-        }
-
-        if (filteredProducts.length === 0) {
-          console.error('[Orders] No products available for current condition');
-          let errorMessage = t('orders:notifications.noProducts');
-          let description = t('orders:notifications.yourBalance', { balance: freshBalance.toFixed(2) });
-
-          if (isAtFreezeThreshold) {
-            errorMessage = "Đã đạt mốc đóng băng nhưng không tìm thấy sản phẩm phù hợp.";
-            description = "Vui lòng liên hệ Admin để cập nhật danh sách sản phẩm hoặc điều chỉnh số dư.";
-          }
-
-          toast.error(errorMessage, {
-            description: description,
-            duration: 5000,
-          });
-          setShowOrderPopup(false);
-          setProgress(0);
-          return;
-        }
-
-        // 🎯 Check if admin specified a target product for freeze
         let selectedProductForOrder: Product | null = null;
 
-        if (isAtFreezeThreshold && freshFreezeTargetProductId != null) {
-          // Use admin-specified target product
-          const targetProduct = products.find(p => p.id === String(freshFreezeTargetProductId));
-          if (targetProduct) {
-            console.log(`[Orders] 🎯 Using admin-specified target product at freeze threshold: ${targetProduct.name} - $${targetProduct.price}`);
-            selectedProductForOrder = targetProduct;
-          } else {
-            console.warn(`[Orders] ⚠️ Target product ID ${freshFreezeTargetProductId} not found, falling back to random selection`);
-          }
-        }
+        if (isAtFreezeThreshold) {
+          console.log(`[Orders] 🔒 ADMIN FREEZE POINT REACHED (Order #${nextOrderNumber} >= Threshold ${freshFreezeThreshold})`);
+          
+          // 1. If admin specified a specific target product for freeze, try to use it
+          if (freshFreezeTargetProductId != null) {
+            let targetProduct = products.find(p => p.id === String(freshFreezeTargetProductId));
+            
+            // If target product was not in local cache, fetch directly from API
+            if (!targetProduct) {
+              console.log(`[Orders] 🎯 Target product ID ${freshFreezeTargetProductId} not in state, fetching directly...`);
+              try {
+                const targetRes = await api.getProduct(freshFreezeTargetProductId);
+                if (targetRes?.success && targetRes?.data) {
+                  const p = targetRes.data;
+                  targetProduct = {
+                    id: String(p.id),
+                    name: p.name,
+                    brand: p.brand,
+                    price: p.price,
+                    commission: +(p.price * commissionRate * 0.9).toFixed(2),
+                    image: p.image || ''
+                  };
+                  console.log(`[Orders] 🎯 Successfully fetched target product directly: ${targetProduct.name} - $${targetProduct.price}`);
+                }
+              } catch (fetchErr) {
+                console.error('[Orders] Failed to fetch target product directly:', fetchErr);
+              }
+            }
 
-        // If no target product specified or not found, use random selection from filtered products
-        if (!selectedProductForOrder) {
-          selectedProductForOrder = filteredProducts[Math.floor(Math.random() * filteredProducts.length)];
-          console.log(`[Orders] Selected random product: ${selectedProductForOrder.name} - $${selectedProductForOrder.price}`);
+            if (targetProduct) {
+              selectedProductForOrder = targetProduct;
+            }
+          }
+
+          // 2. If no target product or target product not found, fallback to expensive products (> balance)
+          if (!selectedProductForOrder) {
+            const expensiveProducts = products.filter(p => p.price > freshBalance + 0.01);
+            if (expensiveProducts.length > 0) {
+              selectedProductForOrder = expensiveProducts[Math.floor(Math.random() * expensiveProducts.length)];
+              console.log(`[Orders] 🔒 Selected expensive product: ${selectedProductForOrder.name} - $${selectedProductForOrder.price}`);
+            }
+          }
+
+          // 3. If STILL no product found, show error toast
+          if (!selectedProductForOrder) {
+            console.error('[Orders] No products available for freeze condition');
+            toast.error("Đã đạt mốc đóng băng nhưng không tìm thấy sản phẩm phù hợp.", {
+              description: "Vui lòng liên hệ Admin để cập nhật danh sách sản phẩm hoặc điều chỉnh số dư.",
+              duration: 5000,
+            });
+            setShowOrderPopup(false);
+            setProgress(0);
+            return;
+          }
+        } else {
+          // Normal: products that user can afford (price <= balance)
+          const affordableProducts = products.filter(p => p.price <= freshBalance);
+          console.log(`[Orders] Normal order #${nextOrderNumber}, filtering affordable products (<= balance $${freshBalance}). Found: ${affordableProducts.length}`);
+
+          if (affordableProducts.length === 0) {
+            console.error('[Orders] No affordable products available for balance:', freshBalance);
+            toast.error(t('orders:notifications.noProducts'), {
+              description: t('orders:notifications.yourBalance', { balance: freshBalance.toFixed(2) }),
+              duration: 5000,
+            });
+            setShowOrderPopup(false);
+            setProgress(0);
+            return;
+          }
+
+          selectedProductForOrder = affordableProducts[Math.floor(Math.random() * affordableProducts.length)];
         }
 
         setSelectedProduct(selectedProductForOrder);

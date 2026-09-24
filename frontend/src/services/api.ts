@@ -748,6 +748,13 @@ export default {
     });
   },
 
+  getProduct(id: string | number) {
+    const token = localStorage.getItem('token');
+    const headers: Record<string, string> = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+    return request(`/products/${id}`, { headers });
+  },
+
   // Admin Products CRUD
   adminListProducts({ page = 1, limit = 20, q = '', category = 'all', isActive = 'all' }: {
     page?: number;
