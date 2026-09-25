@@ -149,7 +149,8 @@ router.get('/stats', authenticateToken, async (req, res) => {
         freezeThreshold, // Threshold order number where freeze may trigger
         freezeTargetProductId, // Admin-specified product for freeze
         isFrozen: user.isFrozen,
-        frozenReason: user.frozenReason
+        frozenReason: user.frozenReason,
+        resetTime: endOfDay.toISOString()
       }
     });
   } catch (error) {
@@ -189,13 +190,19 @@ router.post('/take', authenticateToken, async (req, res) => {
 
     // Get VIP level
     const vipLevel = VIP_LEVELS.find(level => level.id === user.vipLevel) || VIP_LEVELS.find(level => level.id === 'vip-0');
+    const todayKey = getDateKey();
     const dailyEarnings = parseJsonField(user.dailyEarnings, {});
+    const isToday = dailyEarnings.dateKey === todayKey;
 
-    // Get dynamic order limit from user snapshot or VIP level
-    const effectiveOrdersLimit = dailyEarnings.numberOfOrders || resolveNumberOfOrders(user, vipLevel);
+    // Get dynamic order limit from user snapshot (if today) or VIP level
+    const effectiveOrdersLimit = (isToday && dailyEarnings.numberOfOrders > 0)
+      ? dailyEarnings.numberOfOrders
+      : resolveNumberOfOrders(user, vipLevel);
     
     // Get daily target
-    const dailyTarget = dailyEarnings.targetTotal || resolveDailyTarget(user, vipLevel);
+    const dailyTarget = (isToday && dailyEarnings.targetTotal > 0)
+      ? dailyEarnings.targetTotal
+      : resolveDailyTarget(user, vipLevel);
     
     // Calculate today's total commission
     const todayTotalCommission = todayOrders.reduce((sum, order) => sum + order.commissionAmount, 0);
@@ -297,7 +304,6 @@ router.post('/take', authenticateToken, async (req, res) => {
     }
 
     // Initialize/reset daily earnings for today - SNAPSHOT config at first order of day
-    const todayKey = getDateKey();
     let currentDailyEarnings = dailyEarnings;
     if (currentDailyEarnings.dateKey !== todayKey) {
       const snapshotNumberOfOrders = resolveNumberOfOrders(user, vipLevel);

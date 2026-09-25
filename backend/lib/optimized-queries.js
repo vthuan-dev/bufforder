@@ -4,6 +4,7 @@
 
 const prisma = require('./prisma');
 const { cached } = require('./cache');
+const { getTodayRange } = require('./utils');
 
 /**
  * Get VIP levels (cached for 1 hour)
@@ -52,15 +53,10 @@ async function getUserFull(userId) {
  */
 async function getDashboardStats() {
   try {
-    const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    const { start: startOfDay, end: endOfDay } = getTodayRange();
 
     // Yesterday for trend calculation
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const startOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
-    const endOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate() + 1);
+    const { start: startOfYesterday, end: endOfYesterday } = getTodayRange(new Date(Date.now() - 24 * 60 * 60 * 1000));
 
     // Execute all queries in parallel with individual error handling
     const results = await Promise.allSettled([
@@ -230,9 +226,7 @@ async function getUserStats(userId) {
     const user = await getUserBasic(userId);
     if (!user) return null;
 
-    const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    const { start: startOfDay, end: endOfDay } = getTodayRange();
 
     const todayOrders = await prisma.order.count({
       where: {

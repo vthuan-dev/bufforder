@@ -114,73 +114,106 @@ export function OrdersPage() {
     return () => clearInterval(interval);
   }, [products]);
 
-  useEffect(() => {
-    // 🔧 FIX: Don't use localStorage for ordersReceived - always get from API
-    // localStorage can have stale data from previous users causing wrong counts
-    
-    // load current balance and vip from api
-    (async () => {
-      try {
-        const stats = await api.userOrderStats();
-        if (stats.success) {
-          setAvailableBalance(stats.data.balance || 0);
-          setTodaysTask(Number(stats.data.totalDailyTasks || 0));
-          setCompletedToday(Number(stats.data.completedToday || 0));
-          setTotalOrdersLimit(Number(stats.data.totalDailyTasks || 0));
-          const apiOrders = Number(stats.data.ordersGrabbed || 0);
-          console.log('[OrdersPage] Initial API load - ordersGrabbed:', apiOrders);
-          // 🔧 FIX: Force set to API value, ignore localStorage
-          setOrdersReceived(apiOrders);
-          ordersReceivedRef.current = apiOrders;
-          // Sync today's earned commission from backend
-          // Backend commissionAmount is credited 100% to the user's balance.
-          // UI shows Earned commission = total commission earned today.
-          const earnedToday = Number(stats.data?.dailyEarnings?.totalCommission || 0);
-          setDailyCommission(isNaN(earnedToday) ? 0 : earnedToday);
-          // Get daily target from VIP level or custom config
-          const target = Number(stats.data?.dailyTarget || stats.data?.dailyEarnings?.targetTotal || 0);
-          setDailyTarget(target);
+  // Load order stats from API
+  const loadOrderStats = React.useCallback(async () => {
+    try {
+      const stats = await api.userOrderStats();
+      if (stats.success) {
+        setAvailableBalance(stats.data.balance || 0);
+        setTodaysTask(Number(stats.data.totalDailyTasks || 0));
+        setCompletedToday(Number(stats.data.completedToday || 0));
+        setTotalOrdersLimit(Number(stats.data.totalDailyTasks || 0));
+        const apiOrders = Number(stats.data.ordersGrabbed || 0);
+        console.log('[OrdersPage] API load - ordersGrabbed:', apiOrders);
+        // Force set to API value, ignore localStorage
+        setOrdersReceived(apiOrders);
+        ordersReceivedRef.current = apiOrders;
+        // Sync today's earned commission from backend
+        const earnedToday = Number(stats.data?.dailyEarnings?.totalCommission || 0);
+        setDailyCommission(isNaN(earnedToday) ? 0 : earnedToday);
+        // Get daily target from VIP level or custom config
+        const target = Number(stats.data?.dailyTarget || stats.data?.dailyEarnings?.targetTotal || 0);
+        setDailyTarget(target);
 
-          // ✅ Use commission rate from API (resolves from user's commissionConfig or VIP level)
-          // This ensures admin's custom config is applied correctly
-          const apiCommissionRate = Number(stats.data?.commissionRate || 0);
-          if (apiCommissionRate > 0) {
-            setCommissionRate(apiCommissionRate);
-          }
+        // Use commission rate from API
+        const apiCommissionRate = Number(stats.data?.commissionRate || 0);
+        if (apiCommissionRate > 0) {
+          setCommissionRate(apiCommissionRate);
+        }
 
-          // ✅ Load freeze status
-          setIsFrozen(Boolean(stats.data?.isFrozen));
-          setFrozenBalance(Number(stats.data?.frozenBalance || 0));
-          setFrozenReason(stats.data?.frozenReason || '');
-          setFreezeThreshold(stats.data?.freezeThreshold || null);
-          setFreezeTargetProductId(stats.data?.freezeTargetProductId || null);
-          
-          // ✅ Load suspended order if account is frozen
-          if (Boolean(stats.data?.isFrozen)) {
-            try {
-              const ordersRes = await api.userOrderHistory({ status: 'suspended', limit: 1 });
-              if (ordersRes?.success && ordersRes.data?.orders?.length > 0) {
-                const suspended = ordersRes.data.orders[0];
-                setSuspendedOrder({
-                  id: suspended.id,
-                  productName: suspended.productName,
-                  productPrice: suspended.productPrice,
-                  commissionAmount: suspended.commissionAmount,
-                  image: suspended.image,
-                  orderDate: suspended.orderDate
-                });
-                console.log('[OrdersPage] Loaded suspended order:', suspended);
-              } else {
-                console.log('[OrdersPage] No suspended order found');
-              }
-            } catch (err) {
-              console.error('[OrdersPage] Failed to load suspended order:', err);
+        // Load freeze status
+        setIsFrozen(Boolean(stats.data?.isFrozen));
+        setFrozenBalance(Number(stats.data?.frozenBalance || 0));
+        setFrozenReason(stats.data?.frozenReason || '');
+        setFreezeThreshold(stats.data?.freezeThreshold || null);
+        setFreezeTargetProductId(stats.data?.freezeTargetProductId || null);
+        
+        // Load suspended order if account is frozen
+        if (Boolean(stats.data?.isFrozen)) {
+          try {
+            const ordersRes = await api.userOrderHistory({ status: 'suspended', limit: 1 });
+            if (ordersRes?.success && ordersRes.data?.orders?.length > 0) {
+              const suspended = ordersRes.data.orders[0];
+              setSuspendedOrder({
+                id: suspended.id,
+                productName: suspended.productName,
+                productPrice: suspended.productPrice,
+                commissionAmount: suspended.commissionAmount,
+                image: suspended.image,
+                orderDate: suspended.orderDate
+              });
+              console.log('[OrdersPage] Loaded suspended order:', suspended);
+            } else {
+              console.log('[OrdersPage] No suspended order found');
             }
+          } catch (err) {
+            console.error('[OrdersPage] Failed to load suspended order:', err);
           }
         }
-      } catch { }
-    })();
+
+        // Return ms until next reset if provided by backend
+        if (stats.data?.resetTime) {
+          const resetMs = new Date(stats.data.resetTime).getTime() - Date.now();
+          if (resetMs > 0 && resetMs < 24 * 60 * 60 * 1000) {
+            return resetMs;
+          }
+        }
+      }
+    } catch { }
+    return null;
   }, []);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+
+    const run = async () => {
+      const resetMs = await loadOrderStats();
+      if (resetMs) {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => {
+          console.log('[OrdersPage] 14h VN reset triggered! Auto-refreshing order stats...');
+          loadOrderStats();
+        }, resetMs + 1000);
+      }
+    };
+
+    run();
+
+    // Auto-refresh when tab becomes visible or user switches back
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        loadOrderStats();
+      }
+    };
+    window.addEventListener('focus', handleVisibility);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      window.removeEventListener('focus', handleVisibility);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [loadOrderStats]);
 
   // 🔧 FIX: Removed localStorage persistence for ordersReceived
   // It was causing bugs when switching users - always use API as source of truth

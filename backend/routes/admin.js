@@ -1561,9 +1561,7 @@ router.delete('/users/:id', verifyAdminToken, async (req, res) => {
 // Order Stats - MUST be before /orders/:id to avoid route conflict
 router.get('/orders/stats', verifyAdminToken, async (req, res) => {
   try {
-    const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    const { start: startOfDay, end: endOfDay } = getTodayRange();
 
     const [totalOrders, todayOrdersCount] = await Promise.all([
       prisma.order.count(),

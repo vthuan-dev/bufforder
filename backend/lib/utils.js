@@ -48,15 +48,24 @@ function parseJsonField(jsonField, defaultValue = {}) {
     }
 }
 
+// Vietnam timezone is UTC+7
+// Daily reset occurs at 14:00 (14h chiều) Vietnam time (UTC+7) = 07:00 UTC
+const VN_TIMEZONE_OFFSET_HOURS = 7;
+const RESET_HOUR_VN = 14;
+const RESET_HOUR_UTC = (RESET_HOUR_VN - VN_TIMEZONE_OFFSET_HOURS + 24) % 24; // 7:00 UTC
+
 /**
- * Get YYYY-MM-DD date key
- * @param {Date} d - Date object
- * @returns {string} - Date key
+ * Get date key representing the daily cycle (resets at 14:00 VN time / 07:00 UTC)
+ * @param {Date|string|number} d - Date object or timestamp
+ * @returns {string} - Date key (YYYY-MM-DD)
  */
 function getDateKey(d = new Date()) {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
+    const dateObj = d instanceof Date ? d : new Date(d);
+    // Shift backward by RESET_HOUR_UTC so that 07:00 UTC (14:00 VN) aligns with start of cycle
+    const shifted = new Date(dateObj.getTime() - RESET_HOUR_UTC * 60 * 60 * 1000);
+    const y = shifted.getUTCFullYear();
+    const m = String(shifted.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(shifted.getUTCDate()).padStart(2, '0');
     return `${y}-${m}-${day}`;
 }
 
@@ -129,17 +138,31 @@ function getFreezeConfig(user) {
 }
 
 /**
- * Get start and end of day range for database queries (today)
- * @param {Date} d - Reference date
+ * Get start and end of business day range for database queries
+ * Daily cycle runs from 14:00:00 VN (07:00:00 UTC) to 14:00:00 VN next day (07:00:00 UTC)
+ * @param {Date|string|number} d - Reference date
  * @returns {{ start: Date, end: Date }}
  */
 function getTodayRange(d = new Date()) {
-    const start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    const end = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+    const dateObj = d instanceof Date ? d : new Date(d);
+    // Shift backward by RESET_HOUR_UTC (7 hours) to determine which cycle date we belong to
+    const shifted = new Date(dateObj.getTime() - RESET_HOUR_UTC * 60 * 60 * 1000);
+    const y = shifted.getUTCFullYear();
+    const m = shifted.getUTCMonth();
+    const day = shifted.getUTCDate();
+
+    // Start is 07:00:00.000 UTC (= 14:00:00 VN)
+    const start = new Date(Date.UTC(y, m, day, RESET_HOUR_UTC, 0, 0, 0));
+    // End is 07:00:00.000 UTC of next day (= 14:00:00 VN next day)
+    const end = new Date(Date.UTC(y, m, day + 1, RESET_HOUR_UTC, 0, 0, 0));
+
     return { start, end };
 }
 
 module.exports = {
+    VN_TIMEZONE_OFFSET_HOURS,
+    RESET_HOUR_VN,
+    RESET_HOUR_UTC,
     hashPassword,
     comparePassword,
     excludeFromUser,
@@ -152,3 +175,4 @@ module.exports = {
     resolveAutoFreezeThreshold,
     getFreezeConfig
 };
+

@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
 const { VIP_LEVELS, getVipLevelByAmount, getNextVipLevel, getProgressToNextLevel } = require('../config/vipLevels');
 const config = require('../config');
-const { comparePassword, getDateKey, resolveNumberOfOrders, parseJsonField } = require('../lib/utils');
+const { comparePassword, getDateKey, getTodayRange, resolveNumberOfOrders, parseJsonField } = require('../lib/utils');
 const { cached } = require('../lib/cache'); // ⚡ Caching
 
 const router = express.Router();
@@ -353,9 +353,7 @@ router.post('/withdrawal', verifyToken, async (req, res) => {
     try {
       // Get today's order count for this user
       const todayKey = getDateKey();
-      const today = new Date();
-      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+      const { start: startOfDay, end: endOfDay } = getTodayRange();
 
       const todayOrdersCount = await prisma.order.count({
         where: {
