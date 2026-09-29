@@ -21,6 +21,7 @@ export function HelpPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [partnerDraftText, setPartnerDraftText] = useState<string>('');
   const partnerTypingRef = useRef<boolean>(false);
   const typingTimerRef = useRef<number | null>(null);
   const [showQuickReplies, setShowQuickReplies] = useState(true);
@@ -120,7 +121,7 @@ export function HelpPage() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isTyping]);
+  }, [messages, isTyping, partnerDraftText]);
 
   // Init: reuse saved threadId if available; otherwise open a thread. Then load messages
   // ⚡ NO SOCKET CONNECTION HERE - Use global socket from App.tsx
@@ -227,6 +228,11 @@ export function HelpPage() {
       const msg = event.detail;
       if (String(msg.threadId) !== String(threadIdRef.current)) return;
 
+      if (msg.senderType === 'admin') {
+        setIsTyping(false);
+        setPartnerDraftText('');
+      }
+
       const img = msg.imageUrl ? (String(msg.imageUrl).startsWith('/') ? `${API_BASE}${msg.imageUrl}` : msg.imageUrl) : undefined;
       const newMessage = {
         id: msg._id || `temp-${Date.now()}`,
@@ -268,6 +274,7 @@ export function HelpPage() {
       if (evt?.senderType === 'admin') {
         partnerTypingRef.current = !!evt.typing;
         setIsTyping(!!evt.typing);
+        setPartnerDraftText(evt.typing ? (evt.text || '') : '');
       }
     };
 
@@ -428,6 +435,9 @@ export function HelpPage() {
 
     setInputMessage('');
     setShowQuickReplies(false);
+    try {
+      window.dispatchEvent(new CustomEvent('client:emitTyping', { detail: { threadId, typing: false, text: '' } }));
+    } catch { }
 
     // Optimistic UI - show immediately
     const tempId = `temp-${Date.now()}`;
@@ -476,15 +486,21 @@ export function HelpPage() {
 
     // Emit via global socket
     try {
-      window.dispatchEvent(new CustomEvent('client:emitTyping', { detail: { threadId, typing: true } }));
+      window.dispatchEvent(new CustomEvent('client:emitTyping', { detail: { threadId, typing: !!val.trim(), text: val } }));
     } catch { }
 
     if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
-    typingTimerRef.current = window.setTimeout(() => {
+    if (val.trim()) {
+      typingTimerRef.current = window.setTimeout(() => {
+        try {
+          window.dispatchEvent(new CustomEvent('client:emitTyping', { detail: { threadId, typing: false, text: '' } }));
+        } catch { }
+      }, 1500);
+    } else {
       try {
-        window.dispatchEvent(new CustomEvent('client:emitTyping', { detail: { threadId, typing: false } }));
+        window.dispatchEvent(new CustomEvent('client:emitTyping', { detail: { threadId, typing: false, text: '' } }));
       } catch { }
-    }, 1200);
+    }
   };
 
   const handleQuickReply = (reply: string) => {
@@ -697,21 +713,31 @@ export function HelpPage() {
                 <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
                   <span className="text-white text-xs">A</span>
                 </div>
-                <div className="bg-white rounded-3xl rounded-bl-md px-5 py-4 shadow-lg border border-gray-100">
-                  <div className="flex gap-1">
-                    {[0, 1, 2].map((i) => (
-                      <motion.div
-                        key={`typing-dot-${i}`}
-                        animate={{ y: [0, -8, 0] }}
-                        transition={{
-                          duration: 0.6,
-                          repeat: Infinity,
-                          delay: i * 0.15
-                        }}
-                        className="w-2 h-2 bg-gradient-to-r from-purple-400 to-blue-500 rounded-full"
-                      />
-                    ))}
-                  </div>
+                <div className="bg-white rounded-3xl rounded-bl-md px-5 py-3 shadow-lg border border-gray-100 max-w-[80%]">
+                  {partnerDraftText ? (
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-1 text-[11px] text-purple-600 font-medium">
+                        <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+                        <span>CSKH đang soạn...</span>
+                      </div>
+                      <p className="text-sm text-gray-800 italic break-words">{partnerDraftText}</p>
+                    </div>
+                  ) : (
+                    <div className="flex gap-1 py-1">
+                      {[0, 1, 2].map((i) => (
+                        <motion.div
+                          key={`typing-dot-${i}`}
+                          animate={{ y: [0, -8, 0] }}
+                          transition={{
+                            duration: 0.6,
+                            repeat: Infinity,
+                            delay: i * 0.15
+                          }}
+                          className="w-2 h-2 bg-gradient-to-r from-purple-400 to-blue-500 rounded-full"
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}

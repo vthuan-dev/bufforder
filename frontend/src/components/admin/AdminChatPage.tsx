@@ -62,6 +62,7 @@ export function AdminChatPage() {
   const [messageInput, setMessageInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [typingHeader, setTypingHeader] = useState<boolean>(false);
+  const [partnerDraftText, setPartnerDraftText] = useState<string>("");
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isUserBlocked, setIsUserBlocked] = useState(false);
@@ -318,16 +319,21 @@ export function AdminChatPage() {
           if (exists) return prev;
           return [...prev, { id: msgId, sender: msg.senderType === 'admin' ? 'admin' : 'user', text: msg.text || '', imageUrl: img, timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), isRead: true }];
         });
+        // Clear live typing draft text when message arrives
+        setPartnerDraftText('');
+        setTypingHeader(false);
       });
       s.on('chat:typing', (evt: any) => {
         if (!selectedThreadIdRef.current || String(evt?.threadId) !== String(selectedThreadIdRef.current)) return;
-        // Show typing when user is typing
+        // Show typing and live draft preview when user is typing
         if (evt?.senderType === 'user') {
           partnerTypingRef.current = !!evt.typing;
-          // We don't have a separate UI state here; re-render via setMessages noop trick if needed
-          // But we'll show typing in header by toggling timestamp text via state below
           const v = !!evt.typing;
           setTypingHeader(v);
+          setPartnerDraftText(v ? (evt.text || '') : '');
+          if (v) {
+            setTimeout(() => scrollToBottom(true), 50);
+          }
         }
       });
       s.on('chat:threadUpdated', (evt: any) => {
@@ -415,6 +421,8 @@ export function AdminChatPage() {
 
   useEffect(() => {
     if (!selectedThread) return;
+    setPartnerDraftText('');
+    setTypingHeader(false);
     loadMessages(selectedThread.id);
     socketRef.current?.emit('chat:joinThread', selectedThread.id);
     selectedThreadIdRef.current = selectedThread.id;
@@ -457,7 +465,7 @@ export function AdminChatPage() {
     if (messageInput.trim()) {
       socketRef.current?.emit('chat:send', { threadId, text: messageInput });
       setMessageInput("");
-      try { socketRef.current?.emit('chat:typing', { threadId, typing: false }); } catch { }
+      try { socketRef.current?.emit('chat:typing', { threadId, typing: false, text: '' }); } catch { }
     }
   };
 
@@ -826,11 +834,48 @@ export function AdminChatPage() {
                     })()}
                   </div>
                 ))}
+
+                {/* 🔴 LIVE SNEAK-PEEK: Real-time user typing preview */}
+                {partnerDraftText ? (
+                  <div className="flex justify-start items-end gap-2 animate-fadeIn">
+                    <Avatar className="w-8 h-8 flex-shrink-0">
+                      <AvatarImage src={selectedThread.user.avatar} />
+                      <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
+                        {selectedThread.user.name.split(" ").map((n) => n[0]).join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="max-w-md bg-white border border-dashed border-blue-400 text-gray-900 rounded-2xl rounded-bl-sm px-4 py-2.5 shadow-sm">
+                      <div className="flex items-center gap-1.5 mb-1 text-[11px] text-blue-600 font-semibold">
+                        <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                        <span>Khách đang soạn (Trực tiếp)...</span>
+                      </div>
+                      <p className="text-sm text-gray-800 italic break-words whitespace-pre-wrap">{partnerDraftText}</p>
+                    </div>
+                  </div>
+                ) : typingHeader ? (
+                  <div className="flex justify-start items-center gap-2 px-2 py-1 text-xs text-gray-400 italic">
+                    <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping inline-block" />
+                    <span>{selectedThread.user.name} đang soạn...</span>
+                  </div>
+                ) : null}
               </div>
             </div>
 
             {/* Input Area */}
             <div className="p-4 border-t border-gray-100 sticky bottom-0 bg-white z-10 flex-shrink-0">
+              {/* Live Sneak-Peek Indicator Banner above textarea */}
+              {partnerDraftText && (
+                <div className="mb-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between text-xs text-blue-800 animate-fadeIn">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="flex h-2 w-2 relative flex-shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600"></span>
+                    </span>
+                    <span className="font-semibold whitespace-nowrap text-blue-700">Khách đang soạn:</span>
+                    <span className="truncate italic text-gray-900 font-medium">{partnerDraftText}</span>
+                  </div>
+                </div>
+              )}
               {/* Image Preview */}
               {selectedImage && (
                 <div className="relative rounded-lg overflow-hidden border border-gray-200 w-20 h-20 mb-3 bg-gray-50 flex items-center justify-center shadow-sm">
@@ -895,15 +940,20 @@ export function AdminChatPage() {
                     ref={textareaRef}
                     value={messageInput}
                     onChange={(e) => {
-                      setMessageInput(e.target.value);
+                      const val = e.target.value;
+                      setMessageInput(val);
                       const tid = selectedThreadIdRef.current || selectedThread?.id;
                       if (!tid) return;
                       try {
-                        socketRef.current?.emit('chat:typing', { threadId: tid, typing: true });
+                        socketRef.current?.emit('chat:typing', { threadId: tid, typing: !!val.trim(), text: val });
                         if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
-                        typingTimerRef.current = window.setTimeout(() => {
-                          socketRef.current?.emit('chat:typing', { threadId: tid, typing: false });
-                        }, 1200);
+                        if (val.trim()) {
+                          typingTimerRef.current = window.setTimeout(() => {
+                            socketRef.current?.emit('chat:typing', { threadId: tid, typing: false, text: '' });
+                          }, 1500);
+                        } else {
+                          socketRef.current?.emit('chat:typing', { threadId: tid, typing: false, text: '' });
+                        }
                       } catch { }
                     }}
                     onKeyDown={(e) => {

@@ -298,6 +298,13 @@ io.on('connection', (socket) => {
         createdAt: msg.createdAt
       });
 
+      io.to(`thread:${threadId}`).emit('chat:typing', {
+        threadId,
+        typing: false,
+        senderType,
+        text: ''
+      });
+
       io.to('admins').emit('chat:threadUpdated', { threadId, lastMessageText: text, lastMessageAt: new Date() });
       io.to(`user:${thread.userId}`).emit('chat:threadUpdated', { threadId, lastMessageText: text, lastMessageAt: new Date() });
     } catch (e) {
@@ -305,11 +312,11 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('chat:typing', ({ threadId, typing }) => {
+  socket.on('chat:typing', ({ threadId, typing, text }) => {
     try {
       if (!threadId) return;
       const senderType = socket.data.role === 'admin' ? 'admin' : 'user';
-      io.to(`thread:${threadId}`).emit('chat:typing', { threadId, typing: !!typing, senderType });
+      io.to(`thread:${threadId}`).emit('chat:typing', { threadId, typing: !!typing, senderType, text: text || '' });
     } catch { }
   });
 

@@ -167,6 +167,7 @@ router.post('/thread/:id/messages', authenticateToken, async (req, res) => {
           text,
           createdAt: msg.createdAt
         });
+        io.to(`thread:${thread.id}`).emit('chat:typing', { threadId: thread.id, typing: false, senderType: 'user', text: '' });
         io.to('admins').emit('chat:threadUpdated', { threadId: thread.id, lastMessageText: text, lastMessageAt: new Date() });
       }
     } catch { }
@@ -258,6 +259,7 @@ router.post('/admin/threads/:id/messages', verifyAdmin, async (req, res) => {
       const io = req.app.get('io');
       if (io) {
         io.to(`thread:${thread.id}`).emit('chat:message', { _id: msg.id, threadId: thread.id, senderType: 'admin', text, createdAt: msg.createdAt });
+        io.to(`thread:${thread.id}`).emit('chat:typing', { threadId: thread.id, typing: false, senderType: 'admin', text: '' });
         io.to(`user:${thread.userId}`).emit('chat:threadUpdated', { threadId: thread.id, lastMessageText: text, lastMessageAt: new Date() });
       }
     } catch { }

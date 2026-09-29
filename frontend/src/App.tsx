@@ -164,8 +164,8 @@ function ClientApp() {
       s.emit('chat:send', { threadId, text });
     };
     const handleEmitTyping = (event: any) => {
-      const { threadId, typing } = event.detail;
-      s.emit('chat:typing', { threadId, typing });
+      const { threadId, typing, text } = event.detail;
+      s.emit('chat:typing', { threadId, typing, text });
     };
     const handleJoinThread = (event: any) => {
       const { threadId } = event.detail;
