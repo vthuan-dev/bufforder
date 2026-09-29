@@ -620,6 +620,7 @@ router.get('/history', authenticateToken, async (req, res) => {
 
     const items = orders.map(o => ({
       id: o.id,
+      productId: o.productId,
       productName: o.productName,
       productPrice: o.productPrice,
       commissionAmount: o.commissionAmount,
