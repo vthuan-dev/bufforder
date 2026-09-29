@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { TrendingUp, Wallet, CheckCircle, Target, ShoppingBag, Package, X, Sparkles, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useTranslation } from "react-i18next";
@@ -77,8 +77,8 @@ export function OrdersPage() {
   const [suspendedOrder, setSuspendedOrder] = useState<any>(null); // Store suspended order info
 
   // Track recently ordered product IDs and normalized names to prevent repetition
-  const recentProductIdsRef = useRef<Set<string>>(new Set());
-  const recentProductNamesRef = useRef<Set<string>>(new Set());
+  const recentProductIdsRef = React.useRef<Set<string>>(new Set());
+  const recentProductNamesRef = React.useRef<Set<string>>(new Set());
 
   // Helper to normalize product name for deduplication
   const getNormProductName = (name: string): string => {

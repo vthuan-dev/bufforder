@@ -44,7 +44,7 @@ export class ErrorBoundary extends Component<Props, State> {
                     </div>
                     <h2 className="text-xl font-semibold text-gray-900 mb-2">An Error Occurred</h2>
                     <p className="text-gray-600 mb-6 max-w-md">
-                        The admin page could not be loaded properly. This may be due to a temporary issue or invalid data.
+                        The page could not be loaded properly. This may be due to a temporary network issue or cached data.
                     </p>
                     <div className="flex gap-3">
                         <Button onClick={() => window.location.reload()} variant="outline" className="flex items-center gap-2">
@@ -55,7 +55,7 @@ export class ErrorBoundary extends Component<Props, State> {
                             Try Again
                         </Button>
                     </div>
-                    {process.env.NODE_ENV === 'development' && this.state.error && (
+                    {this.state.error && (
                         <pre className="mt-8 p-4 bg-gray-100 rounded text-left text-xs overflow-auto max-w-full max-h-40 text-red-700">
                             {this.state.error.toString()}
                         </pre>
