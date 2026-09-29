@@ -2,7 +2,9 @@ const prisma = require('../lib/prisma');
 
 /**
  * MessageCleanupService
- * Auto-delete inactive chat threads after 1 hour of no activity
+ * Auto-delete inactive chat messages for users after 1 hour of no activity.
+ * CRITICAL: Messages and threads are ALWAYS preserved in the database for Admin!
+ * Only `isDeletedForUser` is set to true.
  */
 class MessageCleanupService {
   constructor() {
@@ -17,7 +19,7 @@ class MessageCleanupService {
   }
 
   start() {
-    console.log('[MessageCleanupService] Started - checking every 5 minutes');
+    console.log('[MessageCleanupService] Started - checking every 5 minutes (user-side soft delete only, admin preserved)');
     this.intervalId = setInterval(() => this.cleanup(), this.cleanupIntervalMs);
     // Run once immediately
     this.cleanup();
@@ -35,38 +37,21 @@ class MessageCleanupService {
     try {
       const oneHourAgo = new Date(Date.now() - this.inactivityThresholdMs);
 
-      // Find threads with no recent messages
-      const inactiveThreads = await prisma.chatThread.findMany({
+      // Soft delete messages older than 1 hour for USER ONLY
+      // This hides messages from user view while preserving full history for admin
+      const result = await prisma.chatMessage.updateMany({
         where: {
-          lastMessageAt: { lt: oneHourAgo }
+          createdAt: { lt: oneHourAgo },
+          isDeletedForUser: false
         },
-        select: { id: true, userId: true }
+        data: {
+          isDeletedForUser: true,
+          deletedForUserAt: new Date()
+        }
       });
 
-      if (inactiveThreads.length === 0) {
-        return;
-      }
-
-      console.log(`[MessageCleanupService] Found ${inactiveThreads.length} inactive threads`);
-
-      for (const thread of inactiveThreads) {
-        try {
-          // Delete messages and thread in transaction
-          await prisma.$transaction([
-            prisma.chatMessage.deleteMany({ where: { threadId: thread.id } }),
-            prisma.chatThread.delete({ where: { id: thread.id } })
-          ]);
-
-          // Emit realtime event
-          if (this.io) {
-            this.io.to(`thread:${thread.id}`).emit('chat:threadDeleted', { threadId: thread.id });
-            this.io.to(`user:${thread.userId}`).emit('chat:threadDeleted', { threadId: thread.id });
-          }
-
-          console.log(`[MessageCleanupService] Deleted thread ${thread.id}`);
-        } catch (err) {
-          console.error(`[MessageCleanupService] Error deleting thread ${thread.id}:`, err.message);
-        }
+      if (result.count > 0) {
+        console.log(`[MessageCleanupService] Soft-deleted ${result.count} inactive messages for users (Admin history preserved)`);
       }
     } catch (error) {
       console.error('[MessageCleanupService] Cleanup error:', error);

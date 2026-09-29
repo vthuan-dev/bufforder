@@ -11,11 +11,11 @@
   "quickReplies": "Quick Replies",
   "blockUser": "Block User",
   "unblockUser": "Unblock User",
-  "deleteThread": "Delete Thread",
-  "deleteConfirmTitle": "Delete Thread?",
-  "deleteConfirmMessage": "This will permanently delete all messages in this conversation. This action cannot be undone.",
+  "deleteThread": "Clear User Chat History",
+  "deleteConfirmTitle": "Clear Chat for User?",
+  "deleteConfirmMessage": "This will clear chat history on the user's side. All messages will still be preserved on the Admin side.",
   "cancel": "Cancel",
-  "delete": "Delete",
+  "delete": "Confirm Clear",
   "selectConversation": "Select a conversation to start chatting",
   "typeMessage": "Type your message...",
   "send": "Send",
@@ -30,8 +30,8 @@
     "We apologize for the inconvenience."
   ],
   "notifications": {
-    "threadDeleted": "Thread deleted successfully",
-    "deleteThreadFailed": "Failed to delete thread",
+    "threadDeleted": "User chat history cleared successfully (Preserved for Admin)",
+    "deleteThreadFailed": "Failed to clear user chat history",
     "blockStatusUpdated": "User {{action}} from chat",
     "blockStatusFailed": "Failed to update block status"
   }

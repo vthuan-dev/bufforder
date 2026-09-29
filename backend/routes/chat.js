@@ -320,22 +320,71 @@ router.post('/admin/threads/:id/read', verifyAdmin, async (req, res) => {
   }
 });
 
-// Admin: delete thread
-router.delete('/admin/threads/:id', verifyAdmin, async (req, res) => {
+// Admin: clear user messages in thread (keep for admin)
+router.post('/admin/threads/:id/clear-user-messages', verifyAdmin, async (req, res) => {
   try {
     const threadId = req.params.id;
+    const thread = await prisma.chatThread.findUnique({ where: { id: threadId } });
+    if (!thread) return res.status(404).json({ success: false, message: 'Thread not found' });
 
-    await prisma.$transaction([
-      prisma.chatMessage.deleteMany({ where: { threadId } }),
-      prisma.chatThread.delete({ where: { id: threadId } })
-    ]);
+    const result = await prisma.chatMessage.updateMany({
+      where: { threadId },
+      data: { isDeletedForUser: true, deletedForUserAt: new Date() }
+    });
 
     try {
       const io = req.app.get('io');
-      if (io) io.to(`thread:${threadId}`).emit('chat:threadDeleted', { threadId });
+      if (io) {
+        io.to(`thread:${threadId}`).emit('chat:messagesCleared', { threadId });
+        io.to(`user:${thread.userId}`).emit('chat:messagesCleared', { threadId });
+      }
     } catch { }
 
-    res.json({ success: true });
+    res.json({ success: true, data: { clearedCount: result.count } });
+  } catch (e) {
+    console.error('admin clear user messages error', e);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Admin: delete thread (safe: soft-delete for user by default, hard-delete only if query ?hard=true)
+router.delete('/admin/threads/:id', verifyAdmin, async (req, res) => {
+  try {
+    const threadId = req.params.id;
+    const isHard = req.query.hard === 'true';
+
+    const thread = await prisma.chatThread.findUnique({ where: { id: threadId } });
+    if (!thread) return res.status(404).json({ success: false, message: 'Thread not found' });
+
+    if (isHard) {
+      await prisma.$transaction([
+        prisma.chatMessage.deleteMany({ where: { threadId } }),
+        prisma.chatThread.delete({ where: { id: threadId } })
+      ]);
+
+      try {
+        const io = req.app.get('io');
+        if (io) io.to(`thread:${threadId}`).emit('chat:threadDeleted', { threadId });
+      } catch { }
+
+      return res.json({ success: true, message: 'Hard deleted' });
+    }
+
+    // Default: Soft delete ONLY for user, keep 100% messages and thread for Admin!
+    const result = await prisma.chatMessage.updateMany({
+      where: { threadId },
+      data: { isDeletedForUser: true, deletedForUserAt: new Date() }
+    });
+
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`thread:${threadId}`).emit('chat:messagesCleared', { threadId });
+        io.to(`user:${thread.userId}`).emit('chat:messagesCleared', { threadId });
+      }
+    } catch { }
+
+    res.json({ success: true, message: 'Cleared for user only', clearedCount: result.count });
   } catch (e) {
     console.error('admin delete thread error', e);
     res.status(500).json({ success: false, message: 'Server error' });

@@ -278,8 +278,14 @@ export function HelpPage() {
       }
     };
 
+    const handleMessagesCleared = () => {
+      console.log('[HelpPage] Chat history cleared for user by admin/auto');
+      setMessages([]);
+    };
+
     window.addEventListener('client:chatMessage', handleChatMessage);
     window.addEventListener('client:chatTyping', handleChatTyping);
+    window.addEventListener('client:messagesCleared', handleMessagesCleared);
 
     // Handle visibility change - reload messages when tab becomes visible
     const handleVisibilityChange = async () => {
@@ -331,6 +337,7 @@ export function HelpPage() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('client:chatMessage', handleChatMessage);
       window.removeEventListener('client:chatTyping', handleChatTyping);
+      window.removeEventListener('client:messagesCleared', handleMessagesCleared);
 
       // Clear unread when leaving Help page
       try { localStorage.setItem('client:helpUnread', '0'); window.dispatchEvent(new CustomEvent('client:chatUnreadUpdated', { detail: 0 })); } catch { }

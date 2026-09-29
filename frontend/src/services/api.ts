@@ -542,6 +542,10 @@ export default {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
     return request(`/chat/admin/threads/${threadId}/read`, { method: 'POST', headers });
   },
+  adminChatClearUserMessages(threadId: string) {
+    const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
+    return request(`/chat/admin/threads/${threadId}/clear-user-messages`, { method: 'POST', headers });
+  },
   adminChatDeleteThread(threadId: string) {
     const headers: Record<string, string> = { ...adminTokenHeader() } as Record<string, string>;
     return request(`/chat/admin/threads/${threadId}`, { method: 'DELETE', headers });

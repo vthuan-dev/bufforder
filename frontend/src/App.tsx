@@ -146,6 +146,10 @@ function ClientApp() {
       window.dispatchEvent(new CustomEvent('client:chatTyping', { detail: evt }));
     });
 
+    s.on('chat:messagesCleared', (evt: any) => {
+      window.dispatchEvent(new CustomEvent('client:messagesCleared', { detail: evt }));
+    });
+
     // 🔔 Listen for real-time balance updates (when admin marks order as delivered)
     s.on('balance:updated', (data: any) => {
       console.log('[Socket] Received balance:updated:', data);

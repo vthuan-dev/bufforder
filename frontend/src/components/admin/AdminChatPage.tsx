@@ -502,15 +502,12 @@ export function AdminChatPage() {
     }
   };
 
-  // Delete thread handler
+  // Clear user chat history handler (preserves admin history)
   const handleDeleteThread = async () => {
     if (!selectedThread) return;
     try {
-      await api.adminChatDeleteThread(selectedThread.id);
+      await api.adminChatClearUserMessages(selectedThread.id);
       toast.success(t('notifications.threadDeleted'));
-      setThreads(prev => prev.filter(t => t.id !== selectedThread.id));
-      setSelectedThread(null);
-      setMessages([]);
       setShowDeleteConfirm(false);
     } catch (err) {
       toast.error(t('notifications.deleteThreadFailed'));
