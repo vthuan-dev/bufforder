@@ -76,6 +76,42 @@ export function OrdersPage() {
   const [freezeTargetProductId, setFreezeTargetProductId] = useState<number | null>(null); // Admin-specified product for freeze
   const [suspendedOrder, setSuspendedOrder] = useState<any>(null); // Store suspended order info
 
+  // Helper: Truly random Fisher-Yates shuffle with strict deduplication by name and image
+  const getUniqueShuffledProducts = React.useCallback((sourceProducts: Product[]) => {
+    if (!sourceProducts || sourceProducts.length === 0) return [];
+
+    const copy = [...sourceProducts];
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+
+    const seenNames = new Set<string>();
+    const seenImages = new Set<string>();
+    const unique: Product[] = [];
+
+    for (const p of copy) {
+      // Simplify name by taking first 3 words
+      const normName = (p.name || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, '')
+        .split(/\s+/)
+        .slice(0, 3)
+        .join(' ');
+
+      const normImg = (p.image || '').split('?')[0].trim().toLowerCase();
+
+      if (normName && !seenNames.has(normName) && (!normImg || !seenImages.has(normImg))) {
+        seenNames.add(normName);
+        if (normImg) seenImages.add(normImg);
+        unique.push(p);
+      }
+    }
+
+    return unique;
+  }, []);
+
   // Fetch products from API
   useEffect(() => {
     (async () => {
@@ -92,8 +128,8 @@ export function OrdersPage() {
             image: p.image || '',
           }));
           setProducts(apiProducts);
-          // Initial shuffle
-          setShuffledProducts([...apiProducts].sort(() => Math.random() - 0.5));
+          // Initial unique shuffle
+          setShuffledProducts(getUniqueShuffledProducts(apiProducts));
         }
       } catch (err) {
         console.error('Failed to load products:', err);
@@ -101,18 +137,18 @@ export function OrdersPage() {
         setLoadingProducts(false);
       }
     })();
-  }, [commissionRate]);
+  }, [commissionRate, getUniqueShuffledProducts]);
 
   // Auto-shuffle products every 5 seconds
   useEffect(() => {
     if (products.length === 0) return;
 
     const interval = setInterval(() => {
-      setShuffledProducts([...products].sort(() => Math.random() - 0.5));
+      setShuffledProducts(getUniqueShuffledProducts(products));
     }, 5000); // Shuffle every 5 seconds
 
     return () => clearInterval(interval);
-  }, [products]);
+  }, [products, getUniqueShuffledProducts]);
 
   // Load order stats from API
   const loadOrderStats = React.useCallback(async () => {

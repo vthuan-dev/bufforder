@@ -20,48 +20,115 @@ router.get('/', authenticateToken, async (req, res) => {
     const targetProductPrice = commissionConfig.targetProductPrice;
     const freezeConfig = getFreezeConfig(user);
     const userBalance = Number(user?.balance || 0);
-    
-    let whereClause = { isActive: true };
-    
-    // If user has a target product price, filter products within ±15% range for normal orders,
-    // while ALSO including the freeze target product and expensive products (> balance)
+
+    let rawProducts = [];
+
+    // Helper: Deduplicate by product name and image, then Fisher-Yates shuffle
+    const deduplicateAndShuffle = (items, limit = 80) => {
+      const seenNames = new Set();
+      const seenImages = new Set();
+      const result = [];
+
+      for (const item of items) {
+        // Normalize name: lowercase, alpha-numeric, first 3 words
+        const normName = (item.name || '')
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9\s]/g, '')
+          .split(/\s+/)
+          .slice(0, 3)
+          .join(' ');
+
+        // Normalize image URL: ignore query strings
+        const normImage = (item.image || '')
+          .split('?')[0]
+          .trim()
+          .toLowerCase();
+
+        if (normName && !seenNames.has(normName) && (!normImage || !seenImages.has(normImage))) {
+          seenNames.add(normName);
+          if (normImage) seenImages.add(normImage);
+          result.push(item);
+        }
+      }
+
+      // Fisher-Yates shuffle
+      for (let i = result.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [result[i], result[j]] = [result[j], result[i]];
+      }
+
+      return result.slice(0, limit);
+    };
+
     if (targetProductPrice && targetProductPrice > 0) {
       const minPrice = targetProductPrice * 0.85; // -15%
       const maxPrice = targetProductPrice * 1.15; // +15%
-      
-      const orConditions = [
-        { price: { gte: minPrice, lte: maxPrice } }
-      ];
 
-      // 1. If admin specified a target product for freeze, always include it
+      // 1. Fetch products within user's target price range
+      const normalProducts = await prisma.product.findMany({
+        where: {
+          isActive: true,
+          price: { gte: minPrice, lte: maxPrice }
+        },
+        orderBy: { id: 'desc' },
+        take: 120
+      });
+
+      rawProducts.push(...normalProducts);
+
+      // 2. If admin specified a target product for freeze, always include it
+      let targetProduct = null;
       if (freezeConfig.targetProductId) {
-        orConditions.push({ id: parseInt(freezeConfig.targetProductId) });
+        targetProduct = await prisma.product.findUnique({
+          where: { id: parseInt(freezeConfig.targetProductId) }
+        });
+        if (targetProduct && targetProduct.isActive) {
+          rawProducts.push(targetProduct);
+        }
       }
 
-      // 2. If freeze is enabled (random or custom), always include expensive products (> balance)
-      // so there is always a pool of products available to trigger freeze
+      // 3. If freeze is enabled, include a small diverse set of luxury products (> balance)
       if (freezeConfig.enabled) {
-        orConditions.push({ price: { gt: userBalance + 0.01 } });
+        const luxuryProducts = await prisma.product.findMany({
+          where: {
+            isActive: true,
+            price: { gt: userBalance + 0.01 }
+          },
+          orderBy: { id: 'desc' },
+          take: 20
+        });
+        rawProducts.push(...luxuryProducts);
       }
 
-      whereClause = {
-        isActive: true,
-        OR: orConditions
-      };
-      
-      console.log(`[Products API] Filtering for user ${userId}: normal range=[$${minPrice.toFixed(2)}-$${maxPrice.toFixed(2)}], targetProductId=${freezeConfig.targetProductId}, freezeEnabled=${freezeConfig.enabled}`);
+      console.log(`[Products API] Filtering for user ${userId}: normal range=[$${minPrice.toFixed(2)}-$${maxPrice.toFixed(2)}], normalFound=${normalProducts.length}, targetProductId=${freezeConfig.targetProductId}`);
+    } else {
+      // No target price configured: fetch active products across categories
+      rawProducts = await prisma.product.findMany({
+        where: { isActive: true },
+        orderBy: { id: 'desc' },
+        take: 150
+      });
     }
-    
-    const products = await prisma.product.findMany({
-      where: whereClause,
-      orderBy: { id: 'asc' }
-    });
 
-    console.log(`[Products API] Returning ${products.length} products for user ${userId}`);
+    // Deduplicate and randomize
+    const finalProducts = deduplicateAndShuffle(rawProducts, 60);
+
+    // Ensure the freeze target product is ALWAYS included if configured
+    if (freezeConfig.targetProductId) {
+      const targetId = parseInt(freezeConfig.targetProductId);
+      const exists = finalProducts.some(p => p.id === targetId);
+      if (!exists) {
+        const tp = await prisma.product.findUnique({ where: { id: targetId } });
+        if (tp) finalProducts.unshift(tp);
+      }
+    }
+
+    console.log(`[Products API] Returning ${finalProducts.length} unique products for user ${userId}`);
 
     res.json({
       success: true,
-      data: products
+      data: finalProducts
     });
   } catch (error) {
     console.error('Error fetching products:', error);
