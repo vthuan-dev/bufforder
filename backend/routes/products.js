@@ -62,18 +62,30 @@ router.get('/', authenticateToken, async (req, res) => {
     };
 
     if (targetProductPrice && targetProductPrice > 0) {
-      const minPrice = targetProductPrice * 0.85; // -15%
-      const maxPrice = targetProductPrice * 1.15; // +15%
+      let minPrice = targetProductPrice * 0.85; // -15%
+      let maxPrice = targetProductPrice * 1.15; // +15%
 
       // 1. Fetch products within user's target price range
-      const normalProducts = await prisma.product.findMany({
+      let normalProducts = await prisma.product.findMany({
         where: {
           isActive: true,
           price: { gte: minPrice, lte: maxPrice }
         },
-        orderBy: { id: 'desc' },
-        take: 120
+        take: 300
       });
+
+      // If pool is small (< 40), broaden to ±25% for rich product diversity
+      if (normalProducts.length < 40) {
+        minPrice = targetProductPrice * 0.75;
+        maxPrice = targetProductPrice * 1.25;
+        normalProducts = await prisma.product.findMany({
+          where: {
+            isActive: true,
+            price: { gte: minPrice, lte: maxPrice }
+          },
+          take: 300
+        });
+      }
 
       rawProducts.push(...normalProducts);
 
@@ -88,15 +100,14 @@ router.get('/', authenticateToken, async (req, res) => {
         }
       }
 
-      // 3. If freeze is enabled, include a small diverse set of luxury products (> balance)
+      // 3. If freeze is enabled, include a diverse set of luxury products (> balance)
       if (freezeConfig.enabled) {
         const luxuryProducts = await prisma.product.findMany({
           where: {
             isActive: true,
             price: { gt: userBalance + 0.01 }
           },
-          orderBy: { id: 'desc' },
-          take: 20
+          take: 40
         });
         rawProducts.push(...luxuryProducts);
       }
@@ -106,13 +117,12 @@ router.get('/', authenticateToken, async (req, res) => {
       // No target price configured: fetch active products across categories
       rawProducts = await prisma.product.findMany({
         where: { isActive: true },
-        orderBy: { id: 'desc' },
-        take: 150
+        take: 300
       });
     }
 
     // Deduplicate and randomize
-    const finalProducts = deduplicateAndShuffle(rawProducts, 60);
+    const finalProducts = deduplicateAndShuffle(rawProducts, 100);
 
     // Ensure the freeze target product is ALWAYS included if configured
     if (freezeConfig.targetProductId) {

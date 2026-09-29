@@ -31,27 +31,32 @@ const getProxiedUrl = (url: string): string => {
   return `${API_BASE}/api/image-proxy?url=${encodeURIComponent(url)}`;
 };
 
+const FALLBACK_PRODUCT_IMAGE = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80&auto=format&fit=crop';
+
 export function ImageWithFallback(props: React.ImgHTMLAttributes<HTMLImageElement>) {
-  const [didError, setDidError] = useState(false)
+  const [imgSrc, setImgSrc] = useState<string | undefined>(undefined);
+  const [didError, setDidError] = useState(false);
 
-  const handleError = () => {
-    setDidError(true)
-  }
+  const { src, alt, style, className, onError, ...rest } = props;
+  const currentSrc = imgSrc || (src ? getProxiedUrl(src) : FALLBACK_PRODUCT_IMAGE);
 
-  const { src, alt, style, className, ...rest } = props
-  const proxiedSrc = src ? getProxiedUrl(src) : src;
+  const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    if (!didError) {
+      setDidError(true);
+      setImgSrc(FALLBACK_PRODUCT_IMAGE);
+    }
+    if (onError) onError(e);
+  };
 
-  return didError ? (
-    <div
-      className={`inline-block bg-gray-100 text-center align-middle ${className ?? ''}`}
+  return (
+    <img
+      src={currentSrc}
+      alt={alt || 'Product'}
+      className={className}
       style={style}
-    >
-      <div className="flex items-center justify-center w-full h-full">
-        <img src={ERROR_IMG_SRC} alt="Error loading image" {...rest} data-original-url={src} />
-      </div>
-    </div>
-  ) : (
-    <img src={proxiedSrc} alt={alt} className={className} style={style} {...rest} onError={handleError} />
-  )
+      onError={handleError}
+      {...rest}
+    />
+  );
 }
 

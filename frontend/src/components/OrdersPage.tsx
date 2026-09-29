@@ -76,6 +76,21 @@ export function OrdersPage() {
   const [freezeTargetProductId, setFreezeTargetProductId] = useState<number | null>(null); // Admin-specified product for freeze
   const [suspendedOrder, setSuspendedOrder] = useState<any>(null); // Store suspended order info
 
+  // Track recently ordered product IDs and normalized names to prevent repetition
+  const recentProductIdsRef = useRef<Set<string>>(new Set());
+  const recentProductNamesRef = useRef<Set<string>>(new Set());
+
+  // Helper to normalize product name for deduplication
+  const getNormProductName = (name: string): string => {
+    return (name || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '')
+      .split(/\s+/)
+      .slice(0, 3)
+      .join(' ');
+  };
+
   // Helper: Truly random Fisher-Yates shuffle with strict deduplication by name and image
   const getUniqueShuffledProducts = React.useCallback((sourceProducts: Product[]) => {
     if (!sourceProducts || sourceProducts.length === 0) return [];
@@ -205,6 +220,20 @@ export function OrdersPage() {
           } catch (err) {
             console.error('[OrdersPage] Failed to load suspended order:', err);
           }
+        }
+
+        // Load recent order history to track already ordered products (avoid repetition)
+        try {
+          const historyRes = await api.userOrderHistory({ limit: 40 });
+          if (historyRes?.success && historyRes.data?.orders?.length > 0) {
+            historyRes.data.orders.forEach((ord: any) => {
+              if (ord.productId) recentProductIdsRef.current.add(String(ord.productId));
+              if (ord.productName) recentProductNamesRef.current.add(getNormProductName(ord.productName));
+            });
+            console.log(`[OrdersPage] Loaded ${recentProductIdsRef.current.size} previously ordered products to avoid duplicates`);
+          }
+        } catch (err) {
+          console.error('[OrdersPage] Failed to load recent order history:', err);
         }
 
         // Return ms until next reset if provided by backend
@@ -563,7 +592,20 @@ export function OrdersPage() {
             return;
           }
 
-          selectedProductForOrder = affordableProducts[Math.floor(Math.random() * affordableProducts.length)];
+          // 🛡️ DEDUPLICATION: Exclude products already ordered recently/today so user never gets duplicate products!
+          const unpickedProducts = affordableProducts.filter(p => {
+            const normPName = getNormProductName(p.name);
+            return !recentProductIdsRef.current.has(String(p.id)) && !recentProductNamesRef.current.has(normPName);
+          });
+
+          // If all affordable products have been picked once, cycle through them again
+          const candidatePool = unpickedProducts.length > 0 ? unpickedProducts : affordableProducts;
+          selectedProductForOrder = candidatePool[Math.floor(Math.random() * candidatePool.length)];
+
+          // Track this product
+          recentProductIdsRef.current.add(String(selectedProductForOrder.id));
+          recentProductNamesRef.current.add(getNormProductName(selectedProductForOrder.name));
+          console.log(`[Orders] 🎯 Selected fresh product (unpicked pool: ${unpickedProducts.length}/${affordableProducts.length}):`, selectedProductForOrder.name, `$${selectedProductForOrder.price}`);
         }
 
         setSelectedProduct(selectedProductForOrder);
@@ -656,6 +698,10 @@ export function OrdersPage() {
       }, clientRequestId);
 
       console.log('[Orders] Order submitted successfully');
+
+      // Record this product in recent sets so it won't be repeated in future grabs
+      recentProductIdsRef.current.add(String(selectedProduct.id));
+      recentProductNamesRef.current.add(getNormProductName(selectedProduct.name));
 
       // Add delay for better UX (looks more professional)
       await new Promise(resolve => setTimeout(resolve, 1500));

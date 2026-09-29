@@ -128,12 +128,13 @@ app.get('/api/image-proxy', async (req, res) => {
       return res.status(400).json({ error: 'Missing url parameter' });
     }
 
+    const DEFAULT_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80&auto=format&fit=crop';
+
     // Blacklist dead domains to avoid spam errors
-    const deadDomains = ['placeimg.com', 'lorempixel.com'];
+    const deadDomains = ['placeimg.com', 'lorempixel.com', 'via.placeholder.com'];
     const urlObj = new URL(imageUrl);
     if (deadDomains.some(domain => urlObj.hostname.includes(domain))) {
-      // Return placeholder instead of error
-      return res.redirect('https://via.placeholder.com/400x400/cccccc/666666?text=Image+Not+Available');
+      return res.redirect(DEFAULT_FALLBACK_IMAGE);
     }
 
     const response = await fetch(imageUrl, {
@@ -146,7 +147,7 @@ app.get('/api/image-proxy', async (req, res) => {
     });
 
     if (!response.ok) {
-      return res.status(response.status).json({ error: 'Failed to fetch image' });
+      return res.redirect(DEFAULT_FALLBACK_IMAGE);
     }
 
     const contentType = response.headers.get('content-type') || 'image/jpeg';
@@ -157,12 +158,11 @@ app.get('/api/image-proxy', async (req, res) => {
     const buffer = await response.arrayBuffer();
     res.send(Buffer.from(buffer));
   } catch (error) {
-    // Only log non-blacklisted errors to reduce spam
     if (!error.message?.includes('placeimg.com') && !error.message?.includes('lorempixel.com')) {
       console.error('Image proxy error:', error.message);
     }
-    // Return placeholder on error
-    res.redirect('https://via.placeholder.com/400x400/cccccc/666666?text=Image+Error');
+    // Return high quality fallback image on error
+    return res.redirect('https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80&auto=format&fit=crop');
   }
 });
 
