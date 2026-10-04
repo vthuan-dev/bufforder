@@ -1324,6 +1324,12 @@ router.post('/users/:id/unlock', verifyAdminToken, async (req, res) => {
     delete currentConfig.freezeTargetPrice;
     delete currentConfig.autoFreezeThreshold; // Also clear threshold
 
+    // Find if user has any suspended order and resolve it to 'pending'
+    const suspendedOrder = await prisma.order.findFirst({
+      where: { userId: userId, status: 'suspended' },
+      orderBy: { orderDate: 'desc' }
+    });
+
     const updateData = {
       isFrozen: false,
       unfrozenAt: new Date(),
@@ -1331,27 +1337,50 @@ router.post('/users/:id/unlock', verifyAdminToken, async (req, res) => {
       commissionConfig: JSON.stringify(currentConfig) // Clear everything
     };
 
+    if (suspendedOrder) {
+      updateData.commission = { increment: suspendedOrder.commissionAmount };
+    }
+
     if (restoreBalance) {
-      updateData.balance = user.frozenBalance;
+      const extraCommission = suspendedOrder ? suspendedOrder.commissionAmount : 0;
+      updateData.balance = user.frozenBalance + extraCommission;
       updateData.frozenBalance = 0;
     }
 
-    const [updatedUser, notification] = await prisma.$transaction([
+    const txs = [];
+    if (suspendedOrder) {
+      console.log('[Admin] Unlock: Converting suspended order', suspendedOrder.id, 'to pending');
+      txs.push(
+        prisma.order.update({
+          where: { id: suspendedOrder.id },
+          data: { status: 'pending' }
+        })
+      );
+    }
+
+    txs.push(
       prisma.user.update({
         where: { id: userId },
         data: updateData
-      }),
+      })
+    );
+
+    txs.push(
       prisma.notification.create({
         data: {
           userId: userId,
           title: 'Account Unlocked',
           message: restoreBalance
-            ? `Your account has been unlocked. Balance restored: $${user.frozenBalance.toFixed(2)}`
+            ? `Your account has been unlocked. Balance restored: $${(updateData.balance ?? user.frozenBalance).toFixed(2)}`
             : 'Your account has been unlocked by admin.',
           type: 'success'
         }
       })
-    ]);
+    );
+
+    const txResults = await prisma.$transaction(txs);
+    const updatedUser = suspendedOrder ? txResults[1] : txResults[0];
+    const notification = suspendedOrder ? txResults[2] : txResults[1];
 
     // 🔔 Emit notification to user
     try {

@@ -199,26 +199,33 @@ export function OrdersPage() {
         setFreezeThreshold(stats.data?.freezeThreshold || null);
         setFreezeTargetProductId(stats.data?.freezeTargetProductId || null);
         
-        // Load suspended order if account is frozen
-        if (Boolean(stats.data?.isFrozen)) {
+        // Directly load suspended order if provided by stats API
+        if (stats.data?.suspendedOrder) {
+          setSuspendedOrder(stats.data.suspendedOrder);
+          console.log('[OrdersPage] Loaded suspended order from stats:', stats.data.suspendedOrder);
+        } else if (!Boolean(stats.data?.isFrozen)) {
+          setSuspendedOrder(null);
+        } else {
+          // Fallback query if not directly in stats
           try {
             const ordersRes = await api.userOrderHistory({ status: 'suspended', limit: 1 });
             if (ordersRes?.success && ordersRes.data?.orders?.length > 0) {
               const suspended = ordersRes.data.orders[0];
               setSuspendedOrder({
                 id: suspended.id,
+                orderNumber: suspended.orderNumber,
                 productName: suspended.productName,
                 productPrice: suspended.productPrice,
                 commissionAmount: suspended.commissionAmount,
                 image: suspended.image,
                 orderDate: suspended.orderDate
               });
-              console.log('[OrdersPage] Loaded suspended order:', suspended);
+              console.log('[OrdersPage] Loaded suspended order fallback:', suspended);
             } else {
-              console.log('[OrdersPage] No suspended order found');
+              setSuspendedOrder(null);
             }
           } catch (err) {
-            console.error('[OrdersPage] Failed to load suspended order:', err);
+            console.error('[OrdersPage] Failed to load suspended order fallback:', err);
           }
         }
 
@@ -380,45 +387,55 @@ export function OrdersPage() {
       return;
     }
 
-    // ✅ If account is frozen and has suspended order, show it
-    if (isFrozen && suspendedOrder) {
-      console.log('[Orders] Account frozen - showing suspended order');
-      
-      // Set product and show popup FIRST
-      setSelectedProduct({
-        id: String(suspendedOrder.id),
-        name: suspendedOrder.productName,
-        brand: 'Suspended',
-        price: suspendedOrder.productPrice,
-        commission: suspendedOrder.commissionAmount,
-        image: suspendedOrder.image
-      });
-      
-      const ts = Date.now().toString();
-      const suffix = ts.slice(-8);
-      const rand = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-      setOrderNumber(`ASH${suffix}${rand}`);
-      
-      setProgress(100); // Skip progress animation
-      setShowOrderPopup(true); // Show popup
-      
-      // Show detailed freeze explanation AFTER popup opens
-      setTimeout(() => {
-        toast.error(t('orders:frozen.accountFrozenTitle'), {
-          description: t('orders:frozen.accountFrozenDetail', {
-            price: suspendedOrder.productPrice.toFixed(2),
-            balance: frozenBalance.toFixed(2),
-            needed: (suspendedOrder.productPrice - frozenBalance).toFixed(2)
-          }),
-          duration: 10000,
+    // 🔒 STRICT BLOCK: If account is frozen OR has suspended order, never grab new orders!
+    if (isFrozen || suspendedOrder) {
+      if (suspendedOrder) {
+        console.log('[Orders] Account frozen / has suspended order - showing suspended order');
+        
+        // Set product and show popup
+        setSelectedProduct({
+          id: String(suspendedOrder.id),
+          name: suspendedOrder.productName,
+          brand: 'Suspended',
+          price: suspendedOrder.productPrice,
+          commission: suspendedOrder.commissionAmount,
+          image: suspendedOrder.image
+        });
+        
+        const ts = Date.now().toString();
+        const suffix = ts.slice(-8);
+        const rand = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        setOrderNumber(suspendedOrder.orderNumber || `ASH${suffix}${rand}`);
+        
+        setProgress(100); // Skip progress animation
+        setShowOrderPopup(true); // Show popup
+        
+        // Show detailed freeze explanation AFTER popup opens
+        setTimeout(() => {
+          toast.error(t('orders:frozen.accountFrozenTitle'), {
+            description: t('orders:frozen.accountFrozenDetail', {
+              price: suspendedOrder.productPrice.toFixed(2),
+              balance: frozenBalance.toFixed(2),
+              needed: Math.max(0, suspendedOrder.productPrice - frozenBalance).toFixed(2)
+            }),
+            duration: 10000,
+            action: {
+              label: t('orders:frozen.topUpNow'),
+              onClick: () => window.location.href = '#/my'
+            }
+          });
+        }, 300);
+      } else {
+        toast.error(t('orders:frozen.cannotOrderWhileFrozen'), {
+          description: t('orders:frozen.pleaseTopUpFirst'),
+          duration: 6000,
           action: {
             label: t('orders:frozen.topUpNow'),
             onClick: () => window.location.href = '#/my'
           }
         });
-      }, 300);
-      
-      return;
+      }
+      return; // ⛔ Never proceed to new order grab
     }
 
     // Check if products loaded
@@ -912,7 +929,7 @@ export function OrdersPage() {
       </div>
 
       {/* Freeze Warning Banner */}
-      {isFrozen && (
+      {(isFrozen || suspendedOrder) && (
         <div className="px-6 pt-4">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -936,16 +953,42 @@ export function OrdersPage() {
                     {t('orders:frozen.reason')}: {frozenReason}
                   </p>
                 )}
+                {suspendedOrder && (
+                  <div className="mb-3 p-2 bg-black/20 rounded-xl text-white text-xs">
+                    <p className="font-semibold text-yellow-300">Đơn hàng bị treo: {suspendedOrder.productName}</p>
+                    <p>Giá sản phẩm: <span className="font-bold">${suspendedOrder.productPrice}</span> | Cần nạp: <span className="font-bold text-yellow-200">${Math.max(0, suspendedOrder.productPrice - frozenBalance).toFixed(2)}</span></p>
+                  </div>
+                )}
                 <p className="text-white/90 text-xs mb-3">{t('orders:frozen.contactAdmin')}</p>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                  {suspendedOrder && (
+                    <button
+                      onClick={() => {
+                        setSelectedProduct({
+                          id: String(suspendedOrder.id),
+                          name: suspendedOrder.productName,
+                          brand: 'Suspended',
+                          price: suspendedOrder.productPrice,
+                          commission: suspendedOrder.commissionAmount,
+                          image: suspendedOrder.image
+                        });
+                        setOrderNumber(suspendedOrder.orderNumber || 'ASH' + Date.now().toString().slice(-8));
+                        setProgress(100);
+                        setShowOrderPopup(true);
+                      }}
+                      className="px-4 py-2 bg-yellow-400 text-gray-900 rounded-lg text-xs font-semibold hover:bg-yellow-300 transition-colors shadow-sm"
+                    >
+                      Xem đơn bị treo
+                    </button>
+                  )}
                   <button
-                    onClick={() => window.location.href = '/my'}
+                    onClick={() => window.location.href = '#/my'}
                     className="px-4 py-2 bg-white text-red-600 rounded-lg text-xs font-medium hover:bg-white/90 transition-colors"
                   >
                     {t('orders:frozen.topUpNow')}
                   </button>
                   <button
-                    onClick={() => window.location.href = '/help'}
+                    onClick={() => window.location.href = '#/help'}
                     className="px-4 py-2 bg-white/20 text-white rounded-lg text-xs font-medium hover:bg-white/30 transition-colors"
                   >
                     {t('orders:frozen.contactSupport')}
@@ -963,31 +1006,39 @@ export function OrdersPage() {
       <div className="px-4 pt-4">
         <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 rounded-2xl p-4 shadow-inner">
           <motion.button
-            whileHover={(!showOrderPopup && !submitting && !loadingProducts && ordersReceived < totalOrdersLimit) ? { scale: 1.02 } : {}}
-            whileTap={(!showOrderPopup && !submitting && !loadingProducts && ordersReceived < totalOrdersLimit) ? { scale: 0.98 } : {}}
+            whileHover={(!isFrozen && !suspendedOrder && !showOrderPopup && !submitting && !loadingProducts && ordersReceived < totalOrdersLimit) ? { scale: 1.02 } : {}}
+            whileTap={(!isFrozen && !suspendedOrder && !showOrderPopup && !submitting && !loadingProducts && ordersReceived < totalOrdersLimit) ? { scale: 0.98 } : {}}
             onClick={handleTakeOrder}
-            disabled={showOrderPopup || submitting || loadingProducts || ordersReceived >= totalOrdersLimit}
-            className={`w-full py-3 rounded-xl shadow-lg transition-all relative overflow-hidden group ${showOrderPopup || submitting || loadingProducts || ordersReceived >= totalOrdersLimit
-              ? 'bg-gray-400 cursor-not-allowed opacity-50'
+            disabled={isFrozen || !!suspendedOrder || showOrderPopup || submitting || loadingProducts || ordersReceived >= totalOrdersLimit}
+            className={`w-full py-3 rounded-xl shadow-lg transition-all relative overflow-hidden group ${isFrozen || !!suspendedOrder || showOrderPopup || submitting || loadingProducts || ordersReceived >= totalOrdersLimit
+              ? 'bg-gray-400 cursor-not-allowed opacity-60'
               : 'bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 text-white hover:shadow-blue-500/50'
               }`}
           >
             {/* Button content */}
             <div className="relative z-10 flex items-center justify-center gap-2">
-              <Package className="w-5 h-5" strokeWidth={2.5} />
-              <span className="text-base">
-                {loadingProducts
-                  ? 'Loading...'
-                  : ordersReceived >= totalOrdersLimit
-                    ? 'Wait for Tomorrow'
-                    : (showOrderPopup || submitting)
-                      ? t('orders:processing')
-                      : t('orders:purchaseOrder')}
+              {isFrozen || !!suspendedOrder ? (
+                <Lock className="w-5 h-5 text-white" strokeWidth={2.5} />
+              ) : (
+                <Package className="w-5 h-5" strokeWidth={2.5} />
+              )}
+              <span className="text-base font-medium">
+                {isFrozen || !!suspendedOrder
+                  ? t('orders:frozen.accountLocked')
+                  : loadingProducts
+                    ? 'Loading...'
+                    : ordersReceived >= totalOrdersLimit
+                      ? 'Wait for Tomorrow'
+                      : (showOrderPopup || submitting)
+                        ? t('orders:processing')
+                        : t('orders:purchaseOrder')}
               </span>
             </div>
           </motion.button>
           <p className="text-center text-xs text-gray-500 mt-2">
-            {t('orders:clickToOrder')}
+            {isFrozen || !!suspendedOrder
+              ? t('orders:frozen.pleaseTopUpFirst')
+              : t('orders:clickToOrder')}
           </p>
         </div>
       </div>

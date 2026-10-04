@@ -132,6 +132,15 @@ router.get('/stats', authenticateToken, async (req, res) => {
       }
     }
 
+    // Check for any suspended order across ALL TIME for this user
+    const suspendedOrder = await prisma.order.findFirst({
+      where: {
+        userId: userId,
+        status: 'suspended'
+      },
+      orderBy: { orderDate: 'desc' }
+    });
+
     res.json({
       success: true,
       data: {
@@ -148,8 +157,17 @@ router.get('/stats', authenticateToken, async (req, res) => {
         dailyEarnings: dailyEarningsToday,
         freezeThreshold, // Threshold order number where freeze may trigger
         freezeTargetProductId, // Admin-specified product for freeze
-        isFrozen: user.isFrozen,
+        isFrozen: user.isFrozen || Boolean(suspendedOrder),
         frozenReason: user.frozenReason,
+        suspendedOrder: suspendedOrder ? {
+          id: suspendedOrder.id,
+          orderNumber: suspendedOrder.orderNumber,
+          productName: suspendedOrder.productName,
+          productPrice: suspendedOrder.productPrice,
+          commissionAmount: suspendedOrder.commissionAmount,
+          image: suspendedOrder.image || '',
+          orderDate: suspendedOrder.orderDate
+        } : null,
         resetTime: endOfDay.toISOString()
       }
     });
@@ -175,6 +193,46 @@ router.post('/take', authenticateToken, async (req, res) => {
     if (!user) {
       console.log('[Orders/take] User not found for id:', userId);
       return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // 🔒 1. Check if user account is frozen
+    if (user.isFrozen) {
+      console.log('[Orders/take] ❌ Blocked: Account is frozen for user:', userId);
+      return res.status(403).json({
+        success: false,
+        message: 'Account is frozen',
+        error: {
+          code: 'ACCOUNT_FROZEN',
+          frozenBalance: user.frozenBalance,
+          frozenAt: user.frozenAt,
+          reason: user.frozenReason || 'Your account is frozen. Please contact admin or top up to unlock.'
+        }
+      });
+    }
+
+    // 🔒 2. Check if user has ANY suspended order across ALL TIME (regardless of day/reset)
+    const existingSuspended = await prisma.order.findFirst({
+      where: {
+        userId: userId,
+        status: 'suspended'
+      },
+      orderBy: { orderDate: 'desc' }
+    });
+
+    if (existingSuspended) {
+      console.log('[Orders/take] ❌ Blocked: User has existing suspended order:', existingSuspended.id);
+      return res.status(403).json({
+        success: false,
+        message: 'You have a suspended order that must be resolved first',
+        error: {
+          code: 'ORDER_SUSPENDED',
+          orderId: existingSuspended.id,
+          orderNumber: existingSuspended.orderNumber,
+          productPrice: existingSuspended.productPrice,
+          productName: existingSuspended.productName,
+          orderDate: existingSuspended.orderDate
+        }
+      });
     }
 
     // Get today's date range
