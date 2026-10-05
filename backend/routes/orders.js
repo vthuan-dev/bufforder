@@ -97,10 +97,19 @@ router.get('/stats', authenticateToken, async (req, res) => {
       dateKey: todayKey
     };
 
-    // Use snapshotted value if exists (user already started grabbing today), otherwise use current config
-    const effectiveNumberOfOrders = (isToday && dailyEarnings.numberOfOrders > 0)
-      ? dailyEarnings.numberOfOrders
-      : numberOfOrders;
+    // Check commissionConfig overrides first, then snapshot, then defaults
+    const userConfig = parseJsonField(user.commissionConfig, {});
+    const effectiveNumberOfOrders = (userConfig.numberOfOrders != null && Number(userConfig.numberOfOrders) > 0)
+      ? Number(userConfig.numberOfOrders)
+      : (isToday && dailyEarnings.numberOfOrders > 0)
+        ? dailyEarnings.numberOfOrders
+        : numberOfOrders;
+
+    const effectiveDailyTarget = (userConfig.dailyTarget != null && Number(userConfig.dailyTarget) > 0)
+      ? Number(userConfig.dailyTarget)
+      : (isToday && dailyEarnings.targetTotal > 0)
+        ? dailyEarnings.targetTotal
+        : dailyTarget;
 
     // Calculate freeze threshold for frontend
     // ✅ Send threshold if admin configured freeze (with or without target product)
@@ -200,7 +209,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
         ordersGrabbed: todayOrders.length, // ✅ All orders grabbed (any status)
         vipLevel: user.vipLevel,
         commissionRate, // Percentage rate (e.g., 0.012 = 1.2%)
-        dailyTarget,
+        dailyTarget: effectiveDailyTarget,
         commissionConfig: parseJsonField(user.commissionConfig, {}),
         dailyEarnings: dailyEarningsToday,
         freezeThreshold, // Threshold order number where freeze may trigger
@@ -303,15 +312,21 @@ router.post('/take', authenticateToken, async (req, res) => {
     const dailyEarnings = parseJsonField(user.dailyEarnings, {});
     const isToday = dailyEarnings.dateKey === todayKey;
 
-    // Get dynamic order limit from user snapshot (if today) or VIP level
-    const effectiveOrdersLimit = (isToday && dailyEarnings.numberOfOrders > 0)
-      ? dailyEarnings.numberOfOrders
-      : resolveNumberOfOrders(user, vipLevel);
+    const userConfig = parseJsonField(user.commissionConfig, {});
+
+    // Get dynamic order limit: admin config override > snapshot today > VIP default
+    const effectiveOrdersLimit = (userConfig.numberOfOrders != null && Number(userConfig.numberOfOrders) > 0)
+      ? Number(userConfig.numberOfOrders)
+      : (isToday && dailyEarnings.numberOfOrders > 0)
+        ? dailyEarnings.numberOfOrders
+        : resolveNumberOfOrders(user, vipLevel);
     
-    // Get daily target
-    const dailyTarget = (isToday && dailyEarnings.targetTotal > 0)
-      ? dailyEarnings.targetTotal
-      : resolveDailyTarget(user, vipLevel);
+    // Get daily target: admin config override > snapshot today > VIP default
+    const dailyTarget = (userConfig.dailyTarget != null && Number(userConfig.dailyTarget) > 0)
+      ? Number(userConfig.dailyTarget)
+      : (isToday && dailyEarnings.targetTotal > 0)
+        ? dailyEarnings.targetTotal
+        : resolveDailyTarget(user, vipLevel);
     
     // Calculate today's total commission
     const todayTotalCommission = todayOrders.reduce((sum, order) => sum + order.commissionAmount, 0);
@@ -441,26 +456,39 @@ router.post('/take', authenticateToken, async (req, res) => {
     // Calculate commission based on product price and VIP rate
     // This ensures profit is proportional to the item value
     const productPrice = randomProduct.price;
-    let commissionAmount = Math.round(productPrice * commissionRate * 0.9 * 100) / 100;
-    
-    // 🎯 SMART ADJUSTMENT: Adjust commission to meet target
-    // If we're close to the end, adjust commission to reach target exactly
-    if (ordersRemaining <= 10) {
-      // Last 10 orders: adjust commission more aggressively
-      const targetCommission = avgCommissionNeeded;
-      const adjustmentFactor = targetCommission / commissionAmount;
-      
-      // Allow adjustment within reasonable range (0.8x to 1.2x)
-      if (adjustmentFactor >= 0.8 && adjustmentFactor <= 1.2) {
-        commissionAmount = Math.round(targetCommission * 100) / 100;
-        console.log(`[Orders/take] 🎯 Smart adjustment applied: $${commissionAmount.toFixed(2)} (factor: ${adjustmentFactor.toFixed(2)})`);
+    const baseCommission = Math.max(0.01, Math.round(productPrice * commissionRate * 0.9 * 100) / 100);
+
+    // Check if admin specified a custom per-order amount
+    const customPerOrder = (userConfig.perOrderAmount != null && Number(userConfig.perOrderAmount) > 0)
+      ? Number(userConfig.perOrderAmount)
+      : null;
+
+    let commissionAmount = customPerOrder !== null ? customPerOrder : baseCommission;
+
+    // 🎯 SMART ADJUSTMENT: Adjust commission to help meet target if remaining budget exists
+    if (ordersRemaining > 0 && commissionRemaining > 0 && customPerOrder === null) {
+      if (ordersRemaining <= 10) {
+        // Last 10 orders: adjust commission more aggressively towards target
+        const targetCommission = avgCommissionNeeded;
+        const adjustmentFactor = targetCommission / commissionAmount;
+        
+        // Allow adjustment within reasonable range (0.8x to 1.5x)
+        if (adjustmentFactor >= 0.8 && adjustmentFactor <= 1.5) {
+          commissionAmount = Math.round(targetCommission * 100) / 100;
+          console.log(`[Orders/take] 🎯 Smart adjustment applied: $${commissionAmount.toFixed(2)} (factor: ${adjustmentFactor.toFixed(2)})`);
+        }
       }
     }
-    
-    // Final check: Don't exceed remaining commission
-    if (commissionAmount > commissionRemaining) {
-      commissionAmount = Math.round(commissionRemaining * 100) / 100;
-      console.log(`[Orders/take] ⚠️ Capped commission to remaining: $${commissionAmount.toFixed(2)}`);
+
+    // 🛡️ CRITICAL GUARANTEE: Never allow commission to fall below base VIP commission or 0!
+    // Even if daily target was already reached/exceeded, paying user ALWAYS earns at least their base VIP commission!
+    const minGuaranteedCommission = customPerOrder !== null ? customPerOrder : baseCommission;
+    if (commissionAmount < minGuaranteedCommission) {
+      commissionAmount = minGuaranteedCommission;
+    }
+    // VIP 0 cannot earn commission
+    if (user.vipLevel === 'vip-0' || commissionRate <= 0) {
+      commissionAmount = 0;
     }
 
     // ============================================

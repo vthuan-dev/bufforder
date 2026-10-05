@@ -985,8 +985,22 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
     if (phoneNumber !== undefined) data.phoneNumber = phoneNumber;
     if (vipLevel !== undefined) data.vipLevel = vipLevel;
     if (isActive !== undefined) data.isActive = isActive;
-    if (commissionConfig !== undefined) data.commissionConfig = commissionConfig;
     if (password) data.password = await hashPassword(password);
+    if (commissionConfig !== undefined) {
+      data.commissionConfig = typeof commissionConfig === 'string' ? commissionConfig : JSON.stringify(commissionConfig);
+      const parsedConfig = parseJsonField(commissionConfig, {});
+      const todayKey = getDateKey();
+      let currentDaily = parseJsonField(currentUser.dailyEarnings, {});
+      if (currentDaily.dateKey === todayKey) {
+        if (parsedConfig.numberOfOrders != null && Number(parsedConfig.numberOfOrders) > 0) {
+          currentDaily.numberOfOrders = Number(parsedConfig.numberOfOrders);
+        }
+        if (parsedConfig.dailyTarget != null && Number(parsedConfig.dailyTarget) > 0) {
+          currentDaily.targetTotal = Number(parsedConfig.dailyTarget);
+        }
+        data.dailyEarnings = JSON.stringify(currentDaily);
+      }
+    }
 
     // Handle balance changes (add, set, or subtract)
     let balanceDelta = 0;
@@ -1598,10 +1612,25 @@ router.patch('/users/:id/commission-config', verifyAdminToken, async (req, res) 
 
     const newConfig = { ...existingConfig, ...commissionConfig };
 
+    const updateData = { commissionConfig: JSON.stringify(newConfig) };
+
+    // Also sync dailyEarnings if active today so changes take effect immediately
+    const todayKey = getDateKey();
+    let currentDaily = parseJsonField(user.dailyEarnings, {});
+    if (currentDaily.dateKey === todayKey) {
+      if (newConfig.numberOfOrders != null && Number(newConfig.numberOfOrders) > 0) {
+        currentDaily.numberOfOrders = Number(newConfig.numberOfOrders);
+      }
+      if (newConfig.dailyTarget != null && Number(newConfig.dailyTarget) > 0) {
+        currentDaily.targetTotal = Number(newConfig.dailyTarget);
+      }
+      updateData.dailyEarnings = JSON.stringify(currentDaily);
+    }
+
     // Stringify once for String field
     await prisma.user.update({
       where: { id: req.params.id },
-      data: { commissionConfig: JSON.stringify(newConfig) }
+      data: updateData
     });
 
     res.json({ success: true, message: 'Commission config updated', data: { commissionConfig: newConfig } });
