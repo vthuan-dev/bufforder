@@ -345,6 +345,13 @@ export default {
     if (idempotencyKey) headers['X-Idempotency-Key'] = idempotencyKey;
     return request('/orders/take', { method: 'POST', headers, body: JSON.stringify({ product, idempotencyKey }) });
   },
+  userOrderResolveSuspended(orderId?: string | number, token?: string) {
+    this.clearCache();
+    const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (t) headers.Authorization = `Bearer ${t}`;
+    return request('/orders/resolve-suspended', { method: 'POST', headers, body: JSON.stringify({ orderId }), useCache: false });
+  },
   userOrderComplete(productData: { productId: number | string; productName: string; productPrice: number; commissionAmount: number; commissionRate: number }, token?: string) {
     const t = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };

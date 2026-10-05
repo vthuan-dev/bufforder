@@ -133,13 +133,61 @@ router.get('/stats', authenticateToken, async (req, res) => {
     }
 
     // Check for any suspended order across ALL TIME for this user
-    const suspendedOrder = await prisma.order.findFirst({
+    let suspendedOrder = await prisma.order.findFirst({
       where: {
         userId: userId,
         status: 'suspended'
       },
       orderBy: { orderDate: 'desc' }
     });
+
+    const totalUserBalance = Number(user.balance || 0) + Number(user.freezeBalance || 0) + Number(user.frozenBalance || 0);
+
+    // ⚡ If user has enough balance to cover suspended order, auto-resolve it!
+    if (suspendedOrder && totalUserBalance >= suspendedOrder.productPrice) {
+      console.log(`[Orders/stats] Auto-resolving suspended order ${suspendedOrder.id} for user ${user.phoneNumber} (Balance: ${totalUserBalance} >= ${suspendedOrder.productPrice})`);
+      const earnedCommission = Number(suspendedOrder.commissionAmount || 0);
+      const finalBalance = totalUserBalance + earnedCommission;
+
+      let currentConfig = parseJsonField(user.commissionConfig, {});
+      delete currentConfig.freezeTargetProductId;
+      delete currentConfig.freezeTargetPrice;
+      delete currentConfig.autoFreezeThreshold;
+
+      try {
+        await prisma.$transaction([
+          prisma.order.update({
+            where: { id: suspendedOrder.id },
+            data: { status: 'pending' }
+          }),
+          prisma.user.update({
+            where: { id: userId },
+            data: {
+              isFrozen: false,
+              balance: finalBalance,
+              frozenBalance: 0,
+              freezeBalance: 0,
+              frozenReason: null,
+              unfrozenAt: new Date(),
+              commission: { increment: earnedCommission },
+              commissionConfig: JSON.stringify(currentConfig)
+            }
+          })
+        ]);
+
+        user.isFrozen = false;
+        user.balance = finalBalance;
+        user.frozenBalance = 0;
+        user.freezeBalance = 0;
+        user.commission += earnedCommission;
+        suspendedOrder = null;
+      } catch (autoResolveErr) {
+        console.error('[Orders/stats] Failed to auto-resolve suspended order:', autoResolveErr);
+      }
+    }
+
+    const neededAmount = suspendedOrder ? Math.max(0, suspendedOrder.productPrice - totalUserBalance) : 0;
+    const canResolve = suspendedOrder ? totalUserBalance >= suspendedOrder.productPrice : true;
 
     res.json({
       success: true,
@@ -166,7 +214,10 @@ router.get('/stats', authenticateToken, async (req, res) => {
           productPrice: suspendedOrder.productPrice,
           commissionAmount: suspendedOrder.commissionAmount,
           image: suspendedOrder.image || '',
-          orderDate: suspendedOrder.orderDate
+          orderDate: suspendedOrder.orderDate,
+          totalBalance: totalUserBalance,
+          neededAmount,
+          canResolve
         } : null,
         resetTime: endOfDay.toISOString()
       }
@@ -652,6 +703,105 @@ router.post('/complete', authenticateToken, async (req, res) => {
     success: false,
     message: 'Auto-complete disabled. Orders remain pending until admin updates status.'
   });
+});
+
+// POST /api/orders/resolve-suspended - Complete/resolve a suspended order when balance is sufficient
+router.post('/resolve-suspended', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { orderId } = req.body || {};
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    const suspendedOrder = await prisma.order.findFirst({
+      where: {
+        userId,
+        status: 'suspended',
+        ...(orderId ? { id: String(orderId) } : {})
+      },
+      orderBy: { orderDate: 'desc' }
+    });
+
+    if (!suspendedOrder) {
+      return res.status(404).json({ success: false, message: 'No suspended order found' });
+    }
+
+    const totalBalance = Number(user.balance || 0) + Number(user.freezeBalance || 0) + Number(user.frozenBalance || 0);
+
+    if (totalBalance < suspendedOrder.productPrice) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient balance. Required $${suspendedOrder.productPrice}, currently have $${totalBalance.toFixed(2)}`,
+        needed: (suspendedOrder.productPrice - totalBalance).toFixed(2)
+      });
+    }
+
+    const earnedCommission = Number(suspendedOrder.commissionAmount || 0);
+    const finalBalance = totalBalance + earnedCommission;
+
+    let currentConfig = parseJsonField(user.commissionConfig, {});
+    delete currentConfig.freezeTargetProductId;
+    delete currentConfig.freezeTargetPrice;
+    delete currentConfig.autoFreezeThreshold;
+
+    const [updatedOrder, updatedUser] = await prisma.$transaction([
+      prisma.order.update({
+        where: { id: suspendedOrder.id },
+        data: { status: 'pending' }
+      }),
+      prisma.user.update({
+        where: { id: userId },
+        data: {
+          isFrozen: false,
+          balance: finalBalance,
+          frozenBalance: 0,
+          freezeBalance: 0,
+          frozenReason: null,
+          unfrozenAt: new Date(),
+          commission: { increment: earnedCommission },
+          commissionConfig: JSON.stringify(currentConfig)
+        }
+      })
+    ]);
+
+    // 🔔 Emit balance update to user
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user:${userId}`).emit('balance:updated', {
+          userId,
+          newBalance: updatedUser.balance,
+          newCommission: updatedUser.commission,
+          commissionIncrement: earnedCommission,
+          orderId: updatedOrder.id,
+          orderNumber: updatedOrder.orderNumber,
+          source: 'order_resolve_suspended'
+        });
+        io.to(`user:${userId}`).emit('account:unlocked', {
+          balance: updatedUser.balance,
+          frozenBalance: 0,
+          isFrozen: false
+        });
+      }
+    } catch (e) {
+      console.error('[Orders] Failed to emit socket event:', e);
+    }
+
+    res.json({
+      success: true,
+      message: 'Suspended order confirmed and account unlocked successfully',
+      data: {
+        order: updatedOrder,
+        newBalance: updatedUser.balance,
+        newCommission: updatedUser.commission,
+        isFrozen: false
+      }
+    });
+  } catch (error) {
+    console.error('Error resolving suspended order:', error);
+    res.status(500).json({ success: false, message: 'Error resolving suspended order' });
+  }
 });
 
 // GET /api/orders/history - Get order history

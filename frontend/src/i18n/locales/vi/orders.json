@@ -89,6 +89,14 @@
     "accountFrozenDetail": "Đơn hàng này đã bị treo do số dư không đủ. Giá sản phẩm: ${{price}}, Số dư hiện tại: ${{balance}}. Bạn cần nạp thêm ${{needed}} để mở khóa tài khoản và hoàn thành đơn hàng.",
     "cannotOrderWhileFrozen": "Không thể đặt hàng khi tài khoản bị đóng băng",
     "pleaseTopUpFirst": "Vui lòng nạp tiền để mở khóa tài khoản trước khi đặt hàng.",
-    "accountLocked": "Tài khoản bị khóa"
+    "accountLocked": "Tài khoản bị khóa",
+    "readyToResolveTitle": "Đơn hàng bị treo đã đủ số dư",
+    "readyToResolveMessage": "Số dư hiện tại (${{balance}}) đã đủ để hoàn thành đơn hàng (${{price}}). Vui lòng xác nhận đơn hàng để mở khóa tài khoản.",
+    "confirmSuspendedOrder": "Xác nhận đơn hàng bị treo",
+    "resolveNow": "Xác nhận ngay",
+    "suspendedSuccess": "Đơn hàng bị treo đã được hoàn tất thành công và tài khoản đã được mở khóa!",
+    "balanceSufficient": "Số dư của bạn đã đủ để hoàn thành đơn hàng này. Vui lòng bấm Xác nhận đơn hàng để mở khóa tài khoản.",
+    "neededToTopUp": "Cần nạp thêm: ${{needed}}",
+    "viewSuspendedOrder": "Xem đơn bị treo"
   }
 }

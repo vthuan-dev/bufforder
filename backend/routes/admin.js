@@ -1029,6 +1029,35 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
       // For subtract/set operations, don't change totalDeposited or VIP level
     }
 
+    // Check if user has a suspended order and new balance covers it
+    let suspendedOrderProcessed = null;
+    const suspendedOrder = await prisma.order.findFirst({
+      where: { userId: req.params.id, status: 'suspended' },
+      orderBy: { orderDate: 'desc' }
+    });
+
+    if (suspendedOrder && data.balance !== undefined) {
+      const finalEffectiveBalance = Number(data.balance) + Number(currentUser.frozenBalance || 0);
+      if (finalEffectiveBalance >= suspendedOrder.productPrice) {
+        console.log(`[Admin] Updating user: Balance ($${data.balance}) covers suspended order $${suspendedOrder.productPrice}. Auto-resolving order ${suspendedOrder.id}`);
+        data.isFrozen = false;
+        data.unfrozenAt = new Date();
+        data.unfrozenBy = req.adminId;
+        data.frozenBalance = 0;
+        data.frozenReason = null;
+        data.commission = { increment: suspendedOrder.commissionAmount };
+        data.balance = finalEffectiveBalance + suspendedOrder.commissionAmount;
+
+        let currentConfig = parseJsonField(currentUser.commissionConfig, {});
+        delete currentConfig.freezeTargetProductId;
+        delete currentConfig.freezeTargetPrice;
+        delete currentConfig.autoFreezeThreshold;
+        data.commissionConfig = JSON.stringify(currentConfig);
+
+        suspendedOrderProcessed = suspendedOrder;
+      }
+    }
+
     // Use transaction to update user and create appropriate records
     let user;
     let notification;
@@ -1061,6 +1090,15 @@ router.put('/users/:id', verifyAdminToken, async (req, res) => {
           }
         })
       ];
+
+      if (suspendedOrderProcessed) {
+        txs.push(
+          prisma.order.update({
+            where: { id: suspendedOrderProcessed.id },
+            data: { status: 'pending' }
+          })
+        );
+      }
 
       if (isVipUpgrade) {
         txs.push(prisma.notification.create({

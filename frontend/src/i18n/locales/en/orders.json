@@ -89,6 +89,14 @@
     "accountFrozenDetail": "This order has been suspended due to insufficient balance. Product price: ${{price}}, Current balance: ${{balance}}. You need to top up ${{needed}} to unlock your account and complete the order.",
     "cannotOrderWhileFrozen": "Cannot place order while account is frozen",
     "pleaseTopUpFirst": "Please top up to unlock your account before placing orders.",
-    "accountLocked": "Account Locked"
+    "accountLocked": "Account Locked",
+    "readyToResolveTitle": "Suspended Order Ready to Complete",
+    "readyToResolveMessage": "Current balance (${{balance}}) is sufficient to complete the order (${{price}}). Please confirm the order to unlock your account.",
+    "confirmSuspendedOrder": "Confirm Suspended Order",
+    "resolveNow": "Confirm Now",
+    "suspendedSuccess": "Suspended order completed successfully and account unlocked!",
+    "balanceSufficient": "Your balance is sufficient to complete this order. Please click Confirm Order to unlock your account.",
+    "neededToTopUp": "Need to top up: ${{needed}}",
+    "viewSuspendedOrder": "View Suspended Order"
   }
 }
