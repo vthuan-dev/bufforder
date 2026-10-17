@@ -10,6 +10,7 @@
   "allStatus": "Tất cả trạng thái",
   "active": "Đang hoạt động",
   "inactive": "Không hoạt động",
+  "clearFilter": "Xóa lọc",
   "table": {
     "product": "Sản phẩm",
     "brand": "Thương hiệu",

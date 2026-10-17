@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, Filter, Eye, Plus, Edit, Trash2, Package, Loader2, DollarSign, Tag, Image as ImageIcon, Upload, X, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, Filter, Eye, Plus, Edit, Trash2, Package, Loader2, DollarSign, Tag, Image as ImageIcon, Upload, X, ArrowUpDown, ArrowUp, ArrowDown, RotateCcw } from "lucide-react";
 import { Badge } from "../ui/badge";
 import {
     Table,
@@ -346,6 +346,32 @@ export function AdminProductsPage() {
         }
     };
 
+    const handleResetFilters = async () => {
+        setSearchQuery("");
+        setCategoryFilter("all");
+        setStatusFilter("all");
+        setPriceSort(null);
+        setCurrentPage(1);
+        try {
+            setLoading(true);
+            const response = await api.adminListProducts({
+                page: 1,
+                limit: 20,
+                q: "",
+                category: "all",
+                isActive: "all"
+            });
+            if (response.success) {
+                setProducts(response.data.products || []);
+                setPagination(response.data.pagination || { current: 1, pages: 1, total: 0 });
+            }
+        } catch (error) {
+            console.error('Error resetting products:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="space-y-6 w-full overflow-hidden">
             {/* Page Header */}
@@ -401,6 +427,16 @@ export function AdminProductsPage() {
                             <SelectItem value="false">{t('inactive')}</SelectItem>
                         </SelectContent>
                     </Select>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleResetFilters}
+                        className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 py-2 text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 border-gray-200 transition-colors"
+                        title={t('clearFilter', 'Xóa lọc')}
+                    >
+                        <RotateCcw className="w-4 h-4" />
+                        <span>{t('clearFilter', 'Xóa lọc')}</span>
+                    </Button>
                 </div>
             </div>
 

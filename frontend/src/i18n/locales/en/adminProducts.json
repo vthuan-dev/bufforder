@@ -10,6 +10,7 @@
   "allStatus": "All Status",
   "active": "Active",
   "inactive": "Inactive",
+  "clearFilter": "Clear filter",
   "table": {
     "product": "Product",
     "brand": "Brand",
