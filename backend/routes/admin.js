@@ -1917,7 +1917,60 @@ router.get('/products', verifyAdminToken, async (req, res) => {
         { category: { contains: q } }
       ];
     }
-    if (category !== 'all') where.category = category;
+    if (category !== 'all') {
+      const CATEGORY_MAP = {
+        'Watches': 'Đồng hồ',
+        'Đồng hồ': 'Watches',
+        'Bags & Handbags': 'Túi xách',
+        'Handbags': 'Túi xách',
+        'Túi xách': 'Bags & Handbags',
+        'Fine Jewelry': 'Trang sức cao cấp',
+        'Trang sức cao cấp': 'Fine Jewelry',
+        'Eyewear & Accessories': 'Kính mắt & Phụ kiện',
+        'Kính mắt & Phụ kiện': 'Eyewear & Accessories',
+        'Jewelry': 'Trang sức',
+        'Trang sức': 'Jewelry',
+        'Clothing': 'Thời trang & May mặc',
+        'Fashion': 'Thời trang & May mặc',
+        'Thời trang & May mặc': 'Clothing',
+        'Thời trang': 'Clothing',
+        'Kitchenware': 'Đồ dùng nhà bếp',
+        'Đồ dùng nhà bếp': 'Kitchenware',
+        'Electronics': 'Điện tử',
+        'Điện tử': 'Electronics',
+        'Home Appliances': 'Thiết bị gia dụng',
+        'Thiết bị gia dụng': 'Home Appliances',
+        'Sports & Outdoors': 'Thể thao & Dã ngoại',
+        'Thể thao & Dã ngoại': 'Sports & Outdoors',
+        'Beauty & Personal': 'Làm đẹp & Chăm sóc',
+        'Beauty & Personal Care': 'Làm đẹp & Chăm sóc',
+        'Beauty': 'Làm đẹp & Chăm sóc',
+        'Làm đẹp & Chăm sóc': 'Beauty',
+        'Làm đẹp': 'Beauty',
+        'Furniture': 'Nội thất',
+        'Nội thất': 'Furniture',
+        'Toys': 'Đồ chơi',
+        'Đồ chơi': 'Toys',
+        'Home Decor': 'Trang trí nhà cửa',
+        'Trang trí nhà cửa': 'Home Decor',
+        'Footwear': 'Giày dép',
+        'Giày dép': 'Footwear',
+        'Automotive': 'Phụ kiện ô tô',
+        'Phụ kiện ô tô': 'Automotive',
+        'Baby Products': 'Mẹ & Bé',
+        'Mẹ & Bé': 'Baby Products',
+        'Office Supplies': 'Văn phòng phẩm',
+        'Văn phòng phẩm': 'Office Supplies',
+        'Books': 'Sách & Báo',
+        'Sách & Báo': 'Books'
+      };
+      const alt = CATEGORY_MAP[category];
+      if (alt) {
+        where.category = { in: [category, alt] };
+      } else {
+        where.category = category;
+      }
+    }
     if (isActive !== 'all') where.isActive = isActive === 'true';
 
     const products = await prisma.product.findMany({
