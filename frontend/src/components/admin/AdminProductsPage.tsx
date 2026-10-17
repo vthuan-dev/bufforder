@@ -70,8 +70,73 @@ export function AdminProductsPage() {
     const [previewUrl, setPreviewUrl] = useState<string>("");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Dictionary mapping English categories to Vietnamese
+    const CATEGORY_MAP_VI: Record<string, string> = {
+        "Watches": "Đồng hồ",
+        "Bags & Handbags": "Túi xách",
+        "Handbags": "Túi xách",
+        "Fine Jewelry": "Trang sức cao cấp",
+        "Jewelry": "Trang sức",
+        "Eyewear & Accessories": "Kính mắt & Phụ kiện",
+        "Accessories": "Phụ kiện",
+        "Electronics": "Điện tử",
+        "Clothing": "Thời trang & May mặc",
+        "Fashion": "Thời trang",
+        "Luxury": "Xa xỉ",
+        "Kitchenware": "Đồ dùng nhà bếp",
+        "Furniture": "Nội thất",
+        "Toys": "Đồ chơi",
+        "Home Decor": "Trang trí nhà cửa",
+        "Footwear": "Giày dép",
+        "Sports & Outdoors": "Thể thao & Dã ngoại",
+        "Automotive": "Phụ kiện ô tô",
+        "Music Instruments": "Nhạc cụ",
+        "Musical Instruments": "Nhạc cụ",
+        "Pet Supplies": "Thú cưng",
+        "Healthcare & Wellness": "Chăm sóc sức khỏe",
+        "Camping & Hiking": "Cắm trại & Dã ngoại",
+        "Tools & Home Improvement": "Dụng cụ & Sửa chữa",
+        "Beauty & Personal": "Làm đẹp & Chăm sóc",
+        "Beauty & Personal Care": "Làm đẹp & Chăm sóc",
+        "Beauty": "Làm đẹp",
+        "Home Appliances": "Thiết bị gia dụng",
+        "Gardening & Outdoor": "Làm vườn & Ngoài trời",
+        "Baby Products": "Mẹ & Bé",
+        "Office Supplies": "Văn phòng phẩm",
+        "Travel Accessories": "Phụ kiện du lịch",
+        "Health & Household": "Sức khỏe & Đời sống",
+        "Music": "Âm nhạc",
+        "Art Supplies": "Dụng cụ mỹ thuật",
+        "Industrial & Scientific": "Công nghiệp & Khoa học",
+        "Arts & Crafts": "Thủ công mỹ nghệ",
+        "Art & Craft": "Thủ công mỹ nghệ",
+        "Books": "Sách & Báo",
+        "Gaming & Accessories": "Gaming & Phụ kiện",
+        "Groceries": "Bách hóa & Thực phẩm",
+        "Camera": "Máy ảnh & Kỹ thuật số",
+        "Collectibles": "Đồ sưu tầm"
+    };
+
+    const formatCategory = (cat: string) => {
+        if (!cat) return "";
+        return CATEGORY_MAP_VI[cat] || (t(`categories.${cat}`) !== `categories.${cat}` ? t(`categories.${cat}`) : cat);
+    };
+
     // Categories for filter
-    const categories = ["Electronics", "Fashion", "Luxury", "Beauty", "Jewelry", "Accessories"];
+    const categories = [
+        "Watches",
+        "Bags & Handbags",
+        "Fine Jewelry",
+        "Eyewear & Accessories",
+        "Jewelry",
+        "Electronics",
+        "Fashion",
+        "Clothing",
+        "Kitchenware",
+        "Home Appliances",
+        "Sports & Outdoors",
+        "Beauty"
+    ];
 
     // Handle image upload
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -322,7 +387,7 @@ export function AdminProductsPage() {
                         <SelectContent>
                             <SelectItem value="all">{t('allCategories')}</SelectItem>
                             {categories.map(cat => (
-                                <SelectItem key={cat} value={cat}>{t(`categories.${cat}`)}</SelectItem>
+                                <SelectItem key={cat} value={cat}>{formatCategory(cat)}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
@@ -402,7 +467,7 @@ export function AdminProductsPage() {
                                         <TableCell className="text-gray-600 text-sm">{product.brand}</TableCell>
                                         <TableCell>
                                             <Badge variant="secondary" className="bg-purple-100 text-purple-700">
-                                                {t(`categories.${product.category}`) === `categories.${product.category}` ? product.category : t(`categories.${product.category}`)}
+                                                {formatCategory(product.category)}
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-gray-900 font-medium">${product.price.toFixed(2)}</TableCell>
@@ -510,7 +575,7 @@ export function AdminProductsPage() {
                                 <div>
                                     <p className="text-sm text-gray-500">{t('viewDialog.category')}</p>
                                     <Badge variant="secondary" className="bg-purple-100 text-purple-700 mt-1">
-                                         {t(`categories.${selectedProduct.category}`) === `categories.${selectedProduct.category}` ? selectedProduct.category : t(`categories.${selectedProduct.category}`)}
+                                         {formatCategory(selectedProduct.category)}
                                      </Badge>
                                 </div>
                                 <div>
@@ -567,7 +632,7 @@ export function AdminProductsPage() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         {categories.map(cat => (
-                                            <SelectItem key={cat} value={cat}>{t(`categories.${cat}`)}</SelectItem>
+                                            <SelectItem key={cat} value={cat}>{formatCategory(cat)}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
@@ -660,7 +725,7 @@ export function AdminProductsPage() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         {categories.map(cat => (
-                                            <SelectItem key={cat} value={cat}>{t(`categories.${cat}`)}</SelectItem>
+                                            <SelectItem key={cat} value={cat}>{formatCategory(cat)}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
