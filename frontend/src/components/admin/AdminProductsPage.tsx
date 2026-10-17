@@ -394,7 +394,8 @@ export function AdminProductsPage() {
 
             {/* Filters & Search */}
             <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-                <div className="flex flex-col sm:flex-row gap-3 items-center">
+                <div className="flex flex-col md:flex-row gap-3 items-center">
+                    {/* Component 1: Search */}
                     <div className="relative flex-1 w-full min-w-0">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input
@@ -402,13 +403,15 @@ export function AdminProductsPage() {
                             placeholder={t('search')}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full h-9 pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
-                    <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0 flex-wrap sm:flex-nowrap">
+
+                    {/* Component 2: Category Filter */}
+                    <div className="flex-1 w-full min-w-0">
                         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                            <SelectTrigger className="w-full sm:w-44 shrink-0">
-                                <Filter className="w-4 h-4 mr-2" />
+                            <SelectTrigger className="w-full h-9 bg-gray-50 border-gray-200 rounded-lg text-sm">
+                                <Filter className="w-4 h-4 mr-2 text-gray-400 shrink-0" />
                                 <SelectValue placeholder={t('category')} />
                             </SelectTrigger>
                             <SelectContent>
@@ -418,8 +421,12 @@ export function AdminProductsPage() {
                                 ))}
                             </SelectContent>
                         </Select>
+                    </div>
+
+                    {/* Component 3: Status Filter */}
+                    <div className="flex-1 w-full min-w-0">
                         <Select value={statusFilter} onValueChange={setStatusFilter}>
-                            <SelectTrigger className="w-full sm:w-36 shrink-0">
+                            <SelectTrigger className="w-full h-9 bg-gray-50 border-gray-200 rounded-lg text-sm">
                                 <SelectValue placeholder={t('status')} />
                             </SelectTrigger>
                             <SelectContent>
@@ -428,18 +435,20 @@ export function AdminProductsPage() {
                                 <SelectItem value="false">{t('inactive')}</SelectItem>
                             </SelectContent>
                         </Select>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={handleResetFilters}
-                            className="h-9 px-3 shrink-0 flex-none inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 border-gray-200 rounded-lg transition-colors cursor-pointer"
-                            title={t('clearFilter', 'Xóa lọc')}
-                        >
-                            <RotateCcw className="w-3.5 h-3.5" />
-                            <span>{t('clearFilter', 'Xóa lọc')}</span>
-                        </Button>
                     </div>
+
+                    {/* Clear Filter Button */}
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleResetFilters}
+                        className="h-9 px-3 shrink-0 flex-none inline-flex items-center justify-center gap-1.5 text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 border-gray-200 rounded-lg transition-colors cursor-pointer w-full md:w-auto"
+                        title={t('clearFilter', 'Xóa lọc')}
+                    >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span className="whitespace-nowrap">{t('clearFilter', 'Xóa lọc')}</span>
+                    </Button>
                 </div>
             </div>
 
