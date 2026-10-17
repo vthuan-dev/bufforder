@@ -71,6 +71,7 @@ router.get('/', authenticateToken, async (req, res) => {
           isActive: true,
           price: { gte: minPrice, lte: maxPrice }
         },
+        orderBy: { id: 'desc' },
         take: 300
       });
 
@@ -83,6 +84,7 @@ router.get('/', authenticateToken, async (req, res) => {
             isActive: true,
             price: { gte: minPrice, lte: maxPrice }
           },
+          orderBy: { id: 'desc' },
           take: 300
         });
       }
@@ -107,6 +109,7 @@ router.get('/', authenticateToken, async (req, res) => {
             isActive: true,
             price: { gt: userBalance + 0.01 }
           },
+          orderBy: { id: 'desc' },
           take: 40
         });
         rawProducts.push(...luxuryProducts);
@@ -117,6 +120,7 @@ router.get('/', authenticateToken, async (req, res) => {
       // No target price configured: fetch active products across categories
       rawProducts = await prisma.product.findMany({
         where: { isActive: true },
+        orderBy: { id: 'desc' },
         take: 300
       });
     }
