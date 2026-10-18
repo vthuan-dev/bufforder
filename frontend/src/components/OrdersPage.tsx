@@ -14,6 +14,7 @@ interface Product {
   id: string;
   name: string;
   brand: string;
+  category: string;
   price: number;
   commission: number;
   image: string;
@@ -79,6 +80,8 @@ export function OrdersPage() {
   // Track recently ordered product IDs and normalized names to prevent repetition
   const recentProductIdsRef = React.useRef<Set<string>>(new Set());
   const recentProductNamesRef = React.useRef<Set<string>>(new Set());
+  // Track recently selected categories to enforce rich category diversity (prevent handbags clustering)
+  const recentCategoriesRef = React.useRef<string[]>([]);
 
   // Helper to normalize product name for deduplication
   const getNormProductName = (name: string): string => {
@@ -137,6 +140,7 @@ export function OrdersPage() {
             id: String(p.id),
             name: p.name,
             brand: p.brand,
+            category: p.category || 'Khác',
             price: p.price,
             // Commission: price × rate × 0.9 (10% system fee deduction)
             commission: +(p.price * commissionRate * 0.9).toFixed(2),
@@ -566,6 +570,7 @@ export function OrdersPage() {
                     id: String(p.id),
                     name: p.name,
                     brand: p.brand,
+                    category: p.category || 'Khác',
                     price: p.price,
                     commission: +(p.price * commissionRate * 0.9).toFixed(2),
                     image: p.image || ''
@@ -586,8 +591,21 @@ export function OrdersPage() {
           if (!selectedProductForOrder) {
             const expensiveProducts = products.filter(p => p.price > freshBalance + 0.01);
             if (expensiveProducts.length > 0) {
-              selectedProductForOrder = expensiveProducts[Math.floor(Math.random() * expensiveProducts.length)];
-              console.log(`[Orders] 🔒 Selected expensive product: ${selectedProductForOrder.name} - $${selectedProductForOrder.price}`);
+              // Group expensive products by category for variety
+              const expByCategory = new Map<string, Product[]>();
+              for (const p of expensiveProducts) {
+                const cat = p.category || 'Khác';
+                if (!expByCategory.has(cat)) expByCategory.set(cat, []);
+                expByCategory.get(cat)!.push(p);
+              }
+              const availableCats = Array.from(expByCategory.keys());
+              const unusedCats = availableCats.filter(c => !recentCategoriesRef.current.includes(c));
+              const chosenCat = unusedCats.length > 0
+                ? unusedCats[Math.floor(Math.random() * unusedCats.length)]
+                : availableCats[Math.floor(Math.random() * availableCats.length)];
+              const catPool = expByCategory.get(chosenCat) || expensiveProducts;
+              selectedProductForOrder = catPool[Math.floor(Math.random() * catPool.length)];
+              console.log(`[Orders] 🔒 Selected expensive product: [${selectedProductForOrder.category}] ${selectedProductForOrder.name} - $${selectedProductForOrder.price}`);
             }
           }
 
@@ -626,12 +644,43 @@ export function OrdersPage() {
 
           // If all affordable products have been picked once, cycle through them again
           const candidatePool = unpickedProducts.length > 0 ? unpickedProducts : affordableProducts;
-          selectedProductForOrder = candidatePool[Math.floor(Math.random() * candidatePool.length)];
 
-          // Track this product
+          // 🎯 STRATIFIED CATEGORY ROTATION ALGORITHM:
+          // Group candidate pool by category to prevent any single category (like handbags) from dominating
+          const poolByCategory = new Map<string, Product[]>();
+          for (const p of candidatePool) {
+            const cat = p.category || 'Khác';
+            if (!poolByCategory.has(cat)) poolByCategory.set(cat, []);
+            poolByCategory.get(cat)!.push(p);
+          }
+
+          const availableCats = Array.from(poolByCategory.keys());
+          const recentCats = recentCategoriesRef.current;
+
+          // Find categories that have NOT been picked recently
+          const unusedCats = availableCats.filter(c => !recentCats.includes(c));
+
+          let chosenCat: string;
+          if (unusedCats.length > 0) {
+            // Pick randomly among unused categories
+            chosenCat = unusedCats[Math.floor(Math.random() * unusedCats.length)];
+          } else {
+            // If all available categories have been used, pick the least recently used one (LRU)
+            const sortedByLRU = [...availableCats].sort((a, b) => {
+              return recentCats.indexOf(a) - recentCats.indexOf(b);
+            });
+            chosenCat = sortedByLRU[0];
+          }
+
+          const catProducts = poolByCategory.get(chosenCat) || candidatePool;
+          selectedProductForOrder = catProducts[Math.floor(Math.random() * catProducts.length)];
+
+          // Track this product and category
           recentProductIdsRef.current.add(String(selectedProductForOrder.id));
           recentProductNamesRef.current.add(getNormProductName(selectedProductForOrder.name));
-          console.log(`[Orders] 🎯 Selected fresh product (unpicked pool: ${unpickedProducts.length}/${affordableProducts.length}):`, selectedProductForOrder.name, `$${selectedProductForOrder.price}`);
+          recentCategoriesRef.current = [...recentCategoriesRef.current.slice(-4), chosenCat];
+
+          console.log(`[Orders] 🎯 Selected diverse product: [${chosenCat}] ${selectedProductForOrder.name} - $${selectedProductForOrder.price} (Category history: ${recentCategoriesRef.current.join(' -> ')})`);
         }
 
         setSelectedProduct(selectedProductForOrder);
@@ -758,7 +807,7 @@ export function OrdersPage() {
         name: selectedProduct.name,
         price: selectedProduct.price,
         brand: selectedProduct.brand,
-        category: 'General',
+        category: selectedProduct.category || 'Khác',
         image: selectedProduct.image,
       }, clientRequestId);
 
