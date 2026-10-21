@@ -23,12 +23,22 @@ try {
 const router = express.Router();
 
 // Admin guard
-const verifyAdmin = (req, res, next) => {
+const verifyAdmin = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ success: false, message: 'Admin token required' });
-    const decoded = jwt.verify(token, config.JWT_SECRET);
+    const adminSecret = config.ADMIN_JWT_SECRET || config.JWT_SECRET;
+    const decoded = jwt.verify(token, adminSecret);
     if (!decoded.adminId) return res.status(401).json({ success: false, message: 'Invalid admin token' });
+
+    // Strict DB verification
+    const admin = await prisma.admin.findUnique({
+      where: { id: decoded.adminId }
+    });
+    if (!admin || !admin.isActive) {
+      return res.status(401).json({ success: false, message: 'Admin account not found or disabled' });
+    }
+
     req.adminId = decoded.adminId;
     next();
   } catch (e) {

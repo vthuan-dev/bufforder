@@ -180,7 +180,10 @@ io.use(async (socket, next) => {
     if (!token && !adminToken) return next(new Error('Unauthorized'));
 
     if (adminToken) {
-      const decoded = jwt.verify(adminToken, config.JWT_SECRET);
+      const adminSecret = config.ADMIN_JWT_SECRET || config.JWT_SECRET;
+      const decoded = jwt.verify(adminToken, adminSecret);
+      const admin = await prisma.admin.findUnique({ where: { id: decoded.adminId } });
+      if (!admin || !admin.isActive) return next(new Error('Unauthorized'));
       socket.data.role = 'admin';
       socket.data.adminId = decoded.adminId;
       return next();

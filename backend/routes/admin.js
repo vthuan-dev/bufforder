@@ -66,14 +66,25 @@ function formatDateVN(date) {
 }
 
 // Middleware to verify admin JWT token
-const verifyAdminToken = (req, res, next) => {
+const verifyAdminToken = async (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) {
     return res.status(401).json({ success: false, message: 'Admin token required' });
   }
   try {
-    const decoded = jwt.verify(token, config.JWT_SECRET);
+    const adminSecret = config.ADMIN_JWT_SECRET || config.JWT_SECRET;
+    const decoded = jwt.verify(token, adminSecret);
+    
+    // Strict DB verification: Ensure admin account exists and is currently active
+    const admin = await prisma.admin.findUnique({
+      where: { id: decoded.adminId }
+    });
+    if (!admin || !admin.isActive) {
+      return res.status(401).json({ success: false, message: 'Admin account not found or disabled' });
+    }
+
     req.adminId = decoded.adminId;
+    req.admin = admin;
     next();
   } catch (error) {
     return res.status(401).json({ success: false, message: 'Invalid admin token' });
@@ -173,7 +184,7 @@ router.post('/login', async (req, res) => {
 
     const token = jwt.sign(
       { adminId: admin.id, username: admin.username, role: admin.role },
-      config.JWT_SECRET,
+      config.ADMIN_JWT_SECRET || config.JWT_SECRET,
       { expiresIn: '24h' }
     );
 
